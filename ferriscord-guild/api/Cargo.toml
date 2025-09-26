@@ -1,0 +1,6 @@
+[package]
+name = "ferriscord-guild-api"
+description = "FerrisCord Guild API"
+version.workspace = true
+authors.workspace = true
+edition.workspace = true
