@@ -1,25 +1,29 @@
+use sqlx::PgPool;
+
 use crate::{
-    application::policies::Policies,
-    domain::{Config, errors::CoreError},
-    infrastructure::{common::build_repos_from_conf, guild::GuildRepository},
+    domain::{Config, common::Service, errors::CoreError},
+    infrastructure::guild::postgres::PostgresGuildRepository,
 };
 
-mod guild;
-mod policies;
+pub type FerrisCordService = Service<PostgresGuildRepository>;
 
-pub struct FerrisCordService {
-    pub(crate) guild_repository: GuildRepository,
-    #[allow(dead_code)]
-    pub(crate) policies: Policies,
-}
+pub async fn create_service(config: Config) -> Result<FerrisCordService, CoreError> {
+    let database_url = format!(
+        "postgres://{}:{}@{}:{}/{}",
+        config.database.user,
+        config.database.password,
+        config.database.host,
+        config.database.port,
+        config.database.dbname
+    );
 
-impl FerrisCordService {
-    pub async fn new(conf: &Config) -> Result<Self, CoreError> {
-        let repos = build_repos_from_conf(conf).await?;
+    let pool = PgPool::connect(&database_url).await.map_err(|e| {
+        CoreError::InfrastructureDatabaseSetupError {
+            details: e.to_string(),
+        }
+    })?;
 
-        Ok(Self {
-            guild_repository: repos.guild_repository,
-            policies: Policies::new(),
-        })
-    }
+    let guild_repository = PostgresGuildRepository::new(pool.clone());
+
+    Ok(FerrisCordService { guild_repository })
 }
