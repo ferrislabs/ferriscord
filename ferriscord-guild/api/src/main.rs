@@ -10,6 +10,8 @@ use crate::{
 
 mod args;
 pub mod errors;
+mod handlers;
+mod state;
 
 fn init_logger(args: &LogArgs) {
     let filter = EnvFilter::try_new(&args.filter).unwrap_or_else(|err| {
