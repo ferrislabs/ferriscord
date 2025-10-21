@@ -3,8 +3,21 @@ use crate::domain::{
     user::{User, UserId},
 };
 
+pub trait UserService: Send + Sync {
+    fn get_profile(
+        &self,
+        id: UserId,
+    ) -> impl Future<Output = Result<Option<User>, CoreError>> + Send;
+}
+
 pub trait UserRepository: Send + Sync {
-    async fn insert(&self, user: &User) -> Result<(), CoreError>;
-    async fn find_by_id(&self, id: UserId) -> Result<Option<User>, CoreError>;
-    async fn find_by_sub(&self, sub: &str) -> Result<Option<User>, CoreError>;
+    fn insert(&self, user: &User) -> impl Future<Output = Result<(), CoreError>> + Send;
+    fn find_by_id(
+        &self,
+        id: UserId,
+    ) -> impl Future<Output = Result<Option<User>, CoreError>> + Send;
+    fn find_by_sub(
+        &self,
+        sub: &str,
+    ) -> impl Future<Output = Result<Option<User>, CoreError>> + Send;
 }

@@ -3,6 +3,7 @@ use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
 pub mod ports;
+mod services;
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct UserId(pub Uuid);
