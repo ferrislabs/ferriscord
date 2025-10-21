@@ -1,0 +1,20 @@
+[workspace]
+members = [
+    "libs/errors",
+
+    "services/guild-service/core",
+    "services/guild-service/api",
+
+    "services/user-service/core",
+    "services/user-service/api",
+
+    "services/message-service/core",
+    "services/message-service/api"
+]
+resolver = "2"
+
+[workspace.package]
+edition = "2024"
+version = "0.1.0"
+authors = ["nathael <pro.nathaelbonnal@gmail.com>"]
+license = "Apache-2.0"
