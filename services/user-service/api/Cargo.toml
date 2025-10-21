@@ -1,0 +1,20 @@
+[package]
+name = "user-api"
+description = "FerrisCord User API"
+version.workspace = true
+authors.workspace = true
+edition.workspace = true
+
+[dependencies]
+ferriscord-error = { path = "../../../libs/errors" }
+user-core = { path = "../core" }
+clap = { version = "4.5.48", features = ["env", "derive"] }
+dotenv = "0.15.0"
+tokio = { version = "1.47.1", features = ["macros", "rt-multi-thread"] }
+tracing = "0.1.41"
+tracing-subscriber = { version = "0.3.20", features = ["env-filter", "json"] }
+url = "2.5.7"
+axum = "0.8.6"
+tower-http = { version = "0.6.6", features = ["trace"] }
+rustls = "0.23.33"
+axum-server = { version = "0.7.2", features = ["tls-rustls"] }
