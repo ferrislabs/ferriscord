@@ -8,6 +8,7 @@ use crate::domain::{
     },
 };
 
+#[derive(Clone)]
 pub struct PostgresGuildRepository {
     #[allow(dead_code)]
     pool: PgPool,
