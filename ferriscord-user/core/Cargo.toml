@@ -1,0 +1,13 @@
+[package]
+name = "ferriscord-user-core"
+description = "Core business logic library for FerrisCord User"
+version.workspace = true
+authors.workspace = true
+edition.workspace = true
+
+[dependencies]
+chrono = { version = "0.4.42", features = ["serde"] }
+serde = { version = "1.0.226", features = ["derive"] }
+sqlx = { version = "0.8.6", features = ["chrono", "postgres", "runtime-tokio", "uuid"] }
+thiserror = "2.0.16"
+uuid = { version = "1.18.1", features = ["serde", "v7"] }
