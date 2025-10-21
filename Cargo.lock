@@ -542,6 +542,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "ferriscord-server"
+version = "0.1.0"
+dependencies = [
+ "axum",
+ "axum-server",
+ "rustls",
+]
+
+[[package]]
 name = "find-msvc-tools"
 version = "0.1.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2320,6 +2329,7 @@ dependencies = [
  "clap",
  "dotenv",
  "ferriscord-error",
+ "ferriscord-server",
  "rustls",
  "tokio",
  "tower-http",

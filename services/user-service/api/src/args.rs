@@ -1,7 +1,12 @@
 use clap::Parser;
+use ferriscord_server::ServerTls;
 use user_core::{Config, DatabaseConfig};
 
-use crate::args::{database::DatabaseArgs, log::LogArgs, server::ServerArgs};
+use crate::args::{
+    database::DatabaseArgs,
+    log::LogArgs,
+    server::{ServerArgs, ServerTlsArgs},
+};
 
 pub mod database;
 pub mod log;
@@ -27,6 +32,15 @@ impl From<DatabaseArgs> for DatabaseConfig {
             password: value.password,
             port: value.port,
             user: value.user,
+        }
+    }
+}
+
+impl From<ServerTlsArgs> for ServerTls {
+    fn from(value: ServerTlsArgs) -> Self {
+        ServerTls {
+            cert: value.cert,
+            key: value.key,
         }
     }
 }
