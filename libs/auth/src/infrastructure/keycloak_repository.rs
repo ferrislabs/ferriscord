@@ -5,7 +5,7 @@ use jsonwebtoken::{Algorithm, DecodingKey, Validation, decode, decode_header};
 use reqwest::Client;
 
 use crate::domain::{
-    models::{claims::Claims, errors::AuthError},
+    models::{claims::Claims, errors::AuthError, identity::Identity},
     ports::AuthRepository,
 };
 
@@ -115,6 +115,8 @@ impl AuthRepository for KeycloakAuthRepository {
         &self,
         token: &str,
     ) -> Result<crate::domain::models::identity::Identity, AuthError> {
-        todo!()
+        let claims = self.validate_token(token).await?;
+
+        Ok(Identity::from(claims))
     }
 }
