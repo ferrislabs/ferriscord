@@ -105,7 +105,7 @@ impl AuthRepository for KeycloakAuthRepository {
 
         let now = Utc::now().timestamp();
 
-        if claims.exp.and_then(|v| Some(v)).unwrap_or(0) < now {
+        if claims.exp.unwrap_or(0) < now {
             return Err(AuthError::Expired);
         }
 

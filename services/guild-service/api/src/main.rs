@@ -8,6 +8,7 @@ use tracing_subscriber::EnvFilter;
 use crate::{args::Args, router::router, state::state};
 
 mod args;
+mod auth;
 mod handlers;
 mod router;
 mod state;

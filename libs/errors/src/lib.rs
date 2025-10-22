@@ -6,6 +6,12 @@ use thiserror::Error;
 pub enum ApiError {
     #[error("unknown error: {message}")]
     Unknown { message: String },
+
+    #[error("token not found")]
+    TokenNotFound,
+
+    #[error("invalid token: {message}")]
+    InvalidToken { message: String },
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]
@@ -24,6 +30,26 @@ impl IntoResponse for ApiError {
                     code: "E_INTERNAL_SERVER_ERROR".to_string(),
                     status: 500,
                     message: format!("internal server error: {message}"),
+                }),
+            )
+                .into_response(),
+
+            ApiError::TokenNotFound => (
+                StatusCode::UNAUTHORIZED,
+                Json(ApiErrorResponse {
+                    code: "E_UNAUTHORIZED".to_string(),
+                    status: 401,
+                    message: "token not found".to_string(),
+                }),
+            )
+                .into_response(),
+
+            ApiError::InvalidToken { message } => (
+                StatusCode::UNAUTHORIZED,
+                Json(ApiErrorResponse {
+                    code: "E_UNAUTHORIZED".to_string(),
+                    status: 401,
+                    message,
                 }),
             )
                 .into_response(),
