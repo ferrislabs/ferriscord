@@ -2,8 +2,7 @@ use std::sync::Arc;
 
 use clap::Parser;
 use ferriscord_error::ApiError;
-use ferriscord_server::{ServerTls, get_addr, run_server};
-use tracing::info;
+use ferriscord_server::{get_addr, run_server};
 use tracing_subscriber::EnvFilter;
 
 use crate::{

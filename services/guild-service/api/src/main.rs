@@ -2,7 +2,6 @@ use std::sync::Arc;
 
 use clap::Parser;
 use ferriscord_error::ApiError;
-use ferriscord_server::get_addr;
 use tracing_subscriber::EnvFilter;
 
 use crate::{
@@ -37,9 +36,7 @@ async fn main() -> Result<(), ApiError> {
     let args = Arc::new(Args::parse());
     init_logger(&args.log);
 
-    let app_state = state(args.clone()).await?;
-
-    let addr = get_addr(&args, port)
+    let _app_state = state(args.clone()).await?;
 
     tracing::info!("Hello, world!");
 

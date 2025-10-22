@@ -1,5 +1,5 @@
 use clap::Parser;
-use ferriscord_server::{ServerTls, args::ServerArgs};
+use ferriscord_server::args::ServerArgs;
 use user_core::{Config, DatabaseConfig};
 
 use crate::args::{database::DatabaseArgs, log::LogArgs};
