@@ -535,6 +535,14 @@ dependencies = [
 ]
 
 [[package]]
+name = "ferriscord-auth"
+version = "0.1.0"
+dependencies = [
+ "serde",
+ "serde_json",
+]
+
+[[package]]
 name = "ferriscord-error"
 version = "0.1.0"
 dependencies = [

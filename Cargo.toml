@@ -2,6 +2,7 @@
 members = [
     "libs/errors",
     "libs/server",
+    "libs/auth",
 
     "services/guild-service/core",
     "services/guild-service/api",
