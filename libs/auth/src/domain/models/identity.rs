@@ -137,4 +137,18 @@ mod tests {
             Identity::Client(_) => panic!("Expected User, got Client"),
         }
     }
+
+    #[test]
+    fn test_claims_to_identity_service_account() {
+        let claims = create_service_account_claims();
+        let identity: Identity = claims.into();
+
+        match identity {
+            Identity::Client(client) => {
+                assert_eq!(client.id, "service-123");
+                assert_eq!(client.client_id, "ferriscord-bot");
+            }
+            Identity::User(_) => panic!("Expected Client, got User"),
+        }
+    }
 }
