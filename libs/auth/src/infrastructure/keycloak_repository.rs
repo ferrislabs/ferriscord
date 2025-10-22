@@ -9,6 +9,7 @@ use crate::domain::{
     ports::AuthRepository,
 };
 
+#[derive(Clone)]
 pub struct KeycloakAuthRepository {
     pub http: Arc<Client>,
     pub issuer: String,

@@ -2,10 +2,10 @@ use std::sync::Arc;
 
 use clap::Parser;
 use ferriscord_error::ApiError;
-use ferriscord_server::args::log::LogArgs;
+use ferriscord_server::{args::log::LogArgs, get_addr, run_server};
 use tracing_subscriber::EnvFilter;
 
-use crate::{args::Args, state::state};
+use crate::{args::Args, router::router, state::state};
 
 mod args;
 mod handlers;

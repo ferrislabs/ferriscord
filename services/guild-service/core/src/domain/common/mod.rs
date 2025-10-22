@@ -2,6 +2,7 @@ use ferriscord_auth::AuthRepository;
 
 use crate::domain::guild::ports::GuildPort;
 
+#[derive(Clone)]
 pub struct Service<G, A>
 where
     G: GuildPort,

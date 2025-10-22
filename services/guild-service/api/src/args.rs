@@ -1,5 +1,5 @@
 use clap::Parser;
-use ferriscord_server::args::{auth::AuthArgs, database::DatabaseArgs, log::LogArgs};
+use ferriscord_server::args::{ServerArgs, auth::AuthArgs, database::DatabaseArgs, log::LogArgs};
 
 use guild_core::domain::Config;
 
@@ -13,6 +13,9 @@ pub struct Args {
 
     #[command(flatten)]
     pub auth: AuthArgs,
+
+    #[command(flatten)]
+    pub server: ServerArgs,
 }
 
 impl From<Args> for Config {
