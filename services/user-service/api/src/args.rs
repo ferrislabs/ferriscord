@@ -1,7 +1,8 @@
 use clap::Parser;
+use ferriscord_server::args::ServerArgs;
 use user_core::{Config, DatabaseConfig};
 
-use crate::args::{database::DatabaseArgs, log::LogArgs, server::ServerArgs};
+use crate::args::{database::DatabaseArgs, log::LogArgs};
 
 pub mod database;
 pub mod log;

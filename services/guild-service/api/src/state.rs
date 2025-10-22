@@ -9,7 +9,9 @@ use guild_core::{
 use crate::args::Args;
 
 pub struct AppState {
+    #[allow(unused)]
     pub args: Arc<Args>,
+    #[allow(unused)]
     pub service: FerrisCordService,
 }
 

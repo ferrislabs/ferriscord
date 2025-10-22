@@ -1,6 +1,7 @@
 [workspace]
 members = [
     "libs/errors",
+    "libs/server",
 
     "services/guild-service/core",
     "services/guild-service/api",

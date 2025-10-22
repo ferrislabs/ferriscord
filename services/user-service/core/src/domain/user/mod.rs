@@ -10,7 +10,7 @@ pub struct UserId(pub Uuid);
 
 impl From<Uuid> for UserId {
     fn from(value: Uuid) -> Self {
-        Self { 0: value }
+        Self(value)
     }
 }
 

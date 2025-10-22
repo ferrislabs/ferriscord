@@ -4,7 +4,10 @@ use clap::Parser;
 use ferriscord_error::ApiError;
 use tracing_subscriber::EnvFilter;
 
-use crate::args::{Args, log::LogArgs};
+use crate::{
+    args::{Args, log::LogArgs},
+    state::state,
+};
 
 mod args;
 mod handlers;
@@ -32,6 +35,8 @@ async fn main() -> Result<(), ApiError> {
 
     let args = Arc::new(Args::parse());
     init_logger(&args.log);
+
+    let _app_state = state(args.clone()).await?;
 
     tracing::info!("Hello, world!");
 
