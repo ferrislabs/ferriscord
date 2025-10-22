@@ -1,3 +1,4 @@
+use ferriscord_config::DatabaseConfig;
 use url::Url;
 
 #[derive(clap::Args, Debug, Clone)]
@@ -67,6 +68,18 @@ impl From<Url> for DatabaseArgs {
             password: value.password().unwrap_or("").to_string(),
             port: value.port().unwrap_or(5432),
             user: value.username().to_string(),
+        }
+    }
+}
+
+impl From<DatabaseArgs> for DatabaseConfig {
+    fn from(value: DatabaseArgs) -> Self {
+        Self {
+            dbname: value.name,
+            host: value.host,
+            password: value.password,
+            port: value.port,
+            user: value.user,
         }
     }
 }

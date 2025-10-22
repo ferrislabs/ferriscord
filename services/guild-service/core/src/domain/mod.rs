@@ -1,6 +1,7 @@
 use std::fmt::Display;
 
 use chrono::Utc;
+use ferriscord_config::{AuthConfig, DatabaseConfig};
 use uuid::{NoContext, Timestamp, Uuid};
 
 pub mod errors;
@@ -12,14 +13,7 @@ pub mod role;
 
 pub struct Config {
     pub database: DatabaseConfig,
-}
-
-pub struct DatabaseConfig {
-    pub host: String,
-    pub port: u16,
-    pub user: String,
-    pub password: String,
-    pub dbname: String,
+    pub auth: AuthConfig,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]

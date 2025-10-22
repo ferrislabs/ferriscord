@@ -1,9 +1,7 @@
-use crate::args::{database::DatabaseArgs, log::LogArgs};
 use clap::Parser;
-use guild_core::domain::{Config, DatabaseConfig};
+use ferriscord_server::args::{auth::AuthArgs, database::DatabaseArgs, log::LogArgs};
 
-pub mod database;
-pub mod log;
+use guild_core::domain::Config;
 
 #[derive(Debug, Clone, Parser)]
 pub struct Args {
@@ -12,18 +10,16 @@ pub struct Args {
 
     #[command(flatten)]
     pub db: DatabaseArgs,
+
+    #[command(flatten)]
+    pub auth: AuthArgs,
 }
 
 impl From<Args> for Config {
     fn from(value: Args) -> Self {
         Self {
-            database: DatabaseConfig {
-                dbname: value.db.name,
-                host: value.db.host,
-                password: value.db.password,
-                port: value.db.port,
-                user: value.db.user,
-            },
+            database: value.db.into(),
+            auth: value.auth.into(),
         }
     }
 }

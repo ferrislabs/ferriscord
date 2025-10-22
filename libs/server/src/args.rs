@@ -1,5 +1,9 @@
 use std::path::PathBuf;
 
+pub mod auth;
+pub mod database;
+pub mod log;
+
 #[derive(clap::Args, Debug, Clone)]
 pub struct ServerArgs {
     #[arg(
