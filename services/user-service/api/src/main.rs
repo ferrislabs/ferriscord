@@ -3,10 +3,11 @@ use std::sync::Arc;
 use clap::Parser;
 use ferriscord_error::ApiError;
 use ferriscord_server::{ServerTls, get_addr, run_server};
+use tracing::info;
 use tracing_subscriber::EnvFilter;
 
 use crate::{
-    args::{Args, log::LogArgs, server::ServerTlsArgs},
+    args::{Args, log::LogArgs},
     router::router,
     state::state,
 };
@@ -40,7 +41,6 @@ async fn main() -> Result<(), ApiError> {
     let args = Arc::new(Args::parse());
 
     init_logger(&args.log);
-    tracing::info!("args: {:?}", args);
 
     let app_state = state(args.clone()).await?;
 
@@ -52,10 +52,7 @@ async fn main() -> Result<(), ApiError> {
             message: e.to_string(),
         })?;
 
-    let server_tls_args: Option<ServerTlsArgs> = args.server.tls.clone();
-    let server_tls: Option<ServerTls> = server_tls_args.map(|args| args.into());
-
-    run_server(addr, router, server_tls).await;
+    run_server(addr, router, args.server.tls.clone()).await;
 
     Ok(())
 }

@@ -547,7 +547,9 @@ version = "0.1.0"
 dependencies = [
  "axum",
  "axum-server",
+ "clap",
  "rustls",
+ "tracing",
 ]
 
 [[package]]
@@ -722,6 +724,7 @@ dependencies = [
  "clap",
  "dotenv",
  "ferriscord-error",
+ "ferriscord-server",
  "guild-core",
  "tokio",
  "tracing",

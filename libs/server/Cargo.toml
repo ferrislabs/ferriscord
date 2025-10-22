@@ -7,4 +7,6 @@ edition.workspace = true
 [dependencies]
 axum = "0.8.6"
 axum-server = { version = "0.7.2", features = ["tls-rustls"] }
+clap = "4.5.50"
 rustls = "0.23.33"
+tracing = "0.1.41"

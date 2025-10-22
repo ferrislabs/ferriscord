@@ -5,6 +5,11 @@ use std::{
 
 use axum::Router;
 use axum_server::tls_rustls::RustlsConfig;
+use tracing::info;
+
+use crate::args::ServerTlsArgs;
+
+pub mod args;
 
 pub struct ServerTls {
     pub cert: PathBuf,
@@ -24,7 +29,7 @@ pub async fn get_addr(host: &str, port: u16) -> Result<SocketAddr, Box<dyn std::
     Ok(socket)
 }
 
-pub async fn run_server(addr: SocketAddr, router: Router, cfg: Option<ServerTls>) {
+pub async fn run_server(addr: SocketAddr, router: Router, cfg: Option<ServerTlsArgs>) {
     if let Some(tls) = cfg {
         rustls::crypto::aws_lc_rs::default_provider()
             .install_default()
@@ -34,14 +39,16 @@ pub async fn run_server(addr: SocketAddr, router: Router, cfg: Option<ServerTls>
             .await
             .unwrap();
 
+        info!("listening on {addr}");
         axum_server::bind_rustls(addr, tls_cfg)
             .serve(router.into_make_service())
             .await
             .unwrap();
     } else {
+        info!("listening on {addr}");
         axum_server::bind(addr)
             .serve(router.into_make_service())
             .await
-            .unwrap()
+            .unwrap();
     }
 }
