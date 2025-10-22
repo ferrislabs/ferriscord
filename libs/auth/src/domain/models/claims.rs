@@ -22,6 +22,7 @@ pub struct Claims {
     pub given_name: Option<String>,
     pub family_name: Option<String>,
     pub scope: String,
+    pub client_id: Option<String>,
 
     #[serde(flatten)]
     pub extra: serde_json::Map<String, serde_json::Value>,
