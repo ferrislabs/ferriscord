@@ -1,10 +1,11 @@
 use std::fmt::Display;
 
 use chrono::{DateTime, Utc};
+use serde::Serialize;
 
 use crate::domain::Id;
 
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Clone, Debug, Eq, PartialEq, Serialize)]
 pub struct GuildId(pub Id);
 
 impl Display for GuildId {
@@ -13,10 +14,10 @@ impl Display for GuildId {
     }
 }
 
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Clone, Debug, Eq, PartialEq, Serialize)]
 pub struct OwnerId(pub Id);
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, PartialEq, Eq, Serialize)]
 pub struct Guild {
     pub id: GuildId,
     pub name: String,

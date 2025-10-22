@@ -180,6 +180,43 @@ dependencies = [
 ]
 
 [[package]]
+name = "axum-extra"
+version = "0.10.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "9963ff19f40c6102c76756ef0a46004c0d58957d87259fc9208ff8441c12ab96"
+dependencies = [
+ "axum",
+ "axum-core",
+ "axum-macros",
+ "bytes",
+ "form_urlencoded",
+ "futures-util",
+ "http",
+ "http-body",
+ "http-body-util",
+ "mime",
+ "percent-encoding",
+ "pin-project-lite",
+ "rustversion",
+ "serde_core",
+ "serde_html_form",
+ "tower-layer",
+ "tower-service",
+ "tracing",
+]
+
+[[package]]
+name = "axum-macros"
+version = "0.5.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "604fde5e028fea851ce1d8570bbdc034bec850d157f7569d10f347d06808c05c"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "syn",
+]
+
+[[package]]
 name = "axum-server"
 version = "0.7.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -599,6 +636,8 @@ version = "0.1.0"
 name = "ferriscord-error"
 version = "0.1.0"
 dependencies = [
+ "axum",
+ "serde",
  "thiserror",
 ]
 
@@ -611,6 +650,7 @@ dependencies = [
  "clap",
  "ferriscord-config",
  "rustls",
+ "serde",
  "tracing",
  "url",
 ]
@@ -800,16 +840,19 @@ name = "guild-api"
 version = "0.1.0"
 dependencies = [
  "axum",
+ "axum-extra",
  "clap",
  "dotenv",
  "ferriscord-error",
  "ferriscord-server",
  "guild-core",
+ "serde",
  "tokio",
  "tower-http",
  "tracing",
  "tracing-subscriber",
  "url",
+ "uuid",
 ]
 
 [[package]]
@@ -1999,6 +2042,19 @@ dependencies = [
  "proc-macro2",
  "quote",
  "syn",
+]
+
+[[package]]
+name = "serde_html_form"
+version = "0.2.8"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "b2f2d7ff8a2140333718bb329f5c40fc5f0865b84c426183ce14c97d2ab8154f"
+dependencies = [
+ "form_urlencoded",
+ "indexmap",
+ "itoa",
+ "ryu",
+ "serde_core",
 ]
 
 [[package]]
