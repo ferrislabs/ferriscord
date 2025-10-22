@@ -592,6 +592,10 @@ dependencies = [
 ]
 
 [[package]]
+name = "ferriscord-config"
+version = "0.1.0"
+
+[[package]]
 name = "ferriscord-error"
 version = "0.1.0"
 dependencies = [
@@ -605,8 +609,10 @@ dependencies = [
  "axum",
  "axum-server",
  "clap",
+ "ferriscord-config",
  "rustls",
  "tracing",
+ "url",
 ]
 
 [[package]]
@@ -809,6 +815,8 @@ name = "guild-core"
 version = "0.1.0"
 dependencies = [
  "chrono",
+ "ferriscord-auth",
+ "ferriscord-config",
  "serde",
  "sqlx",
  "thiserror",

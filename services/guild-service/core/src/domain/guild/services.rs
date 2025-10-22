@@ -1,12 +1,15 @@
+use ferriscord_auth::AuthRepository;
+
 use crate::domain::{
     common::Service,
     errors::CoreError,
     guild::ports::{GuildPort, GuildService},
 };
 
-impl<G> GuildService for Service<G>
+impl<G, A> GuildService for Service<G, A>
 where
     G: GuildPort,
+    A: AuthRepository,
 {
     async fn create_guild(
         &self,
