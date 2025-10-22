@@ -1,15 +1,13 @@
 use serde::{Deserialize, Serialize};
 
-use crate::domain::{client::Client, identity::Identity, user::User};
-
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
-pub struct Subject(pub String);
-
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 pub struct Role(pub String);
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 pub struct Scope(pub String);
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+pub struct Subject(pub String);
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Claims {
@@ -20,7 +18,7 @@ pub struct Claims {
     pub email: Option<String>,
     pub email_verified: bool,
     pub name: Option<String>,
-    pub preferred_username: Option<String>,
+    pub preferred_username: String,
     pub given_name: Option<String>,
     pub family_name: Option<String>,
     pub scope: String,
@@ -29,51 +27,9 @@ pub struct Claims {
     pub extra: serde_json::Map<String, serde_json::Value>,
 }
 
-impl From<Claims> for Identity {
-    fn from(c: Claims) -> Self {
-        let has_email = c.email.is_some();
-
-        let username = c
-            .extra
-            .get("preferred_username")
-            .and_then(|v| v.as_str())
-            .unwrap_or_default()
-            .to_string();
-
-        let client_id = c
-            .extra
-            .get("client_id")
-            .and_then(|v| v.as_str())
-            .map(|s| s.to_string());
-
-        let is_service_account = username.starts_with("service-account-") || client_id.is_some();
-
-        if is_service_account {
-            Identity::Client(Client {
-                id: c.sub.0.clone(),
-                client_id: client_id.unwrap_or_else(|| username.clone()),
-                roles: Vec::new(),
-                scopes: Vec::new(),
-            })
-        } else {
-            Identity::User(User {
-                id: c.sub.0.clone(),
-                username,
-                email: c.email.clone(),
-                name: c
-                    .extra
-                    .get("name")
-                    .and_then(|v| v.as_str())
-                    .map(|s| s.to_string()),
-                roles: Vec::new(),
-            })
-        }
-    }
-}
-
 #[cfg(test)]
 mod tests {
-    use crate::domain::model::{Claims, Role, Scope, Subject};
+    use crate::domain::models::claims::{Claims, Role, Scope, Subject};
 
     #[test]
     fn test_subject_deserialize_from_json() {
@@ -142,5 +98,34 @@ mod tests {
 
         assert_eq!(claims.sub.0, "14434cba-8f32-49bb-a39e-8378a7cddea3");
         assert_eq!(claims.iss, "http://localhost:8000/realms/master");
+    }
+
+    #[test]
+    fn test_claims_with_extra_fields() {
+        let json = r#"{
+            "sub": "user-456",
+            "iss": "https://auth.ferriscord.com",
+            "exp": 1735689600,
+            "email": null,
+            "scope": "openid connect",
+            "preferred_username": "johndoe",
+            "email_verified": true,
+            "name": "John Doe",
+            "custom_field": "custom_value",
+            "nested": {
+                "data": "test"
+            }
+        }"#;
+
+        let claims: Claims = serde_json::from_str(json).unwrap();
+
+        assert_eq!(claims.sub.0, "user-456");
+        assert_eq!(claims.email, None);
+
+        assert_eq!(
+            claims.extra.get("custom_field").unwrap().as_str().unwrap(),
+            "custom_value"
+        );
+        assert!(claims.extra.contains_key("nested"));
     }
 }
