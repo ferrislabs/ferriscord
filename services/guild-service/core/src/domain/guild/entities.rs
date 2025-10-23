@@ -8,6 +8,12 @@ use crate::domain::Id;
 #[derive(Clone, Debug, Eq, PartialEq, Serialize)]
 pub struct GuildId(pub Id);
 
+impl GuildId {
+    pub fn get_uuid(&self) -> &uuid::Uuid {
+        &self.0.0
+    }
+}
+
 impl Display for GuildId {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "{}", self.0)
@@ -16,6 +22,12 @@ impl Display for GuildId {
 
 #[derive(Clone, Debug, Eq, PartialEq, Serialize)]
 pub struct OwnerId(pub Id);
+
+impl OwnerId {
+    pub fn get_uuid(&self) -> &uuid::Uuid {
+        &self.0.0
+    }
+}
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize)]
 pub struct Guild {

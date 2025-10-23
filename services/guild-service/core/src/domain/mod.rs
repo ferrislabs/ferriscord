@@ -28,6 +28,10 @@ impl Id {
 
         Self(Uuid::new_v7(timestamp))
     }
+
+    pub fn get_uuid(&self) -> Uuid {
+        self.0
+    }
 }
 
 impl Default for Id {
