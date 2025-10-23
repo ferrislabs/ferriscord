@@ -1,14 +1,13 @@
 use std::sync::Arc;
 
-use chrono::Utc;
-use jsonwebtoken::{Algorithm, DecodingKey, Validation, decode, decode_header};
-use reqwest::Client;
-use serde::{Deserialize, Serialize};
-
 use crate::domain::{
     models::{claims::Claims, errors::AuthError, identity::Identity},
     ports::AuthRepository,
 };
+use chrono::Utc;
+use jsonwebtoken::{Algorithm, DecodingKey, Validation, decode, decode_header};
+use reqwest::Client;
+use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Serialize, Deserialize)]
 struct Jwks {
@@ -97,7 +96,6 @@ impl AuthRepository for KeycloakAuthRepository {
 
         let mut validation = Validation::new(Algorithm::RS256);
 
-        validation.set_issuer(&[&self.issuer]);
         validation.validate_aud = false;
 
         let data = decode::<Claims>(token, &decoding_key, &validation).map_err(|e| {
