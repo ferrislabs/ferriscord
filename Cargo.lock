@@ -657,6 +657,7 @@ dependencies = [
  "ferriscord-error",
  "rustls",
  "serde",
+ "tower",
  "tracing",
  "url",
 ]
