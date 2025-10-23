@@ -11,6 +11,7 @@ path = "src/main.rs"
 [dependencies]
 ferriscord-error = { path = "../../../libs/errors" }
 ferriscord-server = { path = "../../../libs/server" }
+ferriscord-auth = { path = "../../../libs/auth" }
 guild-core = { path = "../core" }
 clap = { version = "4.5.48", features = ["env", "derive"] }
 dotenv = "0.15.0"
@@ -18,3 +19,9 @@ tokio = { version = "1.47.1", features = ["macros", "rt-multi-thread"] }
 tracing = "0.1.41"
 tracing-subscriber = { version = "0.3.20", features = ["env-filter", "json"] }
 url = "2.5.7"
+axum = "0.8.6"
+tower-http = { version = "0.6.6", features = ["trace"] }
+axum-extra = { version = "0.10.3", features = ["typed-routing"] }
+serde = "1.0.228"
+uuid = { version = "1.18.1", features = ["serde"] }
+base64 = "0.22.1"

@@ -3,12 +3,26 @@ use std::sync::Arc;
 use chrono::Utc;
 use jsonwebtoken::{Algorithm, DecodingKey, Validation, decode, decode_header};
 use reqwest::Client;
+use serde::{Deserialize, Serialize};
 
 use crate::domain::{
     models::{claims::Claims, errors::AuthError, identity::Identity},
     ports::AuthRepository,
 };
 
+#[derive(Debug, Serialize, Deserialize)]
+struct Jwks {
+    keys: Vec<Jwk>,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+struct Jwk {
+    kid: String,
+    n: String,
+    e: String,
+}
+
+#[derive(Clone)]
 pub struct KeycloakAuthRepository {
     pub http: Arc<Client>,
     pub issuer: String,
@@ -24,8 +38,9 @@ impl KeycloakAuthRepository {
         }
     }
 
-    async fn fetch_jwks(&self) -> Result<serde_json::Value, AuthError> {
+    async fn fetch_jwks(&self) -> Result<Jwks, AuthError> {
         let url = format!("{}/protocol/openid-connect/certs", self.issuer);
+
         let resp = self
             .http
             .get(url)
@@ -35,7 +50,17 @@ impl KeycloakAuthRepository {
                 message: e.to_string(),
             })?;
 
-        let jwks: serde_json::Value = resp.json().await.map_err(|e| AuthError::Network {
+        if resp.status().is_client_error() || resp.status().is_server_error() {
+            return Err(AuthError::Network {
+                message: format!("failed to fetch jwks: {}", resp.status()),
+            });
+        }
+
+        let bytes = resp.bytes().await.map_err(|e| AuthError::Network {
+            message: e.to_string(),
+        })?;
+
+        let jwks: Jwks = serde_json::from_slice(&bytes).map_err(|e| AuthError::Network {
             message: e.to_string(),
         })?;
 
@@ -58,41 +83,22 @@ impl AuthRepository for KeycloakAuthRepository {
 
         let jwks = self.fetch_jwks().await?;
 
-        let keys =
-            jwks.get("keys")
-                .and_then(|v| v.as_array())
-                .ok_or_else(|| AuthError::Internal {
-                    message: "invalid jwks".into(),
-                })?;
+        let keys = jwks.keys;
 
         let key = keys
             .iter()
-            .find(|k| k.get("id").and_then(|v| v.as_str()) == Some(&kid))
+            .find(|k| k.kid == kid)
             .ok_or_else(|| AuthError::KeyNotFound { key: kid.clone() })?;
 
-        let n = key
-            .get("n")
-            .and_then(|v| v.as_str())
-            .ok_or_else(|| AuthError::Internal {
-                message: "missing n".into(),
-            })?;
-
-        let e = key
-            .get("e")
-            .and_then(|v| v.as_str())
-            .ok_or_else(|| AuthError::Internal {
-                message: "missing e".into(),
-            })?;
         let decoding_key =
-            DecodingKey::from_rsa_components(n, e).map_err(|e| AuthError::Internal {
+            DecodingKey::from_rsa_components(&key.n, &key.e).map_err(|e| AuthError::Internal {
                 message: e.to_string(),
             })?;
 
         let mut validation = Validation::new(Algorithm::RS256);
+
         validation.set_issuer(&[&self.issuer]);
-        if let Some(aud) = &self.audience {
-            validation.set_audience(&[aud]);
-        }
+        validation.validate_aud = false;
 
         let data = decode::<Claims>(token, &decoding_key, &validation).map_err(|e| {
             AuthError::InvalidToken {
@@ -104,7 +110,7 @@ impl AuthRepository for KeycloakAuthRepository {
 
         let now = Utc::now().timestamp();
 
-        if claims.exp.and_then(|v| Some(v)).unwrap_or(0) < now {
+        if claims.exp.unwrap_or(0) < now {
             return Err(AuthError::Expired);
         }
 

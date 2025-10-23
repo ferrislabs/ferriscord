@@ -10,6 +10,7 @@ use tracing::info;
 use crate::args::ServerTlsArgs;
 
 pub mod args;
+pub mod http;
 
 pub struct ServerTls {
     pub cert: PathBuf,

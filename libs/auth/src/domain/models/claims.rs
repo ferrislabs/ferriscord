@@ -1,5 +1,7 @@
 use serde::{Deserialize, Serialize};
 
+use crate::token::Token;
+
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 pub struct Role(pub String);
 
@@ -27,6 +29,12 @@ pub struct Claims {
 
     #[serde(flatten)]
     pub extra: serde_json::Map<String, serde_json::Value>,
+}
+
+#[derive(Debug, Deserialize, Serialize)]
+pub struct Jwt {
+    pub claims: Claims,
+    pub token: Token,
 }
 
 #[cfg(test)]

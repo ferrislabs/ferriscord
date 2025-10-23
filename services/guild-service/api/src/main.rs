@@ -2,13 +2,15 @@ use std::sync::Arc;
 
 use clap::Parser;
 use ferriscord_error::ApiError;
-use ferriscord_server::args::log::LogArgs;
+use ferriscord_server::{args::log::LogArgs, get_addr, run_server};
 use tracing_subscriber::EnvFilter;
 
-use crate::{args::Args, state::state};
+use crate::{args::Args, router::router, state::state};
 
 mod args;
+mod auth;
 mod handlers;
+mod router;
 mod state;
 
 fn init_logger(args: &LogArgs) {
@@ -34,9 +36,17 @@ async fn main() -> Result<(), ApiError> {
     let args = Arc::new(Args::parse());
     init_logger(&args.log);
 
-    let _app_state = state(args.clone()).await?;
+    let app_state = state(args.clone()).await?;
 
-    tracing::info!("Hello, world!");
+    let router = router(app_state)?;
+
+    let addr = get_addr(&args.server.host, args.server.port)
+        .await
+        .map_err(|e| ApiError::Unknown {
+            message: e.to_string(),
+        })?;
+
+    run_server(addr, router, args.server.tls.clone()).await;
 
     Ok(())
 }
