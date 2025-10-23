@@ -9,5 +9,5 @@ where
     A: AuthRepository,
 {
     pub(crate) guild_repository: G,
-    pub(crate) auth_repository: A,
+    pub auth_repository: A,
 }

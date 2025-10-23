@@ -6,3 +6,9 @@ pub trait AuthRepository: Send + Sync {
 
     fn identify(&self, token: &str) -> impl Future<Output = Result<Identity, AuthError>> + Send;
 }
+
+pub trait HasAuthRepository {
+    type AuthRepo: AuthRepository;
+
+    fn auth_repository(&self) -> &Self::AuthRepo;
+}

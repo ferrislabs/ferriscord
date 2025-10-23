@@ -1,5 +1,6 @@
 use std::sync::Arc;
 
+use ferriscord_auth::{HasAuthRepository, KeycloakAuthRepository};
 use ferriscord_error::ApiError;
 use guild_core::{
     application::{FerrisCordService, create_service},
@@ -14,6 +15,14 @@ pub struct AppState {
     pub args: Arc<Args>,
     #[allow(unused)]
     pub service: FerrisCordService,
+}
+
+impl HasAuthRepository for AppState {
+    type AuthRepo = KeycloakAuthRepository;
+
+    fn auth_repository(&self) -> &Self::AuthRepo {
+        &self.service.auth_repository
+    }
 }
 
 pub async fn state(args: Arc<Args>) -> Result<AppState, ApiError> {

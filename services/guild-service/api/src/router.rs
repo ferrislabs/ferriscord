@@ -1,6 +1,7 @@
 use axum::Router;
 use axum_extra::routing::RouterExt;
 use ferriscord_error::ApiError;
+use ferriscord_server::http::auth_middleware;
 use tracing::info_span;
 
 use crate::{handlers::create_guild::create_guild_handler, state::AppState};
@@ -16,6 +17,10 @@ pub fn router(state: AppState) -> Result<Router, ApiError> {
     let router = Router::new()
         .typed_post(create_guild_handler)
         .layer(trace_layer)
+        .layer(axum::middleware::from_fn_with_state(
+            state.clone(),
+            auth_middleware::<AppState>,
+        ))
         .with_state(state);
 
     Ok(router)

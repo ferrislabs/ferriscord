@@ -26,7 +26,7 @@ pub async fn create_service(config: Config) -> Result<FerrisCordService, CoreErr
 
     let guild_repository = PostgresGuildRepository::new(pool.clone());
 
-    let auth_repository = KeycloakAuthRepository::new("issuer", None);
+    let auth_repository = KeycloakAuthRepository::new(config.auth.issuer, None);
 
     Ok(FerrisCordService {
         guild_repository,
