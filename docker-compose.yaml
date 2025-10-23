@@ -1,0 +1,49 @@
+version: "3.8"
+
+services:
+  postgres:
+    image: postgres:17
+    container_name: ferriscord-db
+    environment:
+      POSTGRES_USER: ferriscord
+      POSTGRES_PASSWORD: ferriscord
+      POSTGRES_DB: ferriscord
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - ferriscord-network
+  keycloak:
+    image: quay.io/keycloak/keycloak:26.4.1
+    container_name: ferriscord-keycloak
+    environment:
+      KEYCLOAK_ADMIN: admin
+      KEYCLOAK_ADMIN_PASSWORD: admin
+    ports:
+      - "8080:8080"
+    networks:
+      - ferriscord-network
+    command: start-dev
+  guild-service:
+    build:
+      context: .
+      target: guild
+    container_name: ferriscord-guild-service
+    environment:
+      AUTH_ISSUER: http://keycloak:8080/realms/master
+      DATABASE_HOST: postgres
+      DATABASE_NAME: ferriscord_guild
+      DATABASE_USER: ferriscord
+      DATABASE_PASSWORD: ferriscord
+    ports:
+      - "3333:80"
+    networks:
+      - ferriscord-network
+
+volumes:
+  postgres_data:
+
+networks:
+  ferriscord-network:
+    driver: bridge
