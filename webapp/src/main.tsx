@@ -11,7 +11,7 @@ const root = createRoot(container)
 const configuration: OidcConfiguration = {
   client_id: 'front',
   redirect_uri: window.location.origin + '/authentication/callback',
-  scope: 'openid profile',
+  scope: 'openid profile email',
   authority: 'http://localhost:8080/realms/ferriscord'
 }
 

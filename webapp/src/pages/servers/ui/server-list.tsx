@@ -1,10 +1,8 @@
-import React from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { ScrollArea } from "@/components/ui/scroll-area";
 import { cn } from "@/lib/utils";
-import { Server } from "@/lib/mock-data";
+import type { Server } from "@/lib/mock-data";
 import {
   Users,
   Crown,

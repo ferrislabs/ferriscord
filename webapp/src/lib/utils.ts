@@ -39,8 +39,8 @@ export function formatDate(date: string | Date): string {
 
 export function formatTime(date: string | Date): string {
   return new Date(date).toLocaleTimeString([], {
-    hour: '2-digit',
-    minute: '2-digit'
+    hour: "2-digit",
+    minute: "2-digit",
   });
 }
 
@@ -62,20 +62,20 @@ export function truncateText(text: string, maxLength: number): string {
   return text.substr(0, maxLength) + "...";
 }
 
-export function debounce<T extends (...args: any[]) => any>(
+export function debounce<T extends (...args: unknown[]) => unknown>(
   func: T,
-  wait: number
+  wait: number,
 ): (...args: Parameters<T>) => void {
-  let timeout: NodeJS.Timeout;
+  let timeout: ReturnType<typeof setTimeout>;
   return (...args: Parameters<T>) => {
     clearTimeout(timeout);
     timeout = setTimeout(() => func(...args), wait);
   };
 }
 
-export function throttle<T extends (...args: any[]) => any>(
+export function throttle<T extends (...args: unknown[]) => unknown>(
   func: T,
-  limit: number
+  limit: number,
 ): (...args: Parameters<T>) => void {
   let inThrottle: boolean;
   return (...args: Parameters<T>) => {
@@ -92,93 +92,106 @@ export function isValidEmail(email: string): boolean {
   return emailRegex.test(email);
 }
 
-export function getStatusColor(status: 'online' | 'away' | 'busy' | 'offline'): string {
+export function getStatusColor(
+  status: "online" | "away" | "busy" | "offline",
+): string {
   switch (status) {
-    case 'online':
-      return 'bg-green-500';
-    case 'away':
-      return 'bg-yellow-500';
-    case 'busy':
-      return 'bg-red-500';
-    case 'offline':
-      return 'bg-gray-400';
+    case "online":
+      return "bg-green-500";
+    case "away":
+      return "bg-yellow-500";
+    case "busy":
+      return "bg-red-500";
+    case "offline":
+      return "bg-gray-400";
     default:
-      return 'bg-gray-400';
+      return "bg-gray-400";
   }
 }
 
 export function sanitizeInput(input: string): string {
   return input
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-    .replace(/'/g, '&#x27;');
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#x27;");
 }
 
 export function parseMarkdown(text: string): string {
   // Simple markdown parsing - in a real app you'd use a proper markdown parser
   return text
-    .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
-    .replace(/\*(.*?)\*/g, '<em>$1</em>')
-    .replace(/`(.*?)`/g, '<code>$1</code>')
-    .replace(/\n/g, '<br>');
+    .replace(/\*\*(.*?)\*\*/g, "<strong>$1</strong>")
+    .replace(/\*(.*?)\*/g, "<em>$1</em>")
+    .replace(/`(.*?)`/g, "<code>$1</code>")
+    .replace(/\n/g, "<br>");
 }
 
-export function getChannelIcon(type: 'text' | 'voice' | 'announcement'): string {
+export function getChannelIcon(
+  type: "text" | "voice" | "announcement",
+): string {
   switch (type) {
-    case 'text':
-      return '#';
-    case 'voice':
-      return '🔊';
-    case 'announcement':
-      return '📢';
+    case "text":
+      return "#";
+    case "voice":
+      return "🔊";
+    case "announcement":
+      return "📢";
     default:
-      return '#';
+      return "#";
   }
 }
 
 export function copyToClipboard(text: string): Promise<boolean> {
   if (navigator.clipboard && window.isSecureContext) {
-    return navigator.clipboard.writeText(text).then(() => true).catch(() => false);
+    return navigator.clipboard
+      .writeText(text)
+      .then(() => true)
+      .catch(() => false);
   } else {
     // Fallback for older browsers
-    const textArea = document.createElement('textarea');
+    const textArea = document.createElement("textarea");
     textArea.value = text;
-    textArea.style.position = 'fixed';
-    textArea.style.left = '-999999px';
-    textArea.style.top = '-999999px';
+    textArea.style.position = "fixed";
+    textArea.style.left = "-999999px";
+    textArea.style.top = "-999999px";
     document.body.appendChild(textArea);
     textArea.focus();
     textArea.select();
 
     try {
-      const result = document.execCommand('copy');
+      const result = document.execCommand("copy");
       textArea.remove();
       return Promise.resolve(result);
-    } catch (error) {
+    } catch {
       textArea.remove();
       return Promise.resolve(false);
     }
   }
 }
 
-export function scrollToBottom(element: HTMLElement | null, smooth: boolean = true): void {
+export function scrollToBottom(
+  element: HTMLElement | null,
+  smooth: boolean = true,
+): void {
   if (!element) return;
 
   element.scrollTo({
     top: element.scrollHeight,
-    behavior: smooth ? 'smooth' : 'instant'
+    behavior: smooth ? "smooth" : "instant",
   });
 }
 
-export function getMessagePreview(content: string, maxLength: number = 50): string {
+export function getMessagePreview(
+  content: string,
+  maxLength: number = 50,
+): string {
   // Remove markdown formatting for preview
   const plainText = content
-    .replace(/\*\*(.*?)\*\*/g, '$1')
-    .replace(/\*(.*?)\*/g, '$1')
-    .replace(/`(.*?)`/g, '$1')
-    .replace(/\n/g, ' ');
+    .replace(/\*\*(.*?)\*\*/g, "$1")
+    .replace(/\*(.*?)\*/g, "$1")
+    .replace(/`(.*?)`/g, "$1")
+    .replace(/\n/g, " ");
 
   return truncateText(plainText, maxLength);
 }

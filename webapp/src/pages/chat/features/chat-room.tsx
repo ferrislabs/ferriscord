@@ -3,7 +3,7 @@ import { useState, useEffect, useRef } from "react";
 import { MessageList } from "../ui/message-list";
 import { MessageInput } from "../ui/message-input";
 import { cn } from "@/lib/utils";
-import { mockApi, mockWebSocketEvents, Message } from "@/lib/mock-data";
+import { mockApi, mockWebSocketEvents, type Message } from "@/lib/mock-data";
 
 
 

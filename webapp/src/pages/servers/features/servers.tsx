@@ -1,11 +1,11 @@
-import React from 'react';
+
 import { useQuery } from '@tanstack/react-query';
+import { useNavigate } from '@tanstack/react-router';
 import { ServerList } from '../ui/server-list';
 import { mockApi } from '@/lib/mock-data';
-import { useRouter } from '@/components/layout/router';
 
 export function ServersFeature() {
-  const { navigate } = useRouter();
+  const navigate = useNavigate();
 
   // Fetch servers
   const { data: servers = [], isLoading, error } = useQuery({
@@ -14,15 +14,15 @@ export function ServersFeature() {
   });
 
   const handleServerSelect = (serverId: string) => {
-    navigate(`/servers/${serverId}`);
+    navigate({ to: '/servers/$serverId', params: { serverId } });
   };
 
   const handleCreateServer = () => {
     // In a real app, this would open a create server modal/form
     console.log('Creating new server...');
-    // For now, just navigate to first available channel of first server
+    // For now, just navigate to first available server
     if (servers.length > 0) {
-      navigate(`/servers/${servers[0].id}`);
+      navigate({ to: '/servers/$serverId', params: { serverId: servers[0].id } });
     }
   };
 
@@ -31,7 +31,7 @@ export function ServersFeature() {
     console.log('Joining server...');
     // For now, just navigate to first available server
     if (servers.length > 0) {
-      navigate(`/servers/${servers[0].id}`);
+      navigate({ to: '/servers/$serverId', params: { serverId: servers[0].id } });
     }
   };
 

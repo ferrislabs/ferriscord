@@ -1,11 +1,10 @@
-import React from 'react';
 import { useQuery } from '@tanstack/react-query';
+import { useNavigate } from '@tanstack/react-router';
 import { DashboardOverview } from '../ui/dashboard-overview';
-import { mockApi, mockUsers, currentUser } from '@/lib/mock-data';
-import { useRouter } from '@/components/layout/router';
+import { mockApi, mockUsers } from '@/lib/mock-data';
 
 export function DashboardFeature() {
-  const { navigate } = useRouter();
+  const navigate = useNavigate();
 
   // Fetch servers
   const { data: servers = [], isLoading: serversLoading } = useQuery({
@@ -59,15 +58,15 @@ export function DashboardFeature() {
   ];
 
   const handleServerClick = (serverId: string) => {
-    navigate(`/servers/${serverId}`);
+    navigate({ to: '/servers/$serverId', params: { serverId } });
   };
 
   const handleDmClick = (dmId: string) => {
-    navigate(`/dm/${dmId}`);
+    navigate({ to: '/dm/$dmId', params: { dmId } });
   };
 
   const handleCreateServer = () => {
-    navigate('/servers/create');
+    navigate({ to: '/servers' });
   };
 
   if (serversLoading || dmLoading) {

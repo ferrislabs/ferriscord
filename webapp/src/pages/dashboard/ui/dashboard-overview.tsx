@@ -1,11 +1,11 @@
-import React from 'react';
+
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Badge } from "@/components/ui/badge";
 import { cn, formatTime, getStatusColor } from "@/lib/utils";
-import { Server, DirectMessage, User } from "@/lib/mock-data";
+import type { Server, DirectMessage } from "@/lib/mock-data";
 import {
   MessageSquare,
   Users,
@@ -19,7 +19,13 @@ import {
 interface DashboardOverviewProps {
   servers: Server[];
   directMessages: DirectMessage[];
-  recentActivity: any[];
+  recentActivity: Array<{
+    user: { id: string; username: string; avatar?: string; status: string };
+    action: string;
+    channel: string;
+    server: string;
+    timestamp: string;
+  }>;
   onServerClick: (serverId: string) => void;
   onDmClick: (dmId: string) => void;
   onCreateServer: () => void;
