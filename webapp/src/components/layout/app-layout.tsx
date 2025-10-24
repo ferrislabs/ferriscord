@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Link, useNavigate, useParams } from '@tanstack/react-router';
-import { mockApi } from '@/lib/mock-data';
+import { mockApi, mockUsers } from '@/lib/mock-data';
 import { useAuth } from '@/hooks/use-auth';
 import { cn, getStatusColor } from '@/lib/utils';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -16,7 +16,8 @@ import {
   Search,
   MoreHorizontal,
   LogOut,
-  UserCircle
+  UserCircle,
+  Users
 } from 'lucide-react';
 
 interface AppLayoutProps {
@@ -31,9 +32,10 @@ export function AppLayout({ children }: AppLayoutProps) {
   const selectedServerId = params.serverId || 'server-1';
   const [isCollapsed, setIsCollapsed] = useState(false);
 
-  // Check if we're in DM view (@me or direct user DM)
-  const isDMView = window.location.pathname === '/channels/@me' ||
-    (window.location.pathname.startsWith('/channels/') && params.userId);
+  // Check if we're in different DM states
+  const isDMHome = window.location.pathname === '/channels/@me';
+  const isDMConversation = window.location.pathname.startsWith('/channels/') && params.userId;
+  const isDMView = isDMHome || isDMConversation;
 
   // Fetch servers
   const { data: servers = [] } = useQuery({
@@ -113,7 +115,7 @@ export function AppLayout({ children }: AppLayoutProps) {
         </Link>
       </div>
 
-      {/* Channel Sidebar - Hide when in DM view */}
+      {/* Channel Sidebar - Only show for server channels */}
       {selectedServer && !isDMView && (
         <div className={cn(
           "bg-gray-800 flex flex-col transition-all duration-200",
@@ -209,21 +211,124 @@ export function AppLayout({ children }: AppLayoutProps) {
         </div>
       )}
 
+      {/* DM Sidebar - Show when in DM conversation */}
+      {isDMConversation && (
+        <div className="w-60 bg-gray-800 flex flex-col">
+          {/* DM Header */}
+          <div className="h-16 border-b border-gray-700 px-4 flex items-center justify-between">
+            <h1 className="font-semibold text-white truncate">
+              Direct Messages
+            </h1>
+          </div>
+
+          {/* DM List */}
+          <ScrollArea className="flex-1">
+            <div className="p-2 space-y-1">
+              {/* Friends shortcut */}
+              <Link to="/channels/@me">
+                <div className="flex items-center space-x-2 px-2 py-1.5 rounded hover:bg-gray-700/50 cursor-pointer text-gray-300 hover:text-gray-100">
+                  <Users className="h-4 w-4 text-gray-400" />
+                  <span className="text-sm font-medium">Friends</span>
+                </div>
+              </Link>
+
+              {/* Recent DM conversations */}
+              {mockUsers.filter(u => u.id !== user?.id).slice(0, 5).map((dmUser) => (
+                <Link
+                  key={dmUser.id}
+                  to="/channels/$userId"
+                  params={{ userId: dmUser.id }}
+                >
+                  <div className={cn(
+                    "flex items-center space-x-3 p-2 rounded hover:bg-gray-700/50 cursor-pointer group",
+                    params.userId === dmUser.id ? "bg-gray-700 text-white" : "text-gray-300 hover:text-gray-100"
+                  )}>
+                    <div className="relative">
+                      <Avatar className="h-8 w-8">
+                        <AvatarImage src={dmUser.avatar} alt={dmUser.username} />
+                        <AvatarFallback className="bg-gray-500 text-white text-xs">
+                          {dmUser.username.slice(0, 2).toUpperCase()}
+                        </AvatarFallback>
+                      </Avatar>
+                      <div className={cn(
+                        "absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full border-2 border-gray-800",
+                        getStatusColor(dmUser.status)
+                      )} />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="text-sm font-medium truncate">
+                        {dmUser.username}
+                      </div>
+                      <div className="text-xs text-gray-500 capitalize">
+                        {dmUser.status}
+                      </div>
+                    </div>
+                  </div>
+                </Link>
+              ))}
+            </div>
+          </ScrollArea>
+
+          {/* User Panel - Same as server sidebar */}
+          <div className="h-14 bg-gray-900/50 border-t border-gray-700 px-2 flex items-center">
+            <div className="flex items-center flex-1 space-x-2">
+              <div className="relative">
+                <Avatar className="h-8 w-8">
+                  <AvatarImage src={user?.avatar} alt={user?.username} />
+                  <AvatarFallback className="bg-indigo-600 text-white text-xs">
+                    {user?.username?.slice(0, 2).toUpperCase() || 'U'}
+                  </AvatarFallback>
+                </Avatar>
+                <div className={cn(
+                  "absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full border-2 border-gray-900",
+                  getStatusColor(user?.status || 'offline')
+                )} />
+              </div>
+              <div className="flex-1 min-w-0">
+                <div className="text-sm font-medium text-white truncate">
+                  {user?.username || 'Unknown User'}
+                </div>
+                <div className="text-xs text-gray-400 capitalize">
+                  {user?.status || 'offline'}
+                </div>
+              </div>
+            </div>
+            <div className="flex space-x-1">
+              <Button variant="ghost" size="icon" className="h-8 w-8 text-gray-400 hover:text-white">
+                <Settings className="h-4 w-4" />
+              </Button>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-8 w-8 text-gray-400 hover:text-white"
+                onClick={handleLogout}
+                title="Logout"
+              >
+                <LogOut className="h-4 w-4" />
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Main Content Area */}
       <div className="flex-1 flex flex-col">
         {/* Top Bar */}
         <div className="h-16 bg-white border-b border-gray-200 flex items-center justify-between px-4">
           <div className="flex items-center space-x-4">
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={() => setIsCollapsed(!isCollapsed)}
-              className="text-gray-500 hover:text-gray-700"
-            >
-              <Hash className="h-5 w-5" />
-            </Button>
+            {/* Toggle button - only show for server channels */}
+            {!isDMView && (
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => setIsCollapsed(!isCollapsed)}
+                className="text-gray-500 hover:text-gray-700"
+              >
+                <Hash className="h-5 w-5" />
+              </Button>
+            )}
 
-            {params.channelId && selectedServer ? (
+            {params.channelId && selectedServer && !isDMView ? (
               // Channel view - show channel info
               <div className="flex items-center space-x-3">
                 <div className="flex items-center space-x-2">
@@ -243,6 +348,22 @@ export function AppLayout({ children }: AppLayoutProps) {
                   </>
                 )}
               </div>
+            ) : isDMConversation ? (
+              // DM conversation - show user info
+              <div className="flex items-center space-x-3">
+                <div className="flex items-center space-x-2">
+                  <span className="text-gray-400 text-xl font-semibold">@</span>
+                  <h1 className="text-base font-semibold text-gray-700 truncate">
+                    {mockUsers.find(u => u.id === params.userId)?.username || 'Unknown User'}
+                  </h1>
+                </div>
+              </div>
+            ) : isDMHome ? (
+              // DM home - show friends title
+              <div className="flex items-center space-x-2">
+                <Users className="h-5 w-5 text-gray-500" />
+                <h1 className="text-base font-semibold text-gray-700">Friends</h1>
+              </div>
             ) : selectedServer ? (
               // Server view - show server name
               <div className="flex items-center space-x-2">
@@ -254,7 +375,7 @@ export function AppLayout({ children }: AppLayoutProps) {
           </div>
 
           <div className="flex items-center space-x-4">
-            {params.channelId && (
+            {params.channelId && !isDMView && (
               <div className="flex items-center space-x-1 text-sm text-gray-500">
                 <span className="text-gray-400">👥</span>
                 <span>{channels.find(c => c.id === params.channelId)?.memberCount || 0}</span>
