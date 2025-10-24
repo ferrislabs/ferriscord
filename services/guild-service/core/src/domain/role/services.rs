@@ -8,7 +8,7 @@ use crate::domain::{
         ports::GuildPort,
     },
     role::{
-        entities::{CreateRoleInput, Role},
+        entities::{CreateRoleInput, Role, RoleId},
         ports::{RoleRepository, RoleService},
     },
 };
@@ -27,5 +27,9 @@ where
         self.role_repository
             .insert(&input.name, 0, input.permissions, &guild_id)
             .await
+    }
+
+    async fn find_role(&self, id: RoleId) -> Result<Role, CoreError> {
+        self.role_repository.find_by_id(id).await
     }
 }
