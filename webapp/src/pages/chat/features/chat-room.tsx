@@ -5,17 +5,16 @@ import { MessageInput } from "../ui/message-input";
 import { cn } from "@/lib/utils";
 import { mockApi, mockWebSocketEvents, type Message } from "@/lib/mock-data";
 
-
-
 interface ChatRoomProps {
   channelId: string;
   currentUserId: string;
+  channelName?: string;
   className?: string;
 }
 
 
 
-export function ChatRoomFeature({ channelId, currentUserId, className }: ChatRoomProps) {
+export function ChatRoomFeature({ channelId, currentUserId, channelName, className }: ChatRoomProps) {
   const queryClient = useQueryClient();
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const [isConnected, setIsConnected] = useState(false);
@@ -88,6 +87,10 @@ export function ChatRoomFeature({ channelId, currentUserId, className }: ChatRoo
   const messagesWithOwnership = messages.map((message) => ({
     ...message,
     isOwn: message.author.id === currentUserId,
+    reactions: message.reactions?.map(reaction => ({
+      ...reaction,
+      hasReacted: reaction.users.includes(currentUserId)
+    }))
   }));
 
   const handleSendMessage = (content: string) => {
@@ -103,19 +106,25 @@ export function ChatRoomFeature({ channelId, currentUserId, className }: ChatRoo
   }
 
   return (
-    <div className={cn("flex flex-col h-full bg-white", className)}>
+    <div className={cn("flex flex-col h-full bg-gray-50", className)}>
       {/* Connection status indicator */}
       {!isConnected && (
-        <div className="bg-yellow-100 border-b border-yellow-200 px-4 py-2 text-sm text-yellow-800">
-          Connecting to chat...
+        <div className="bg-yellow-50 border-l-4 border-yellow-400 px-4 py-2 text-sm text-yellow-800">
+          <div className="flex items-center space-x-2">
+            <div className="animate-spin rounded-full h-4 w-4 border-2 border-yellow-600 border-t-transparent"></div>
+            <span>Reconnecting to chat...</span>
+          </div>
         </div>
       )}
 
       {/* Messages area */}
-      <div className="flex-1 overflow-hidden">
+      <div className="flex-1 overflow-hidden flex flex-col bg-white">
         {isLoading ? (
-          <div className="flex items-center justify-center h-full">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+          <div className="flex-1 flex items-center justify-center">
+            <div className="text-center">
+              <div className="animate-spin rounded-full h-8 w-8 border-2 border-indigo-600 border-t-transparent mx-auto mb-2"></div>
+              <p className="text-gray-500 text-sm">Loading messages...</p>
+            </div>
           </div>
         ) : (
           <>
@@ -130,10 +139,11 @@ export function ChatRoomFeature({ channelId, currentUserId, className }: ChatRoo
         onSendMessage={handleSendMessage}
         isLoading={sendMessageMutation.isPending}
         disabled={!isConnected}
+        channelName={channelName || channelId}
         placeholder={
-          isConnected
-            ? `Message #${channelId}`
-            : "Connecting to chat..."
+          !isConnected
+            ? "Connecting to chat..."
+            : undefined
         }
       />
     </div>

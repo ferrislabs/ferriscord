@@ -9,18 +9,13 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
-import { Route as ServersRouteImport } from './routes/servers'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as UsersUserIdRouteImport } from './routes/users.$userId'
-import { Route as ServersServerIdRouteImport } from './routes/servers.$serverId'
 import { Route as DmDmIdRouteImport } from './routes/dm.$dmId'
-import { Route as ServersServerIdChannelsChannelIdRouteImport } from './routes/servers.$serverId.channels.$channelId'
+import { Route as DiscoveryServersRouteImport } from './routes/discovery.servers'
+import { Route as ChannelsAtmeRouteImport } from './routes/channels.@me'
+import { Route as ChannelsServerIdChannelIdRouteImport } from './routes/channels.$serverId.$channelId'
 
-const ServersRoute = ServersRouteImport.update({
-  id: '/servers',
-  path: '/servers',
-  getParentRoute: () => rootRouteImport,
-} as any)
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
@@ -31,91 +26,91 @@ const UsersUserIdRoute = UsersUserIdRouteImport.update({
   path: '/users/$userId',
   getParentRoute: () => rootRouteImport,
 } as any)
-const ServersServerIdRoute = ServersServerIdRouteImport.update({
-  id: '/$serverId',
-  path: '/$serverId',
-  getParentRoute: () => ServersRoute,
-} as any)
 const DmDmIdRoute = DmDmIdRouteImport.update({
   id: '/dm/$dmId',
   path: '/dm/$dmId',
   getParentRoute: () => rootRouteImport,
 } as any)
-const ServersServerIdChannelsChannelIdRoute =
-  ServersServerIdChannelsChannelIdRouteImport.update({
-    id: '/channels/$channelId',
-    path: '/channels/$channelId',
-    getParentRoute: () => ServersServerIdRoute,
+const DiscoveryServersRoute = DiscoveryServersRouteImport.update({
+  id: '/discovery/servers',
+  path: '/discovery/servers',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ChannelsAtmeRoute = ChannelsAtmeRouteImport.update({
+  id: '/channels/@me',
+  path: '/channels/@me',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ChannelsServerIdChannelIdRoute =
+  ChannelsServerIdChannelIdRouteImport.update({
+    id: '/channels/$serverId/$channelId',
+    path: '/channels/$serverId/$channelId',
+    getParentRoute: () => rootRouteImport,
   } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
-  '/servers': typeof ServersRouteWithChildren
+  '/channels/@me': typeof ChannelsAtmeRoute
+  '/discovery/servers': typeof DiscoveryServersRoute
   '/dm/$dmId': typeof DmDmIdRoute
-  '/servers/$serverId': typeof ServersServerIdRouteWithChildren
   '/users/$userId': typeof UsersUserIdRoute
-  '/servers/$serverId/channels/$channelId': typeof ServersServerIdChannelsChannelIdRoute
+  '/channels/$serverId/$channelId': typeof ChannelsServerIdChannelIdRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
-  '/servers': typeof ServersRouteWithChildren
+  '/channels/@me': typeof ChannelsAtmeRoute
+  '/discovery/servers': typeof DiscoveryServersRoute
   '/dm/$dmId': typeof DmDmIdRoute
-  '/servers/$serverId': typeof ServersServerIdRouteWithChildren
   '/users/$userId': typeof UsersUserIdRoute
-  '/servers/$serverId/channels/$channelId': typeof ServersServerIdChannelsChannelIdRoute
+  '/channels/$serverId/$channelId': typeof ChannelsServerIdChannelIdRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
-  '/servers': typeof ServersRouteWithChildren
+  '/channels/@me': typeof ChannelsAtmeRoute
+  '/discovery/servers': typeof DiscoveryServersRoute
   '/dm/$dmId': typeof DmDmIdRoute
-  '/servers/$serverId': typeof ServersServerIdRouteWithChildren
   '/users/$userId': typeof UsersUserIdRoute
-  '/servers/$serverId/channels/$channelId': typeof ServersServerIdChannelsChannelIdRoute
+  '/channels/$serverId/$channelId': typeof ChannelsServerIdChannelIdRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
-    | '/servers'
+    | '/channels/@me'
+    | '/discovery/servers'
     | '/dm/$dmId'
-    | '/servers/$serverId'
     | '/users/$userId'
-    | '/servers/$serverId/channels/$channelId'
+    | '/channels/$serverId/$channelId'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
-    | '/servers'
+    | '/channels/@me'
+    | '/discovery/servers'
     | '/dm/$dmId'
-    | '/servers/$serverId'
     | '/users/$userId'
-    | '/servers/$serverId/channels/$channelId'
+    | '/channels/$serverId/$channelId'
   id:
     | '__root__'
     | '/'
-    | '/servers'
+    | '/channels/@me'
+    | '/discovery/servers'
     | '/dm/$dmId'
-    | '/servers/$serverId'
     | '/users/$userId'
-    | '/servers/$serverId/channels/$channelId'
+    | '/channels/$serverId/$channelId'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
-  ServersRoute: typeof ServersRouteWithChildren
+  ChannelsAtmeRoute: typeof ChannelsAtmeRoute
+  DiscoveryServersRoute: typeof DiscoveryServersRoute
   DmDmIdRoute: typeof DmDmIdRoute
   UsersUserIdRoute: typeof UsersUserIdRoute
+  ChannelsServerIdChannelIdRoute: typeof ChannelsServerIdChannelIdRoute
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
-    '/servers': {
-      id: '/servers'
-      path: '/servers'
-      fullPath: '/servers'
-      preLoaderRoute: typeof ServersRouteImport
-      parentRoute: typeof rootRouteImport
-    }
     '/': {
       id: '/'
       path: '/'
@@ -130,13 +125,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof UsersUserIdRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/servers/$serverId': {
-      id: '/servers/$serverId'
-      path: '/$serverId'
-      fullPath: '/servers/$serverId'
-      preLoaderRoute: typeof ServersServerIdRouteImport
-      parentRoute: typeof ServersRoute
-    }
     '/dm/$dmId': {
       id: '/dm/$dmId'
       path: '/dm/$dmId'
@@ -144,44 +132,37 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof DmDmIdRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/servers/$serverId/channels/$channelId': {
-      id: '/servers/$serverId/channels/$channelId'
-      path: '/channels/$channelId'
-      fullPath: '/servers/$serverId/channels/$channelId'
-      preLoaderRoute: typeof ServersServerIdChannelsChannelIdRouteImport
-      parentRoute: typeof ServersServerIdRoute
+    '/discovery/servers': {
+      id: '/discovery/servers'
+      path: '/discovery/servers'
+      fullPath: '/discovery/servers'
+      preLoaderRoute: typeof DiscoveryServersRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/channels/@me': {
+      id: '/channels/@me'
+      path: '/channels/@me'
+      fullPath: '/channels/@me'
+      preLoaderRoute: typeof ChannelsAtmeRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/channels/$serverId/$channelId': {
+      id: '/channels/$serverId/$channelId'
+      path: '/channels/$serverId/$channelId'
+      fullPath: '/channels/$serverId/$channelId'
+      preLoaderRoute: typeof ChannelsServerIdChannelIdRouteImport
+      parentRoute: typeof rootRouteImport
     }
   }
 }
 
-interface ServersServerIdRouteChildren {
-  ServersServerIdChannelsChannelIdRoute: typeof ServersServerIdChannelsChannelIdRoute
-}
-
-const ServersServerIdRouteChildren: ServersServerIdRouteChildren = {
-  ServersServerIdChannelsChannelIdRoute: ServersServerIdChannelsChannelIdRoute,
-}
-
-const ServersServerIdRouteWithChildren = ServersServerIdRoute._addFileChildren(
-  ServersServerIdRouteChildren,
-)
-
-interface ServersRouteChildren {
-  ServersServerIdRoute: typeof ServersServerIdRouteWithChildren
-}
-
-const ServersRouteChildren: ServersRouteChildren = {
-  ServersServerIdRoute: ServersServerIdRouteWithChildren,
-}
-
-const ServersRouteWithChildren =
-  ServersRoute._addFileChildren(ServersRouteChildren)
-
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
-  ServersRoute: ServersRouteWithChildren,
+  ChannelsAtmeRoute: ChannelsAtmeRoute,
+  DiscoveryServersRoute: DiscoveryServersRoute,
   DmDmIdRoute: DmDmIdRoute,
   UsersUserIdRoute: UsersUserIdRoute,
+  ChannelsServerIdChannelIdRoute: ChannelsServerIdChannelIdRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

@@ -13,25 +13,33 @@ export function ServersFeature() {
     queryFn: mockApi.getServers,
   });
 
-  const handleServerSelect = (serverId: string) => {
-    navigate({ to: '/servers/$serverId', params: { serverId } });
+  const handleServerSelect = async (serverId: string) => {
+    // Navigate to first channel of the selected server
+    const channels = await mockApi.getChannels(serverId);
+    const firstChannel = channels.find(c => c.type === 'text') || channels[0];
+    if (firstChannel) {
+      navigate({
+        to: '/channels/$serverId/$channelId',
+        params: { serverId, channelId: firstChannel.id }
+      });
+    }
   };
 
   const handleCreateServer = () => {
     // In a real app, this would open a create server modal/form
     console.log('Creating new server...');
-    // For now, just navigate to first available server
+    // For now, just navigate to first available server's first channel
     if (servers.length > 0) {
-      navigate({ to: '/servers/$serverId', params: { serverId: servers[0].id } });
+      handleServerSelect(servers[0].id);
     }
   };
 
   const handleJoinServer = () => {
     // In a real app, this would open a join server modal/form
     console.log('Joining server...');
-    // For now, just navigate to first available server
+    // For now, just navigate to first available server's first channel
     if (servers.length > 0) {
-      navigate({ to: '/servers/$serverId', params: { serverId: servers[0].id } });
+      handleServerSelect(servers[0].id);
     }
   };
 

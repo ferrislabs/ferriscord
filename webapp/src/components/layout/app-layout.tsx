@@ -62,23 +62,33 @@ export function AppLayout({ children }: AppLayoutProps) {
     <div className="flex h-screen bg-gray-100">
       {/* Server Sidebar */}
       <div className="w-16 bg-gray-900 flex flex-col items-center py-3 space-y-2">
-        {/* Home/Dashboard Button */}
-        <Link to="/">
+        {/* Direct Messages Button */}
+        <Link to="/channels/@me">
           <div className="w-12 h-12 bg-indigo-600 rounded-lg flex items-center justify-center text-white font-bold text-xl hover:bg-indigo-700 transition-colors cursor-pointer">
-            F
+            @
           </div>
         </Link>
 
         <div className="w-8 h-px bg-gray-600"></div>
 
         {/* Server Icons */}
-        {servers.map((server) => (
-          <Link
-            key={server.id}
-            to="/servers/$serverId"
-            params={{ serverId: server.id }}
-          >
+        {servers.map((server) => {
+          const handleServerClick = async () => {
+            // Auto-navigate to first channel when clicking server
+            const channels = await mockApi.getChannels(server.id);
+            const firstChannel = channels.find(c => c.type === 'text') || channels[0];
+            if (firstChannel) {
+              navigate({
+                to: '/channels/$serverId/$channelId',
+                params: { serverId: server.id, channelId: firstChannel.id }
+              });
+            }
+          };
+
+          return (
             <div
+              key={server.id}
+              onClick={handleServerClick}
               className={cn(
                 "w-12 h-12 rounded-lg flex items-center justify-center text-white font-semibold transition-all cursor-pointer",
                 selectedServerId === server.id
@@ -88,11 +98,11 @@ export function AppLayout({ children }: AppLayoutProps) {
             >
               {server.icon || server.name[0]}
             </div>
-          </Link>
-        ))}
+          );
+        })}
 
-        {/* Add Server Button */}
-        <Link to="/servers">
+        {/* Server Discovery Button */}
+        <Link to="/discovery/servers">
           <div className="w-12 h-12 bg-gray-700 rounded-lg flex items-center justify-center text-gray-300 hover:text-white hover:bg-green-600 transition-all cursor-pointer group">
             <Plus className="h-6 w-6" />
           </div>
@@ -126,7 +136,7 @@ export function AppLayout({ children }: AppLayoutProps) {
               {channels.map((channel) => (
                 <Link
                   key={channel.id}
-                  to="/servers/$serverId/channels/$channelId"
+                  to="/channels/$serverId/$channelId"
                   params={{ serverId: selectedServerId, channelId: channel.id }}
                 >
                   <div className={cn(
@@ -209,35 +219,56 @@ export function AppLayout({ children }: AppLayoutProps) {
               <Hash className="h-5 w-5" />
             </Button>
 
-            {selectedServer && (
+            {params.channelId && selectedServer ? (
+              // Channel view - show channel info
+              <div className="flex items-center space-x-3">
+                <div className="flex items-center space-x-2">
+                  <span className="text-gray-400 text-xl font-semibold">
+                    {channels.find(c => c.id === params.channelId)?.type === 'voice' ? '🔊' : '#'}
+                  </span>
+                  <h1 className="text-base font-semibold text-gray-700 truncate">
+                    {channels.find(c => c.id === params.channelId)?.name}
+                  </h1>
+                </div>
+                {channels.find(c => c.id === params.channelId)?.description && (
+                  <>
+                    <div className="w-px h-4 bg-gray-300 mx-2" />
+                    <p className="text-sm text-gray-500 truncate max-w-xs">
+                      {channels.find(c => c.id === params.channelId)?.description}
+                    </p>
+                  </>
+                )}
+              </div>
+            ) : selectedServer ? (
+              // Server view - show server name
               <div className="flex items-center space-x-2">
                 <span className="font-semibold text-gray-900">
                   {selectedServer.name}
                 </span>
-                {params.channelId && (
-                  <>
-                    <span className="text-gray-400">/</span>
-                    <span className="text-gray-600">
-                      {channels.find(c => c.id === params.channelId)?.name}
-                    </span>
-                  </>
-                )}
               </div>
-            )}
+            ) : null}
           </div>
 
           <div className="flex items-center space-x-4">
-            <Button variant="ghost" size="icon" className="text-gray-500 hover:text-gray-700">
-              <Search className="h-5 w-5" />
-            </Button>
-            <Button variant="ghost" size="icon" className="text-gray-500 hover:text-gray-700">
-              <Bell className="h-5 w-5" />
-            </Button>
-            <Link to="/users/$userId" params={{ userId: user?.id || 'unknown' }}>
+            {params.channelId && (
+              <div className="flex items-center space-x-1 text-sm text-gray-500">
+                <span className="text-gray-400">👥</span>
+                <span>{channels.find(c => c.id === params.channelId)?.memberCount || 0}</span>
+              </div>
+            )}
+            <div className="flex items-center space-x-2">
               <Button variant="ghost" size="icon" className="text-gray-500 hover:text-gray-700">
-                <UserCircle className="h-5 w-5" />
+                <Search className="h-5 w-5" />
               </Button>
-            </Link>
+              <Button variant="ghost" size="icon" className="text-gray-500 hover:text-gray-700">
+                <Bell className="h-5 w-5" />
+              </Button>
+              <Link to="/users/$userId" params={{ userId: user?.id || 'unknown' }}>
+                <Button variant="ghost" size="icon" className="text-gray-500 hover:text-gray-700">
+                  <UserCircle className="h-5 w-5" />
+                </Button>
+              </Link>
+            </div>
           </div>
         </div>
 

@@ -1,17 +1,17 @@
 import { createFileRoute } from '@tanstack/react-router'
-import { ServersFeature } from '@/pages/servers/features/servers'
 import { AppLayout } from '@/components/layout/app-layout'
 import { AuthWrapper } from '@/components/auth/auth-wrapper'
+import { ServerDiscoveryFeature } from '@/pages/discovery/features/server-discovery'
 
-export const Route = createFileRoute('/servers')({
-  component: Servers,
+export const Route = createFileRoute('/discovery/servers')({
+  component: ServerDiscovery,
 })
 
-function Servers() {
+function ServerDiscovery() {
   return (
     <AuthWrapper>
       <AppLayout>
-        <ServersFeature />
+        <ServerDiscoveryFeature />
       </AppLayout>
     </AuthWrapper>
   )

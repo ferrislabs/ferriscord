@@ -57,8 +57,16 @@ export function DashboardFeature() {
     },
   ];
 
-  const handleServerClick = (serverId: string) => {
-    navigate({ to: '/servers/$serverId', params: { serverId } });
+  const handleServerClick = async (serverId: string) => {
+    // Navigate to first channel of the selected server
+    const channels = await mockApi.getChannels(serverId);
+    const firstChannel = channels.find(c => c.type === 'text') || channels[0];
+    if (firstChannel) {
+      navigate({
+        to: '/channels/$serverId/$channelId',
+        params: { serverId, channelId: firstChannel.id }
+      });
+    }
   };
 
   const handleDmClick = (dmId: string) => {
@@ -66,7 +74,7 @@ export function DashboardFeature() {
   };
 
   const handleCreateServer = () => {
-    navigate({ to: '/servers' });
+    navigate({ to: '/discovery/servers' });
   };
 
   if (serversLoading || dmLoading) {
