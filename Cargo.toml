@@ -4,6 +4,7 @@ members = [
     "libs/server",
     "libs/auth",
     "libs/config",
+    "libs/permission",
 
     "services/guild-service/core",
     "services/guild-service/api",
