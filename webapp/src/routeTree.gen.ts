@@ -11,9 +11,9 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as UsersUserIdRouteImport } from './routes/users.$userId'
-import { Route as DmDmIdRouteImport } from './routes/dm.$dmId'
 import { Route as DiscoveryServersRouteImport } from './routes/discovery.servers'
 import { Route as ChannelsAtmeRouteImport } from './routes/channels.@me'
+import { Route as ChannelsUserIdRouteImport } from './routes/channels.$userId'
 import { Route as ChannelsServerIdChannelIdRouteImport } from './routes/channels.$serverId.$channelId'
 
 const IndexRoute = IndexRouteImport.update({
@@ -26,11 +26,6 @@ const UsersUserIdRoute = UsersUserIdRouteImport.update({
   path: '/users/$userId',
   getParentRoute: () => rootRouteImport,
 } as any)
-const DmDmIdRoute = DmDmIdRouteImport.update({
-  id: '/dm/$dmId',
-  path: '/dm/$dmId',
-  getParentRoute: () => rootRouteImport,
-} as any)
 const DiscoveryServersRoute = DiscoveryServersRouteImport.update({
   id: '/discovery/servers',
   path: '/discovery/servers',
@@ -39,6 +34,11 @@ const DiscoveryServersRoute = DiscoveryServersRouteImport.update({
 const ChannelsAtmeRoute = ChannelsAtmeRouteImport.update({
   id: '/channels/@me',
   path: '/channels/@me',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ChannelsUserIdRoute = ChannelsUserIdRouteImport.update({
+  id: '/channels/$userId',
+  path: '/channels/$userId',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ChannelsServerIdChannelIdRoute =
@@ -50,26 +50,26 @@ const ChannelsServerIdChannelIdRoute =
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/channels/$userId': typeof ChannelsUserIdRoute
   '/channels/@me': typeof ChannelsAtmeRoute
   '/discovery/servers': typeof DiscoveryServersRoute
-  '/dm/$dmId': typeof DmDmIdRoute
   '/users/$userId': typeof UsersUserIdRoute
   '/channels/$serverId/$channelId': typeof ChannelsServerIdChannelIdRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/channels/$userId': typeof ChannelsUserIdRoute
   '/channels/@me': typeof ChannelsAtmeRoute
   '/discovery/servers': typeof DiscoveryServersRoute
-  '/dm/$dmId': typeof DmDmIdRoute
   '/users/$userId': typeof UsersUserIdRoute
   '/channels/$serverId/$channelId': typeof ChannelsServerIdChannelIdRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/channels/$userId': typeof ChannelsUserIdRoute
   '/channels/@me': typeof ChannelsAtmeRoute
   '/discovery/servers': typeof DiscoveryServersRoute
-  '/dm/$dmId': typeof DmDmIdRoute
   '/users/$userId': typeof UsersUserIdRoute
   '/channels/$serverId/$channelId': typeof ChannelsServerIdChannelIdRoute
 }
@@ -77,34 +77,34 @@ export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
+    | '/channels/$userId'
     | '/channels/@me'
     | '/discovery/servers'
-    | '/dm/$dmId'
     | '/users/$userId'
     | '/channels/$serverId/$channelId'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
+    | '/channels/$userId'
     | '/channels/@me'
     | '/discovery/servers'
-    | '/dm/$dmId'
     | '/users/$userId'
     | '/channels/$serverId/$channelId'
   id:
     | '__root__'
     | '/'
+    | '/channels/$userId'
     | '/channels/@me'
     | '/discovery/servers'
-    | '/dm/$dmId'
     | '/users/$userId'
     | '/channels/$serverId/$channelId'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  ChannelsUserIdRoute: typeof ChannelsUserIdRoute
   ChannelsAtmeRoute: typeof ChannelsAtmeRoute
   DiscoveryServersRoute: typeof DiscoveryServersRoute
-  DmDmIdRoute: typeof DmDmIdRoute
   UsersUserIdRoute: typeof UsersUserIdRoute
   ChannelsServerIdChannelIdRoute: typeof ChannelsServerIdChannelIdRoute
 }
@@ -125,13 +125,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof UsersUserIdRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/dm/$dmId': {
-      id: '/dm/$dmId'
-      path: '/dm/$dmId'
-      fullPath: '/dm/$dmId'
-      preLoaderRoute: typeof DmDmIdRouteImport
-      parentRoute: typeof rootRouteImport
-    }
     '/discovery/servers': {
       id: '/discovery/servers'
       path: '/discovery/servers'
@@ -146,6 +139,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ChannelsAtmeRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/channels/$userId': {
+      id: '/channels/$userId'
+      path: '/channels/$userId'
+      fullPath: '/channels/$userId'
+      preLoaderRoute: typeof ChannelsUserIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/channels/$serverId/$channelId': {
       id: '/channels/$serverId/$channelId'
       path: '/channels/$serverId/$channelId'
@@ -158,9 +158,9 @@ declare module '@tanstack/react-router' {
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  ChannelsUserIdRoute: ChannelsUserIdRoute,
   ChannelsAtmeRoute: ChannelsAtmeRoute,
   DiscoveryServersRoute: DiscoveryServersRoute,
-  DmDmIdRoute: DmDmIdRoute,
   UsersUserIdRoute: UsersUserIdRoute,
   ChannelsServerIdChannelIdRoute: ChannelsServerIdChannelIdRoute,
 }

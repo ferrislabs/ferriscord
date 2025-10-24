@@ -57,8 +57,8 @@ export function DMFeature() {
     }
   });
 
-  const handleDMClick = (conversationId: string) => {
-    navigate({ to: '/dm/$dmId', params: { dmId: conversationId } });
+  const handleDMClick = (userId: string) => {
+    navigate({ to: '/channels/$userId', params: { userId } });
   };
 
   const handleStartCall = (friendId: string, type: 'voice' | 'video') => {
@@ -101,7 +101,7 @@ export function DMFeature() {
             {conversations.map((conversation) => (
               <div
                 key={conversation.id}
-                onClick={() => handleDMClick(conversation.id)}
+                onClick={() => handleDMClick(conversation.participant.id)}
                 className="flex items-center space-x-3 p-2 rounded hover:bg-gray-700/50 cursor-pointer group"
               >
                 <div className="relative">

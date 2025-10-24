@@ -10,23 +10,24 @@ interface ChatRoomProps {
   currentUserId: string;
   channelName?: string;
   className?: string;
+  isDM?: boolean;
 }
 
 
 
-export function ChatRoomFeature({ channelId, currentUserId, channelName, className }: ChatRoomProps) {
+export function ChatRoomFeature({ channelId, currentUserId, channelName, className, isDM = false }: ChatRoomProps) {
   const queryClient = useQueryClient();
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const [isConnected, setIsConnected] = useState(false);
 
-  // Fetch messages
+  // Fetch messages (different API call for DMs vs channels)
   const {
     data: messages = [],
     isLoading,
     error,
   } = useQuery({
-    queryKey: ["messages", channelId],
-    queryFn: () => mockApi.getMessages(channelId),
+    queryKey: ["messages", channelId, isDM ? "dm" : "channel"],
+    queryFn: () => isDM ? mockApi.getDmMessagesByUserId(channelId) : mockApi.getMessages(channelId),
     enabled: !!channelId,
     refetchInterval: 5000, // Poll for new messages every 5 seconds
   });
@@ -36,7 +37,7 @@ export function ChatRoomFeature({ channelId, currentUserId, channelName, classNa
     mutationFn: (content: string) => mockApi.sendMessage(channelId, content),
     onSuccess: (newMessage) => {
       // Optimistically update the messages
-      queryClient.setQueryData(["messages", channelId], (oldMessages: Message[] = []) => [
+      queryClient.setQueryData(["messages", channelId, isDM ? "dm" : "channel"], (oldMessages: Message[] = []) => [
         ...oldMessages,
         newMessage,
       ]);
@@ -60,7 +61,7 @@ export function ChatRoomFeature({ channelId, currentUserId, channelName, classNa
         // Set up mock message receiving
         const cleanup = mockWebSocketEvents.messageReceived((message) => {
           if (message.channelId === channelId) {
-            queryClient.setQueryData(["messages", channelId], (oldMessages: Message[] = []) => [
+            queryClient.setQueryData(["messages", channelId, isDM ? "dm" : "channel"], (oldMessages: Message[] = []) => [
               ...oldMessages,
               message,
             ]);

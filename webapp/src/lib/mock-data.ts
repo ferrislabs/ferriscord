@@ -415,6 +415,60 @@ export const mockMessages: Message[] = [
       },
     ],
   },
+
+  // DM Messages (using user IDs as channel IDs)
+  {
+    id: "dm-msg-1",
+    content: "Hey! How's the Rust project coming along?",
+    author: mockUsers[1], // Bob
+    channelId: "user-1", // DM with Alice (user-1)
+    timestamp: "2024-01-15T09:30:00Z",
+  },
+  {
+    id: "dm-msg-2",
+    content:
+      "It's going great! Just implemented async/await patterns. Want to take a look?",
+    author: mockUsers[0], // Alice
+    channelId: "user-1", // DM with Alice
+    timestamp: "2024-01-15T09:32:00Z",
+  },
+  {
+    id: "dm-msg-3",
+    content: "Absolutely! Send me the repo link when you get a chance 👍",
+    author: mockUsers[1], // Bob
+    channelId: "user-1", // DM with Alice
+    timestamp: "2024-01-15T09:35:00Z",
+    reactions: [{ emoji: "👍", count: 1, users: ["user-1"] }],
+  },
+  {
+    id: "dm-msg-4",
+    content: "Thanks for the code review! I'll implement those changes.",
+    author: mockUsers[0], // Alice
+    channelId: "user-2", // DM with Bob (user-2)
+    timestamp: "2024-01-14T16:45:00Z",
+  },
+  {
+    id: "dm-msg-5",
+    content: "No problem! Your error handling approach was really clean.",
+    author: mockUsers[2], // Charlie
+    channelId: "user-2", // DM with Bob
+    timestamp: "2024-01-14T16:50:00Z",
+  },
+  {
+    id: "dm-msg-6",
+    content: "Are you free for a quick call about the new feature specs?",
+    author: mockUsers[3], // Diana
+    channelId: "user-3", // DM with Charlie (user-3)
+    timestamp: "2024-01-15T14:20:00Z",
+  },
+  {
+    id: "dm-msg-7",
+    content:
+      "Sure! Give me 5 minutes to finish this function and I'll call you.",
+    author: mockUsers[2], // Charlie
+    channelId: "user-3", // DM with Charlie
+    timestamp: "2024-01-15T14:22:00Z",
+  },
 ];
 
 // Mock Direct Messages
@@ -534,6 +588,14 @@ export const mockApi = {
   getDmMessages: async (dmId: string) => {
     await new Promise((resolve) => setTimeout(resolve, 400));
     return mockMessages.filter((msg) => msg.channelId === dmId);
+  },
+
+  // Get DM messages by user ID (Discord-style routing)
+  getDmMessagesByUserId: async (userId: string) => {
+    await new Promise((resolve) => setTimeout(resolve, 400));
+    // In a real app, this would find or create a DM channel between current user and target user
+    // For now, we'll simulate by using the userId as channelId
+    return mockMessages.filter((msg) => msg.channelId === userId);
   },
 
   // Friends

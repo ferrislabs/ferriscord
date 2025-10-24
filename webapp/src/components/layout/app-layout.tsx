@@ -31,8 +31,9 @@ export function AppLayout({ children }: AppLayoutProps) {
   const selectedServerId = params.serverId || 'server-1';
   const [isCollapsed, setIsCollapsed] = useState(false);
 
-  // Check if we're in DM view
-  const isDMView = window.location.pathname === '/channels/@me';
+  // Check if we're in DM view (@me or direct user DM)
+  const isDMView = window.location.pathname === '/channels/@me' ||
+    (window.location.pathname.startsWith('/channels/') && params.userId);
 
   // Fetch servers
   const { data: servers = [] } = useQuery({
