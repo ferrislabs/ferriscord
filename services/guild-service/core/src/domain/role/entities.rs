@@ -23,3 +23,7 @@ pub struct Role {
     pub permissions: u64,
     pub created_at: DateTime<Utc>,
 }
+
+pub struct CreateRoleInput {
+    pub name: String,
+}

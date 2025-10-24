@@ -23,6 +23,10 @@ where
 
         let guild = self.guild_repository.insert(input).await?;
 
+        // create default roles
+        // create member profile for owner
+        // create default channels
+
         Ok(guild)
     }
 }
