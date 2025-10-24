@@ -7,7 +7,7 @@ use tracing::info_span;
 use crate::{
     handlers::{
         create_guild::create_guild_handler, create_role::create_role_handler,
-        get_role::get_role_handler,
+        delete_role::delete_role_handler, get_role::get_role_handler, get_roles::get_roles_handler,
     },
     state::AppState,
 };
@@ -30,8 +30,10 @@ pub fn router(state: AppState) -> Result<Router, ApiError> {
 
     let router = Router::new()
         .typed_post(create_guild_handler)
+        .typed_get(get_roles_handler)
         .typed_get(get_role_handler)
         .typed_post(create_role_handler)
+        .typed_delete(delete_role_handler)
         .layer(trace_layer)
         .layer(axum::middleware::from_fn_with_state(
             state.clone(),
