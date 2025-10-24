@@ -1,7 +1,7 @@
 use crate::domain::{
     errors::CoreError,
     guild::entities::GuildId,
-    role::entities::{CreateRoleInput, Role},
+    role::entities::{CreateRoleInput, Role, RoleId},
 };
 
 pub trait RoleService: Send + Sync {
@@ -20,4 +20,5 @@ pub trait RoleRepository: Send + Sync {
         permissions: u64,
         guild_id: &GuildId,
     ) -> impl Future<Output = Result<Role, CoreError>> + Send;
+    fn find_by_id(&self, id: RoleId) -> impl Future<Output = Result<Role, CoreError>> + Send;
 }

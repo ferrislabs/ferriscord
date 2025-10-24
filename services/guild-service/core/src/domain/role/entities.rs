@@ -2,6 +2,7 @@ use std::fmt::Display;
 
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
+use uuid::Uuid;
 
 use crate::domain::{Id, guild::entities::GuildId};
 
@@ -11,6 +12,12 @@ pub struct RoleId(pub Id);
 impl Display for RoleId {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "{}", self.0)
+    }
+}
+
+impl From<Uuid> for RoleId {
+    fn from(id: Uuid) -> Self {
+        RoleId(Id(id))
     }
 }
 

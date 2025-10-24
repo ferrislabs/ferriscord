@@ -65,4 +65,31 @@ impl RoleRepository for PostgresRoleRepository {
             created_at: row.created_at,
         })
     }
+
+    async fn find_by_id(&self, id: RoleId) -> Result<Role, CoreError> {
+        let row = sqlx::query!(
+                    "SELECT id, guild_id, name, position, color, permissions, created_at FROM roles WHERE id = $1",
+                    id.0.get_uuid()
+                )
+                .fetch_optional(&self.pool)
+                .await
+                .map_err(|e| CoreError::Unknown {
+                    message: format!("failed to query role by id: {:?}", e),
+                })?;
+
+        match row {
+            Some(row) => Ok(Role {
+                id: RoleId(Id(row.id)),
+                guild_id: GuildId(Id(row.guild_id)),
+                name: row.name,
+                position: row.position,
+                color: row.color.unwrap_or(0) as u32,
+                permissions: row.permissions as u64,
+                created_at: row.created_at,
+            }),
+            None => Err(CoreError::Unknown {
+                message: format!("role with id {} not found", id),
+            }),
+        }
+    }
 }
