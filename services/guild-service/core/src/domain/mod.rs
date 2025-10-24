@@ -2,7 +2,7 @@ use std::fmt::Display;
 
 use chrono::Utc;
 use ferriscord_config::{AuthConfig, DatabaseConfig};
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 use uuid::{NoContext, Timestamp, Uuid};
 
 pub mod errors;
@@ -17,7 +17,7 @@ pub struct Config {
     pub auth: AuthConfig,
 }
 
-#[derive(Clone, Debug, Eq, PartialEq, Serialize)]
+#[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
 pub struct Id(pub Uuid);
 
 impl Id {

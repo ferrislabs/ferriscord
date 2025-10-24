@@ -3,10 +3,13 @@ use sqlx::PgPool;
 
 use crate::{
     domain::{Config, common::Service, errors::CoreError},
-    infrastructure::guild::postgres::PostgresGuildRepository,
+    infrastructure::{
+        guild::postgres::PostgresGuildRepository, role::postgres::PostgresRoleRepository,
+    },
 };
 
-pub type FerrisCordService = Service<PostgresGuildRepository, KeycloakAuthRepository>;
+pub type FerrisCordService =
+    Service<PostgresGuildRepository, KeycloakAuthRepository, PostgresRoleRepository>;
 
 impl HasAuthRepository for FerrisCordService {
     type AuthRepo = KeycloakAuthRepository;
@@ -35,9 +38,11 @@ pub async fn create_service(config: Config) -> Result<FerrisCordService, CoreErr
     let guild_repository = PostgresGuildRepository::new(pool.clone());
 
     let auth_repository = KeycloakAuthRepository::new(config.auth.issuer, None);
+    let role_repository = PostgresRoleRepository::new(pool.clone());
 
     Ok(FerrisCordService {
         guild_repository,
         auth_repository,
+        role_repository,
     })
 }

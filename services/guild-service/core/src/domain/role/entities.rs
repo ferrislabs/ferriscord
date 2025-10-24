@@ -1,10 +1,12 @@
 use std::fmt::Display;
 
 use chrono::{DateTime, Utc};
+use serde::{Deserialize, Serialize};
+use uuid::Uuid;
 
 use crate::domain::{Id, guild::entities::GuildId};
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct RoleId(pub Id);
 
 impl Display for RoleId {
@@ -13,7 +15,13 @@ impl Display for RoleId {
     }
 }
 
-#[derive(Debug, Clone)]
+impl From<Uuid> for RoleId {
+    fn from(id: Uuid) -> Self {
+        RoleId(Id(id))
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct Role {
     pub id: RoleId,
     pub guild_id: GuildId,
@@ -22,4 +30,9 @@ pub struct Role {
     pub color: u32,
     pub permissions: u64,
     pub created_at: DateTime<Utc>,
+}
+
+pub struct CreateRoleInput {
+    pub name: String,
+    pub permissions: u64,
 }
