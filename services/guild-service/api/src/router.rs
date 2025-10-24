@@ -4,7 +4,10 @@ use ferriscord_error::ApiError;
 use ferriscord_server::http::auth_middleware;
 use tracing::info_span;
 
-use crate::{handlers::create_guild::create_guild_handler, state::AppState};
+use crate::{
+    handlers::{create_guild::create_guild_handler, create_role::create_role_handler},
+    state::AppState,
+};
 
 async fn service_auth_middleware(
     State(state): State<AppState>,
@@ -24,6 +27,7 @@ pub fn router(state: AppState) -> Result<Router, ApiError> {
 
     let router = Router::new()
         .typed_post(create_guild_handler)
+        .typed_post(create_role_handler)
         .layer(trace_layer)
         .layer(axum::middleware::from_fn_with_state(
             state.clone(),

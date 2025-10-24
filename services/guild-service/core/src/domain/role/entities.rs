@@ -1,10 +1,11 @@
 use std::fmt::Display;
 
 use chrono::{DateTime, Utc};
+use serde::{Deserialize, Serialize};
 
 use crate::domain::{Id, guild::entities::GuildId};
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct RoleId(pub Id);
 
 impl Display for RoleId {
@@ -13,7 +14,7 @@ impl Display for RoleId {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct Role {
     pub id: RoleId,
     pub guild_id: GuildId,
