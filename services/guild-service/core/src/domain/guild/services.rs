@@ -7,12 +7,14 @@ use crate::domain::{
         entities::{CreateGuildInput, Guild},
         ports::{GuildPort, GuildService},
     },
+    role::ports::RoleRepository,
 };
 
-impl<G, A> GuildService for Service<G, A>
+impl<G, A, R> GuildService for Service<G, A, R>
 where
     G: GuildPort,
     A: AuthRepository,
+    R: RoleRepository,
 {
     async fn create_guild(&self, input: CreateGuildInput) -> Result<Guild, CoreError> {
         let guilds = self.guild_repository.list_by_owner(&input.owner_id).await?;
