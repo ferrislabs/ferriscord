@@ -645,6 +645,14 @@ dependencies = [
 ]
 
 [[package]]
+name = "ferriscord-permission"
+version = "0.1.0"
+dependencies = [
+ "bitflags",
+ "serde",
+]
+
+[[package]]
 name = "ferriscord-server"
 version = "0.1.0"
 dependencies = [

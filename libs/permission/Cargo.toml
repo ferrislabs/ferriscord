@@ -1,0 +1,9 @@
+[package]
+name = "ferriscord-permission"
+version.workspace = true
+authors.workspace = true
+edition.workspace = true
+
+[dependencies]
+bitflags = { version = "2.10.0", features = ["serde"] }
+serde = { version = "1.0.228", features = ["derive"] }
