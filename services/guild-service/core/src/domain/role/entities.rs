@@ -27,4 +27,5 @@ pub struct Role {
 
 pub struct CreateRoleInput {
     pub name: String,
+    pub permissions: u64,
 }

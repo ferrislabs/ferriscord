@@ -8,6 +8,7 @@ pub trait RoleService: Send + Sync {
     fn create_role(
         &self,
         input: CreateRoleInput,
+        guild_id: GuildId,
     ) -> impl Future<Output = Result<Role, CoreError>> + Send;
 }
 

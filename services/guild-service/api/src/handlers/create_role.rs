@@ -2,7 +2,13 @@ use axum::{Json, extract::State};
 use axum_extra::routing::TypedPath;
 use ferriscord_error::ApiError;
 use ferriscord_server::http::response::Response;
-use guild_core::domain::role::entities::Role;
+use guild_core::domain::{
+    guild::entities::GuildId,
+    role::{
+        entities::{CreateRoleInput, Role},
+        ports::RoleService,
+    },
+};
 use serde::Deserialize;
 use uuid::Uuid;
 
@@ -26,5 +32,19 @@ pub async fn create_role_handler(
     State(state): State<AppState>,
     Json(req): Json<CreateRoleRequest>,
 ) -> Result<Response<Role>, ApiError> {
-    todo!()
+    let role = state
+        .service
+        .create_role(
+            CreateRoleInput {
+                name: req.name,
+                permissions: req.permissions,
+            },
+            guild_id.into(),
+        )
+        .await
+        .map_err(|e| ApiError::Unknown {
+            message: e.to_string(),
+        })?;
+
+    Ok(Response::Created(role))
 }
