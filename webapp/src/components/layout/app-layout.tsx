@@ -31,6 +31,9 @@ export function AppLayout({ children }: AppLayoutProps) {
   const selectedServerId = params.serverId || 'server-1';
   const [isCollapsed, setIsCollapsed] = useState(false);
 
+  // Check if we're in DM view
+  const isDMView = window.location.pathname === '/channels/@me';
+
   // Fetch servers
   const { data: servers = [] } = useQuery({
     queryKey: ['servers'],
@@ -109,8 +112,8 @@ export function AppLayout({ children }: AppLayoutProps) {
         </Link>
       </div>
 
-      {/* Channel Sidebar */}
-      {selectedServer && (
+      {/* Channel Sidebar - Hide when in DM view */}
+      {selectedServer && !isDMView && (
         <div className={cn(
           "bg-gray-800 flex flex-col transition-all duration-200",
           isCollapsed ? "w-16" : "w-60"
@@ -278,8 +281,8 @@ export function AppLayout({ children }: AppLayoutProps) {
         </div>
       </div>
 
-      {/* Member List (conditionally shown) */}
-      {selectedServer && params.channelId && (
+      {/* Member List - Hide when in DM view */}
+      {selectedServer && params.channelId && !isDMView && (
         <div className="w-60 bg-gray-100 border-l border-gray-200">
           <div className="p-4">
             <h3 className="text-sm font-semibold text-gray-700 mb-3">
