@@ -114,4 +114,18 @@ impl GuildPort for PostgresGuildRepository {
 
         Ok(guilds)
     }
+
+    async fn delete(&self, guild_id: &GuildId) -> Result<(), CoreError> {
+        query!("DELETE FROM guilds WHERE id = $1", guild_id.get_uuid())
+            .execute(&self.pool)
+            .await
+            .map_err(|e| {
+                error!("failed to delete guild: {}", e);
+                CoreError::Unknown {
+                    message: e.to_string(),
+                }
+            })?;
+
+        Ok(())
+    }
 }

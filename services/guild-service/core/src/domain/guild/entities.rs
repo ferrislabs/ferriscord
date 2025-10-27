@@ -30,6 +30,13 @@ impl Display for GuildId {
 #[derive(Clone, Debug, Eq, PartialEq, Serialize)]
 pub struct OwnerId(pub Id);
 
+impl From<&str> for OwnerId {
+    fn from(value: &str) -> Self {
+        let uuid = Uuid::parse_str(value).expect("Invalid UUID string");
+        OwnerId(Id(uuid))
+    }
+}
+
 impl OwnerId {
     pub fn get_uuid(&self) -> &uuid::Uuid {
         &self.0.0
