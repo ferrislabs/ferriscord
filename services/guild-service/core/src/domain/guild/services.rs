@@ -26,6 +26,9 @@ where
         let guild = self.guild_repository.insert(input).await?;
 
         // create default roles
+        self.role_repository
+            .insert("everyone", 0, 0, &guild.id)
+            .await?;
         // create member profile for owner
         // create default channels
 
