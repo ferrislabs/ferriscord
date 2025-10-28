@@ -5,6 +5,7 @@ members = [
     "libs/auth",
     "libs/config",
     "libs/permission",
+    "libs/ferriscord-domain",
 
     "services/guild-service/core",
     "services/guild-service/api",
@@ -13,7 +14,9 @@ members = [
     "services/user-service/api",
 
     "services/message-service/core",
-    "services/message-service/api"
+    "services/message-service/api",
+
+    "services/notification-service/core",
 ]
 resolver = "2"
 

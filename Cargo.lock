@@ -636,6 +636,14 @@ name = "ferriscord-config"
 version = "0.1.0"
 
 [[package]]
+name = "ferriscord-domain"
+version = "0.1.0"
+dependencies = [
+ "serde",
+ "uuid",
+]
+
+[[package]]
 name = "ferriscord-error"
 version = "0.1.0"
 dependencies = [
@@ -1519,6 +1527,17 @@ checksum = "d273983c5a657a70a3e8f2a01329822f3b8c8172b73826411a55751e404a0a4a"
 dependencies = [
  "memchr",
  "minimal-lexical",
+]
+
+[[package]]
+name = "notification-core"
+version = "0.1.0"
+dependencies = [
+ "chrono",
+ "ferriscord-domain",
+ "serde",
+ "serde_json",
+ "uuid",
 ]
 
 [[package]]

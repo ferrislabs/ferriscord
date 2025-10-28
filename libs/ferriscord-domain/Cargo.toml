@@ -1,0 +1,9 @@
+[package]
+name = "ferriscord-domain"
+version.workspace = true
+authors.workspace = true
+edition.workspace = true
+
+[dependencies]
+serde = { version = "1.0.228", features = ["derive"] }
+uuid = { version = "1.18.1", features = ["serde", "v4", "v7"] }
