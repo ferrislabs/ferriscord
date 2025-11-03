@@ -49,3 +49,4 @@ define_id!(MessageId);
 define_id!(RoleId);
 define_id!(NotificationId);
 define_id!(ConnectionId);
+define_id!(UserNotificationId);

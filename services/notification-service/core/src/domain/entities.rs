@@ -4,6 +4,10 @@ use chrono::{DateTime, Utc};
 use ferriscord_domain::{ChannelId, GuildId, NotificationId, UserId};
 use serde::{Deserialize, Serialize};
 
+pub mod notification;
+pub mod preference;
+pub mod user_notification;
+
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
 pub enum NotificationPriority {
     Low,
