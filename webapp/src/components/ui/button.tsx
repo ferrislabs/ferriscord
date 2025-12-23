@@ -3,8 +3,8 @@ import { cn } from "@/lib/utils"
 
 export interface ButtonProps
   extends React.ButtonHTMLAttributes<HTMLButtonElement> {
-  variant?: 'default' | 'destructive' | 'outline' | 'secondary' | 'ghost' | 'link'
-  size?: 'default' | 'sm' | 'lg' | 'icon'
+  variant?: 'default' | 'destructive' | 'outline' | 'secondary' | 'ghost' | 'link' | 'nav'
+  size?: 'default' | 'sm' | 'lg' | 'icon' | 'icon-sm'
 }
 
 const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
@@ -21,12 +21,14 @@ const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
             "bg-secondary text-secondary-foreground hover:bg-secondary/80": variant === 'secondary',
             "hover:bg-accent hover:text-accent-foreground": variant === 'ghost',
             "text-primary underline-offset-4 hover:underline": variant === 'link',
+            "bg-background hover:bg-accent/50 rounded-lg": variant === 'nav',
 
             // Size styles
             "h-10 px-4 py-2": size === 'default',
             "h-9 rounded-md px-3": size === 'sm',
             "h-11 rounded-md px-8": size === 'lg',
             "h-10 w-10": size === 'icon',
+            "h-12 w-12": size === 'icon-sm',
           },
           className
         )}

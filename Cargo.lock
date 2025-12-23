@@ -879,6 +879,7 @@ dependencies = [
  "chrono",
  "ferriscord-auth",
  "ferriscord-config",
+ "ferriscord-permission",
  "serde",
  "sqlx",
  "thiserror",

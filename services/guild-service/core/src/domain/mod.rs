@@ -17,7 +17,7 @@ pub struct Config {
     pub auth: AuthConfig,
 }
 
-#[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
+#[derive(Clone, Debug, Eq, PartialEq, Hash, Serialize, Deserialize)]
 pub struct Id(pub Uuid);
 
 impl Id {

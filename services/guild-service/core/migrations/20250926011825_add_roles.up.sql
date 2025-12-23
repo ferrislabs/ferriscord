@@ -6,6 +6,8 @@ CREATE TABLE roles (
     position    INT NOT NULL DEFAULT 0,
     color       INT,
     permissions BIGINT NOT NULL,           -- bitflags
+    hoist       BOOLEAN NOT NULL DEFAULT FALSE,
+    mentionable BOOLEAN NOT NULL DEFAULT FALSE,
     created_at  TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 

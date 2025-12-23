@@ -21,7 +21,7 @@ services:
       KEYCLOAK_ADMIN: admin
       KEYCLOAK_ADMIN_PASSWORD: admin
     ports:
-      - "8080:8080"
+      - "9090:8080"
     networks:
       - ferriscord-network
     command: start-dev

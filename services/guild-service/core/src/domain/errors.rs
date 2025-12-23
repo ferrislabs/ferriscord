@@ -21,4 +21,15 @@ pub enum CoreError {
 
     #[error("unknown error: {message}")]
     Unknown { message: String },
+
+    #[error("insufficient permissions to perform this action")]
+    InsufficientPermissions,
+}
+
+impl From<&str> for CoreError {
+    fn from(message: &str) -> Self {
+        CoreError::Unknown {
+            message: message.to_string(),
+        }
+    }
 }

@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useOidc } from "@axa-fr/react-oidc";
 import { RouterProvider, createRouter } from '@tanstack/react-router';
 import { routeTree } from './routeTree.gen';
@@ -15,17 +15,8 @@ declare module '@tanstack/react-router' {
 
 // Main App component
 export default function App() {
-  const { isAuthenticated, login } = useOidc();
+  const { isAuthenticated } = useOidc();
   const [useOidcAuth] = useState(false);
-
-  // You can toggle between OIDC and mock authentication
-  useEffect(() => {
-    // Uncomment the following lines to use OIDC authentication instead of mock
-    // if (!isAuthenticated) {
-    //   login('/');
-    // }
-    // setUseOidcAuth(true);
-  }, [isAuthenticated, login]);
 
   if (useOidcAuth) {
     // OIDC Authentication flow

@@ -1,3 +1,5 @@
+use ferriscord_auth::Identity;
+
 use crate::domain::{
     errors::CoreError,
     guild::entities::GuildId,
@@ -7,6 +9,7 @@ use crate::domain::{
 pub trait RoleService: Send + Sync {
     fn create_role(
         &self,
+        identity: Identity,
         input: CreateRoleInput,
         guild_id: GuildId,
     ) -> impl Future<Output = Result<Role, CoreError>> + Send;

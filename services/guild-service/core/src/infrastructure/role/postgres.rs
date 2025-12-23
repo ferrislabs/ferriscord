@@ -1,4 +1,5 @@
 use chrono::Utc;
+use ferriscord_permission::Permissions;
 use sqlx::PgPool;
 
 use crate::domain::{
@@ -55,13 +56,20 @@ impl RoleRepository for PostgresRoleRepository {
             message: format!("failed to insert role: {:?}", e),
         })?;
 
+        let permissions =
+            Permissions::from_bits(row.permissions as u64).ok_or(CoreError::Unknown {
+                message: "invalid permissions bits".to_string(),
+            })?;
+
         Ok(Role {
             id: RoleId(Id(row.id)),
             guild_id: GuildId(Id(row.guild_id)),
             name: row.name,
             position: row.position,
             color: row.color.unwrap_or(0) as u32,
-            permissions: row.permissions as u64,
+            hoist: false,
+            mentionable: false,
+            permissions,
             created_at: row.created_at,
         })
     }
@@ -78,15 +86,24 @@ impl RoleRepository for PostgresRoleRepository {
                 })?;
 
         match row {
-            Some(row) => Ok(Role {
-                id: RoleId(Id(row.id)),
-                guild_id: GuildId(Id(row.guild_id)),
-                name: row.name,
-                position: row.position,
-                color: row.color.unwrap_or(0) as u32,
-                permissions: row.permissions as u64,
-                created_at: row.created_at,
-            }),
+            Some(row) => {
+                let permissions =
+                    Permissions::from_bits(row.permissions as u64).ok_or(CoreError::Unknown {
+                        message: "invalid permissions bits".to_string(),
+                    })?;
+
+                Ok(Role {
+                    id: RoleId(Id(row.id)),
+                    guild_id: GuildId(Id(row.guild_id)),
+                    name: row.name,
+                    position: row.position,
+                    color: row.color.unwrap_or(0) as u32,
+                    hoist: false,
+                    mentionable: false,
+                    permissions,
+                    created_at: row.created_at,
+                })
+            }
             None => Err(CoreError::Unknown {
                 message: format!("role with id {} not found", id),
             }),
