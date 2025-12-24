@@ -1,10 +1,10 @@
 import { createFileRoute, Link } from '@tanstack/react-router'
-import { AuthWrapper } from '@/components/auth/auth-wrapper'
 import { useServers } from '@/lib/queries/community-queries'
 import { MessageSquare, Compass, Plus, ArrowRight } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
+import { AuthWrapper } from '@/components/auth/auth-wrapper'
 
 export const Route = createFileRoute('/')({
   component: HomePage,

@@ -14,6 +14,16 @@ export function formatDate(date: Date): string {
   return date.toLocaleDateString(undefined, options);
 }
 
+export function formatTime(time: string): string {
+  const options: Intl.DateTimeFormatOptions = {
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit",
+  };
+  const date = new Date(time);
+  return date.toLocaleTimeString(undefined, options);
+}
+
 export function getStatusColor(
   status: "online" | "offline" | "busy" | "away",
 ): string {

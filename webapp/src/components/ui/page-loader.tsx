@@ -14,8 +14,8 @@ export function PageLoader({ className, message }: PageLoaderProps) {
         className
       )}
     >
-      <Spinner className="size-8 text-primary" />
-      {message && (
+      <Spinner className="text-gray-500" />
+      {message && window.inDevelopmentMode && (
         <p className="mt-4 text-sm text-muted-foreground">{message}</p>
       )}
     </div>

@@ -1,5 +1,5 @@
 import { createFileRoute } from '@tanstack/react-router'
-import { AppLayout } from '@/components/layout/app-layout'
+import { AppLayout } from '@/layouts/app-layout'
 import { ChatRoomFeature } from '@/pages/chat/features/chat-room'
 import { AuthWrapper } from '@/components/auth/auth-wrapper'
 import { mockApi } from '@/lib/mock-data'

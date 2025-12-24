@@ -1,4 +1,4 @@
-import { OidcProvider, useOidc } from '@axa-fr/react-oidc';
+import { useOidc } from '@axa-fr/react-oidc';
 import { useEffect } from 'react';
 
 interface AuthWrapperProps {
