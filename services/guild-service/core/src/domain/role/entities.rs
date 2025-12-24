@@ -143,7 +143,7 @@ impl PermissionContext {
     fn apply_channel_overrides(
         &self,
         base_permissions: Permissions,
-        channel_id: &str,
+        _channel_id: &str,
     ) -> Permissions {
         let mut permissions = base_permissions;
 
@@ -203,4 +203,14 @@ pub struct CreateRoleInput {
     pub name: String,
     pub permissions: u64,
     pub color: Option<u32>,
+}
+
+pub struct DeleteRoleInput {
+    pub role_id: RoleId,
+    pub guild_id: GuildId,
+}
+
+pub struct FindRoleInput {
+    pub role_id: RoleId,
+    pub guild_id: GuildId,
 }

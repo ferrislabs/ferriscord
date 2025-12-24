@@ -66,7 +66,7 @@ where
 
     async fn get_user_roles_in_guild(
         &self,
-        user_id: &str,
+        _user_id: &str,
         guild_id: &GuildId,
     ) -> Result<Vec<Role>, CoreError> {
         // TODO: You need to implement this method

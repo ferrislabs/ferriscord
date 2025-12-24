@@ -12,7 +12,7 @@ use crate::state::AppState;
 #[derive(TypedPath, Deserialize)]
 #[typed_path("/guilds/{guild_id}")]
 pub struct DeleteGuildRoute {
-    guild_id: Uuid,
+    pub guild_id: Uuid,
 }
 
 pub async fn delete_guild_handler(

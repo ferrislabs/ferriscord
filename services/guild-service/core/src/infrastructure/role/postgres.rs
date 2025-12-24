@@ -109,4 +109,21 @@ impl RoleRepository for PostgresRoleRepository {
             }),
         }
     }
+
+    async fn delete_by_id(&self, id: RoleId) -> Result<(), CoreError> {
+        let result = sqlx::query!("DELETE FROM roles WHERE id = $1", id.0.get_uuid())
+            .execute(&self.pool)
+            .await
+            .map_err(|e| CoreError::Unknown {
+                message: format!("failed to delete role by id: {:?}", e),
+            })?;
+
+        if result.rows_affected() == 0 {
+            return Err(CoreError::Unknown {
+                message: format!("role with id {} not found", id),
+            });
+        }
+
+        Ok(())
+    }
 }

@@ -81,10 +81,10 @@ impl GuildPort for PostgresGuildRepository {
         .map_err(|e| {
             error!("failed to insert guild: {}", e);
 
-            if let Some(db_err) = e.as_database_error() {
-                if db_err.constraint() == Some("guilds_slug_key") {
-                    return CoreError::GuildSlugAlreadyExists { slug: input.name };
-                }
+            if let Some(db_err) = e.as_database_error()
+                && db_err.constraint() == Some("guilds_slug_key")
+            {
+                return CoreError::GuildSlugAlreadyExists { slug: input.name };
             }
 
             CoreError::Unknown {

@@ -6,7 +6,7 @@ use crate::domain::{
     errors::CoreError,
     guild::{entities::GuildId, ports::GuildPort},
     role::{
-        entities::{CreateRoleInput, Role, RoleId},
+        entities::{CreateRoleInput, DeleteRoleInput, FindRoleInput, Role},
         ports::{RoleRepository, RoleService},
     },
 };
@@ -39,7 +39,26 @@ where
             .await
     }
 
-    async fn find_role(&self, id: RoleId) -> Result<Role, CoreError> {
-        self.role_repository.find_by_id(id).await
+    async fn find_role(
+        &self,
+        _identity: Identity,
+        input: FindRoleInput,
+    ) -> Result<Role, CoreError> {
+        // check if the user has permission to create role in the guild
+        // @todo: implement permission check
+
+        self.role_repository.find_by_id(input.role_id).await
+    }
+
+    async fn delete_role(
+        &self,
+        _identity: Identity,
+        input: DeleteRoleInput,
+    ) -> Result<(), CoreError> {
+        // check if the user has permission to create role in the guild
+        // @todo: implement permission check
+
+        self.role_repository.delete_by_id(input.role_id).await?;
+        Ok(())
     }
 }

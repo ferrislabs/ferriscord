@@ -95,19 +95,19 @@ impl PermissionOverrides {
     }
 
     pub fn allow(mut self, permission: Permissions) -> Self {
-        self.allow |= permission.clone();
+        self.allow |= permission;
         self.deny &= !permission;
         self
     }
 
     pub fn deny(mut self, permission: Permissions) -> Self {
-        self.deny |= permission.clone();
+        self.deny |= permission;
         self.allow &= !permission;
         self
     }
 
     pub fn apply_to(&self, base_permissions: Permissions) -> Permissions {
-        (base_permissions | self.allow.clone()) & !self.deny.clone()
+        (base_permissions | self.allow) & !self.deny
     }
 }
 

@@ -16,7 +16,8 @@ pub struct GetRolesRoute {
 
 pub async fn get_roles_handler(
     GetRolesRoute { guild_id }: GetRolesRoute,
-    State(state): State<AppState>,
+    State(_state): State<AppState>,
 ) -> Result<Response<Vec<Role>>, ApiError> {
+    println!("get roles handler: {:?}", guild_id);
     todo!()
 }

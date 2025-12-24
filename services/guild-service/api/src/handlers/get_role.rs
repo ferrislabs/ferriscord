@@ -1,8 +1,12 @@
-use axum::extract::State;
+use axum::{Extension, extract::State};
 use axum_extra::routing::TypedPath;
+use ferriscord_auth::Identity;
 use ferriscord_error::ApiError;
 use ferriscord_server::http::response::Response;
-use guild_core::domain::role::{entities::Role, ports::RoleService};
+use guild_core::domain::role::{
+    entities::{FindRoleInput, Role},
+    ports::RoleService,
+};
 use serde::Deserialize;
 use uuid::Uuid;
 
@@ -18,10 +22,17 @@ pub struct GetRoleRoute {
 pub async fn get_role_handler(
     GetRoleRoute { guild_id, role_id }: GetRoleRoute,
     State(state): State<AppState>,
+    Extension(identity): Extension<Identity>,
 ) -> Result<Response<Role>, ApiError> {
     let role = state
         .service
-        .find_role(role_id.into())
+        .find_role(
+            identity,
+            FindRoleInput {
+                guild_id: guild_id.into(),
+                role_id: role_id.into(),
+            },
+        )
         .await
         .map_err(|e| ApiError::Unknown {
             message: e.to_string(),

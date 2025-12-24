@@ -3,7 +3,7 @@ use ferriscord_auth::Identity;
 use crate::domain::{
     errors::CoreError,
     guild::entities::GuildId,
-    role::entities::{CreateRoleInput, Role, RoleId},
+    role::entities::{CreateRoleInput, DeleteRoleInput, FindRoleInput, Role, RoleId},
 };
 
 pub trait RoleService: Send + Sync {
@@ -13,7 +13,16 @@ pub trait RoleService: Send + Sync {
         input: CreateRoleInput,
         guild_id: GuildId,
     ) -> impl Future<Output = Result<Role, CoreError>> + Send;
-    fn find_role(&self, id: RoleId) -> impl Future<Output = Result<Role, CoreError>> + Send;
+    fn find_role(
+        &self,
+        identity: Identity,
+        input: FindRoleInput,
+    ) -> impl Future<Output = Result<Role, CoreError>> + Send;
+    fn delete_role(
+        &self,
+        identity: Identity,
+        input: DeleteRoleInput,
+    ) -> impl Future<Output = Result<(), CoreError>> + Send;
 }
 
 pub trait RoleRepository: Send + Sync {
@@ -25,4 +34,5 @@ pub trait RoleRepository: Send + Sync {
         guild_id: &GuildId,
     ) -> impl Future<Output = Result<Role, CoreError>> + Send;
     fn find_by_id(&self, id: RoleId) -> impl Future<Output = Result<Role, CoreError>> + Send;
+    fn delete_by_id(&self, id: RoleId) -> impl Future<Output = Result<(), CoreError>> + Send;
 }
