@@ -1,8 +1,9 @@
 import { createFileRoute } from '@tanstack/react-router'
 import { useServer, useChannels } from '@/lib/queries/community-queries'
-import { Hash, Volume2, Users, Pin, Bell, Search, AtSign } from 'lucide-react'
+import { Hash, Volume2, Users, Pin, Bell, Search } from 'lucide-react'
 import { Skeleton } from '@/components/ui/skeleton'
 import { MessageListSkeleton } from '@/components/layout/message-list-skeleton'
+import { MessageInput } from '@/components/chat'
 
 export const Route = createFileRoute('/_app/channels/$serverId/$channelId')({
   component: ChannelPage,
@@ -15,6 +16,11 @@ function ChannelPage() {
 
   const selectedChannel = channels.find(ch => ch.id === Number(channelId))
   const isLoading = isLoadingServer || isLoadingChannels
+
+  const handleSendMessage = (content: string) => {
+    // Here you would send the message
+    console.log('Sending message to channel:', selectedChannel?.name, content)
+  }
 
   return (
     <div className="flex flex-col h-full">
@@ -151,18 +157,12 @@ function ChannelPage() {
           <Skeleton className="h-12 w-full rounded-lg" />
         </div>
       ) : selectedChannel && (
-        <div className="p-4 border-t border-sidebar-border">
-          <div className="flex items-center space-x-2 bg-accent/50 rounded-lg px-4 py-3">
-            <button className="text-muted-foreground hover:text-foreground transition-colors">
-              <AtSign className="h-5 w-5" />
-            </button>
-            <input
-              type="text"
-              placeholder={`Message #${selectedChannel.name}`}
-              className="flex-1 bg-transparent outline-none text-foreground placeholder:text-muted-foreground"
-            />
-          </div>
-        </div>
+        <MessageInput
+          onSendMessage={handleSendMessage}
+          channelName={selectedChannel.name}
+          channelType="text"
+          className="border-t-0"
+        />
       )}
     </div>
   )

@@ -22,7 +22,7 @@ impl From<Uuid> for RoleId {
     }
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct Role {
     pub id: RoleId,
     pub guild_id: GuildId,
@@ -202,4 +202,5 @@ impl PermissionContext {
 pub struct CreateRoleInput {
     pub name: String,
     pub permissions: u64,
+    pub color: Option<u32>,
 }

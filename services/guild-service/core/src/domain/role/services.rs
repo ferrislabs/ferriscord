@@ -30,7 +30,12 @@ where
         require_permission!(permission_context, Permissions::MANAGE_ROLES);
 
         self.role_repository
-            .insert(&input.name, 0, input.permissions, &guild_id)
+            .insert(
+                &input.name,
+                input.color.unwrap_or_default(),
+                input.permissions,
+                &guild_id,
+            )
             .await
     }
 

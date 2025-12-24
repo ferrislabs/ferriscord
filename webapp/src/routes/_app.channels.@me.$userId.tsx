@@ -1,9 +1,8 @@
 import { createFileRoute } from '@tanstack/react-router'
-import { Phone, Video, Pin, Search, Smile, Paperclip, Send } from 'lucide-react'
+import { Phone, Video, Pin, Search } from 'lucide-react'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
-import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
-import { useState } from 'react'
+import { MessageInput } from '@/components/chat'
 
 export const Route = createFileRoute('/_app/channels/@me/$userId')({
   component: DMConversationPage,
@@ -103,7 +102,6 @@ const getStatusColor = (status: string) => {
 
 function DMConversationPage() {
   const { userId } = Route.useParams()
-  const [message, setMessage] = useState('')
   const user = mockUsers[userId]
 
   if (!user) {
@@ -117,13 +115,9 @@ function DMConversationPage() {
     )
   }
 
-  const handleSendMessage = (e: React.FormEvent) => {
-    e.preventDefault()
-    if (message.trim()) {
-      // Here you would send the message
-      console.log('Sending message:', message)
-      setMessage('')
-    }
+  const handleSendMessage = (content: string) => {
+    // Here you would send the message
+    console.log('Sending message:', content)
   }
 
   return (
@@ -222,40 +216,12 @@ function DMConversationPage() {
       </div>
 
       {/* Message Input */}
-      <div className="p-4 border-t border-sidebar-border">
-        <form onSubmit={handleSendMessage}>
-          <div className="flex items-center space-x-2 bg-accent/50 rounded-lg px-4 py-3">
-            <button
-              type="button"
-              className="text-muted-foreground hover:text-foreground transition-colors"
-            >
-              <Paperclip className="h-5 w-5" />
-            </button>
-            <input
-              type="text"
-              value={message}
-              onChange={(e) => setMessage(e.target.value)}
-              placeholder={`Message @${user.username}`}
-              className="flex-1 bg-transparent outline-none text-foreground placeholder:text-muted-foreground"
-            />
-            <button
-              type="button"
-              className="text-muted-foreground hover:text-foreground transition-colors"
-            >
-              <Smile className="h-5 w-5" />
-            </button>
-            <Button
-              type="submit"
-              size="icon"
-              variant="ghost"
-              disabled={!message.trim()}
-              className="text-muted-foreground hover:text-foreground transition-colors disabled:opacity-50"
-            >
-              <Send className="h-5 w-5" />
-            </Button>
-          </div>
-        </form>
-      </div>
+      <MessageInput
+        onSendMessage={handleSendMessage}
+        channelType="dm"
+        recipientName={user.username}
+        className="border-t-0"
+      />
     </div>
   )
 }
