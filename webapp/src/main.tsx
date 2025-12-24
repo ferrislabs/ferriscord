@@ -6,6 +6,12 @@ import { OidcProvider, type OidcConfiguration } from '@axa-fr/react-oidc'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { Toaster } from './components/ui/toaster.tsx'
 
+declare global {
+  interface Window {
+    issuerUrl: string
+    oidcConfiguration: OidcConfiguration
+  }
+}
 
 const container = document.getElementById('root') || (document.createElement('div') as HTMLElement)
 const root = createRoot(container)
@@ -28,10 +34,10 @@ const queryClient = new QueryClient({
 const render = (
   <StrictMode>
     <QueryClientProvider client={queryClient}>
-      <OidcProvider configuration={configuration}>
-        <App />
-        <Toaster />
-      </OidcProvider>
+
+      <App />
+      <Toaster />
+
     </QueryClientProvider>
   </StrictMode>
 )

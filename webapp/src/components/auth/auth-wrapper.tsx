@@ -1,4 +1,4 @@
-import { useOidc } from '@axa-fr/react-oidc';
+import { OidcProvider, useOidc } from '@axa-fr/react-oidc';
 import { useEffect } from 'react';
 
 interface AuthWrapperProps {
@@ -20,5 +20,7 @@ export function AuthWrapper({ children }: AuthWrapperProps) {
   }
 
   // User is authenticated, render the app
-  return <>{children}</>;
+  return <>
+    {children}
+  </>;
 }

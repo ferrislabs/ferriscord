@@ -1,6 +1,7 @@
 import { createFileRoute, Outlet } from '@tanstack/react-router'
 import { AppLayout } from '@/components/layout/app-layout'
 import { AuthWrapper } from '@/components/auth/auth-wrapper'
+import { SetupAppLayout } from '@/components/layout/setup-app'
 
 export const Route = createFileRoute('/_app')({
   component: AppLayoutRoute,
@@ -8,10 +9,12 @@ export const Route = createFileRoute('/_app')({
 
 function AppLayoutRoute() {
   return (
-    <AuthWrapper>
-      <AppLayout>
-        <Outlet />
-      </AppLayout>
-    </AuthWrapper>
+    <SetupAppLayout>
+      <AuthWrapper>
+        <AppLayout>
+          <Outlet />
+        </AppLayout>
+      </AuthWrapper>
+    </SetupAppLayout>
   )
 }

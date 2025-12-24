@@ -1,42 +1,60 @@
-import { useState } from 'react';
-import { useOidc } from "@axa-fr/react-oidc";
-import { RouterProvider, createRouter } from '@tanstack/react-router';
-import { routeTree } from './routeTree.gen';
+import { useCallback, useEffect, useState } from 'react'
+import { RouterProvider, createRouter } from '@tanstack/react-router'
+import { routeTree } from './routeTree.gen'
+import { Spinner } from './components/ui/spinner'
 
-// Create a new router instance
 const router = createRouter({ routeTree });
 
-// Register the router instance for type safety
 declare module '@tanstack/react-router' {
   interface Register {
     router: typeof router;
   }
 }
 
-// Main App component
 export default function App() {
-  const { isAuthenticated } = useOidc();
-  const [useOidcAuth] = useState(false);
+  const [appIsSetup, setAppIsSetup] = useState(false)
 
-  if (useOidcAuth) {
-    // OIDC Authentication flow
-    if (!isAuthenticated) {
-      return (
-        <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-          <div className="text-center">
-            <h1 className="text-2xl font-bold text-gray-900 mb-4">
-              Welcome to Ferriscord!
-            </h1>
-            <p className="text-gray-600 mb-6">
-              Please wait while we authenticate you...
-            </p>
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600 mx-auto"></div>
-          </div>
-        </div>
-      );
+  const setupApp = useCallback(async () => {
+    const viteIssuerUrl = import.meta.env.VITE_OIDC_ISSUER_URL
+    const viteClientId = import.meta.env.VITE_OIDC_CLIENT_ID
+
+    let issuerUrl: string | undefined
+    let clientId: string | undefined
+
+    if (viteIssuerUrl && viteClientId) {
+      issuerUrl = viteIssuerUrl
+      clientId = viteClientId
+    } else {
+      const data = await fetch('/config.json')
+      const result = await data.json()
+      issuerUrl = result.oidc_issuer_url
+      clientId = result.oidc_client_id
     }
+
+    if (issuerUrl && clientId) {
+      window.issuerUrl = issuerUrl
+      window.oidcConfiguration = {
+        client_id: clientId,
+        redirect_uri: window.location.origin + '/authentication/callback',
+        scope: 'openid profile email',
+        authority: issuerUrl
+      }
+
+      setAppIsSetup(true)
+    }
+  }, [])
+
+  useEffect(() => {
+    setupApp()
+  }, [setupApp])
+
+  if (!appIsSetup) {
+    return (
+      <div className='h-screen flex items-center justify-center text-gray-500'>
+        <Spinner />
+      </div>
+    )
   }
 
-  // Mock Authentication flow with TanStack Router
   return <RouterProvider router={router} />;
 }
