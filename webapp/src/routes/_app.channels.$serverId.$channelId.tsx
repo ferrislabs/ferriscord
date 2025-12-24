@@ -1,6 +1,8 @@
 import { createFileRoute } from '@tanstack/react-router'
 import { useServer, useChannels } from '@/lib/queries/community-queries'
 import { Hash, Volume2, Users, Pin, Bell, Search, AtSign } from 'lucide-react'
+import { Skeleton } from '@/components/ui/skeleton'
+import { MessageListSkeleton } from '@/components/layout/message-list-skeleton'
 
 export const Route = createFileRoute('/_app/channels/$serverId/$channelId')({
   component: ChannelPage,
@@ -8,15 +10,31 @@ export const Route = createFileRoute('/_app/channels/$serverId/$channelId')({
 
 function ChannelPage() {
   const { serverId, channelId } = Route.useParams()
-  const { data: server } = useServer(Number(serverId))
-  const { data: channels = [] } = useChannels(Number(serverId))
+  const { data: server, isLoading: isLoadingServer } = useServer(Number(serverId))
+  const { data: channels = [], isLoading: isLoadingChannels } = useChannels(Number(serverId))
 
   const selectedChannel = channels.find(ch => ch.id === Number(channelId))
+  const isLoading = isLoadingServer || isLoadingChannels
 
   return (
     <div className="flex flex-col h-full">
       {/* Channel Header */}
-      {selectedChannel && (
+      {isLoading ? (
+        <div className="h-12 border-b border-sidebar-border px-4 flex items-center justify-between bg-background">
+          <div className="flex items-center space-x-2">
+            <Skeleton className="h-5 w-5" />
+            <Skeleton className="h-5 w-32" />
+            <span className="text-muted-foreground">|</span>
+            <Skeleton className="h-4 w-48" />
+          </div>
+          <div className="flex items-center space-x-2">
+            <Skeleton className="h-8 w-8 rounded" />
+            <Skeleton className="h-8 w-8 rounded" />
+            <Skeleton className="h-8 w-8 rounded" />
+            <Skeleton className="h-8 w-8 rounded" />
+          </div>
+        </div>
+      ) : selectedChannel && (
         <div className="h-12 border-b border-sidebar-border px-4 flex items-center justify-between bg-background">
           <div className="flex items-center space-x-2">
             {selectedChannel.type === 'voice' ? (
@@ -51,7 +69,9 @@ function ChannelPage() {
 
       {/* Channel Content */}
       <div className="flex-1 overflow-auto">
-        {selectedChannel ? (
+        {isLoading ? (
+          <MessageListSkeleton />
+        ) : selectedChannel ? (
           <div className="p-4 space-y-4">
             {/* Welcome Message */}
             <div className="flex items-start space-x-4 p-4 bg-card rounded-lg border border-sidebar-border">
@@ -126,7 +146,11 @@ function ChannelPage() {
       </div>
 
       {/* Message Input */}
-      {selectedChannel && (
+      {isLoading ? (
+        <div className="p-4 border-t border-sidebar-border">
+          <Skeleton className="h-12 w-full rounded-lg" />
+        </div>
+      ) : selectedChannel && (
         <div className="p-4 border-t border-sidebar-border">
           <div className="flex items-center space-x-2 bg-accent/50 rounded-lg px-4 py-3">
             <button className="text-muted-foreground hover:text-foreground transition-colors">

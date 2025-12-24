@@ -18,6 +18,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
+import { Skeleton } from "@/components/ui/skeleton"
 
 // Mock DM users
 const mockDMUsers = [
@@ -62,9 +63,9 @@ export function AppSidebar() {
   const currentUserId = params.userId
 
   // Fetch server, channels, and members data
-  const { data: server } = useServer(serverId!)
-  const { data: channels = [] } = useChannels(serverId!)
-  const { data: members = [] } = useMembers(serverId!)
+  const { data: server, isLoading: isLoadingServer } = useServer(serverId!)
+  const { data: channels = [], isLoading: isLoadingChannels } = useChannels(serverId!)
+  const { data: members = [], isLoading: isLoadingMembers } = useMembers(serverId!)
 
   const handleLogout = async () => {
     await signOut()
@@ -203,7 +204,43 @@ export function AppSidebar() {
     )
   }
 
-  // Server Sidebar
+  // Server Sidebar - Loading State
+  if (isLoadingServer || (serverId && !server)) {
+    return (
+      <Sidebar>
+        <SidebarHeader>
+          <div className="px-2 h-12 flex items-center">
+            <Skeleton className="h-5 w-32" />
+          </div>
+        </SidebarHeader>
+        <SidebarContent>
+          <div className="space-y-0.5 p-2">
+            <div className="px-2 py-1.5">
+              <Skeleton className="h-3 w-24" />
+            </div>
+            {[...Array(5)].map((_, i) => (
+              <div key={i} className="flex items-center space-x-2 px-2 py-1.5 mx-1">
+                <Skeleton className="h-4 w-4 shrink-0" />
+                <Skeleton className="h-4 flex-1" />
+              </div>
+            ))}
+          </div>
+        </SidebarContent>
+        <SidebarFooter>
+          <div className="flex items-center space-x-2">
+            <Skeleton className="h-8 w-8 rounded-full" />
+            <div className="flex-1 space-y-1">
+              <Skeleton className="h-4 w-20" />
+              <Skeleton className="h-3 w-12" />
+            </div>
+            <Skeleton className="h-8 w-8" />
+            <Skeleton className="h-8 w-8" />
+          </div>
+        </SidebarFooter>
+      </Sidebar>
+    )
+  }
+
   if (!server) {
     return (
       <Sidebar>
@@ -239,101 +276,144 @@ export function AppSidebar() {
       <SidebarContent>
         <ScrollArea className="flex-1">
           <div className="space-y-0.5">
-            {/* Text Channels */}
-            {channels.filter((ch) => ch.type === "text").length > 0 && (
-              <div className="mb-2">
-                <div className="px-2 py-1.5 text-xs font-semibold text-muted-foreground uppercase">
-                  Text Channels
-                </div>
-                {channels
-                  .filter((ch) => ch.type === "text")
-                  .map((channel) => (
-                    <Link
-                      key={channel.id}
-                      to="/channels/$serverId/$channelId"
-                      params={{ serverId: String(serverId), channelId: String(channel.id) }}
-                    >
-                      <div
-                        className={cn(
-                          "flex items-center space-x-2 px-2 py-1.5 mx-1 rounded cursor-pointer transition-colors",
-                          channelId === channel.id
-                            ? "bg-accent text-accent-foreground"
-                            : "text-muted-foreground hover:bg-accent/50 hover:text-foreground"
-                        )}
-                      >
-                        <Hash className="h-4 w-4 shrink-0" />
-                        <span className="text-sm font-medium truncate">{channel.name}</span>
-                      </div>
-                    </Link>
+            {isLoadingChannels ? (
+              <>
+                <div className="mb-2">
+                  <div className="px-2 py-1.5">
+                    <Skeleton className="h-3 w-24" />
+                  </div>
+                  {[...Array(4)].map((_, i) => (
+                    <div key={i} className="flex items-center space-x-2 px-2 py-1.5 mx-1">
+                      <Skeleton className="h-4 w-4 shrink-0" />
+                      <Skeleton className="h-4 flex-1" />
+                    </div>
                   ))}
-              </div>
-            )}
+                </div>
+                <div className="mb-2">
+                  <div className="px-2 py-1.5">
+                    <Skeleton className="h-3 w-28" />
+                  </div>
+                  {[...Array(3)].map((_, i) => (
+                    <div key={i} className="flex items-center space-x-2 px-2 py-1.5 mx-1">
+                      <Skeleton className="h-4 w-4 shrink-0" />
+                      <Skeleton className="h-4 flex-1" />
+                    </div>
+                  ))}
+                </div>
+              </>
+            ) : (
+              <>
+                {/* Text Channels */}
+                {channels.filter((ch) => ch.type === "text").length > 0 && (
+                  <div className="mb-2">
+                    <div className="px-2 py-1.5 text-xs font-semibold text-muted-foreground uppercase">
+                      Text Channels
+                    </div>
+                    {channels
+                      .filter((ch) => ch.type === "text")
+                      .map((channel) => (
+                        <Link
+                          key={channel.id}
+                          to="/channels/$serverId/$channelId"
+                          params={{ serverId: String(serverId), channelId: String(channel.id) }}
+                        >
+                          <div
+                            className={cn(
+                              "flex items-center space-x-2 px-2 py-1.5 mx-1 rounded cursor-pointer transition-colors",
+                              channelId === channel.id
+                                ? "bg-accent text-accent-foreground"
+                                : "text-muted-foreground hover:bg-accent/50 hover:text-foreground"
+                            )}
+                          >
+                            <Hash className="h-4 w-4 shrink-0" />
+                            <span className="text-sm font-medium truncate">{channel.name}</span>
+                          </div>
+                        </Link>
+                      ))}
+                  </div>
+                )}
 
-            {/* Voice Channels */}
-            {channels.filter((ch) => ch.type === "voice").length > 0 && (
-              <div className="mb-2">
-                <div className="px-2 py-1.5 text-xs font-semibold text-muted-foreground uppercase">
-                  Voice Channels
-                </div>
-                {channels
-                  .filter((ch) => ch.type === "voice")
-                  .map((channel) => (
-                    <Link
-                      key={channel.id}
-                      to="/channels/$serverId/$channelId"
-                      params={{ serverId: String(serverId), channelId: String(channel.id) }}
-                    >
-                      <div
-                        className={cn(
-                          "flex items-center space-x-2 px-2 py-1.5 mx-1 rounded cursor-pointer transition-colors",
-                          channelId === channel.id
-                            ? "bg-accent text-accent-foreground"
-                            : "text-muted-foreground hover:bg-accent/50 hover:text-foreground"
-                        )}
-                      >
-                        <Volume2 className="h-4 w-4 shrink-0" />
-                        <span className="text-sm font-medium truncate">{channel.name}</span>
-                      </div>
-                    </Link>
-                  ))}
-              </div>
+                {/* Voice Channels */}
+                {channels.filter((ch) => ch.type === "voice").length > 0 && (
+                  <div className="mb-2">
+                    <div className="px-2 py-1.5 text-xs font-semibold text-muted-foreground uppercase">
+                      Voice Channels
+                    </div>
+                    {channels
+                      .filter((ch) => ch.type === "voice")
+                      .map((channel) => (
+                        <Link
+                          key={channel.id}
+                          to="/channels/$serverId/$channelId"
+                          params={{ serverId: String(serverId), channelId: String(channel.id) }}
+                        >
+                          <div
+                            className={cn(
+                              "flex items-center space-x-2 px-2 py-1.5 mx-1 rounded cursor-pointer transition-colors",
+                              channelId === channel.id
+                                ? "bg-accent text-accent-foreground"
+                                : "text-muted-foreground hover:bg-accent/50 hover:text-foreground"
+                            )}
+                          >
+                            <Volume2 className="h-4 w-4 shrink-0" />
+                            <span className="text-sm font-medium truncate">{channel.name}</span>
+                          </div>
+                        </Link>
+                      ))}
+                  </div>
+                )}
+              </>
             )}
 
             {/* Members List */}
-            {members.length > 0 && (
+            {isLoadingMembers ? (
               <div className="mb-2">
-                <div className="px-2 py-1.5 text-xs font-semibold text-muted-foreground uppercase">
-                  Members — {members.length}
+                <div className="px-2 py-1.5">
+                  <Skeleton className="h-3 w-24" />
                 </div>
-                {members.map((member) => (
-                  <div
-                    key={member.id}
-                    className="flex items-center space-x-2 px-2 py-1.5 mx-1 rounded text-muted-foreground hover:bg-accent/50 hover:text-foreground cursor-pointer transition-colors"
-                  >
-                    <div className="relative">
-                      <Avatar className="h-7 w-7">
-                        <AvatarImage src={member.avatar_url} alt={member.username} />
-                        <AvatarFallback className="text-xs">
-                          {member.username.slice(0, 2).toUpperCase()}
-                        </AvatarFallback>
-                      </Avatar>
-                      <div
-                        className={cn(
-                          "absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full border-2 border-sidebar",
-                          "bg-gray-500"
-                        )}
-                      />
-                    </div>
-                    <span className="text-sm truncate">{member.username}</span>
-                    {member.role === "owner" && (
-                      <span className="ml-auto text-xs text-yellow-500">👑</span>
-                    )}
-                    {member.role === "admin" && (
-                      <span className="ml-auto text-xs text-blue-500">⚡</span>
-                    )}
+                {[...Array(6)].map((_, i) => (
+                  <div key={i} className="flex items-center space-x-2 px-2 py-1.5 mx-1">
+                    <Skeleton className="h-7 w-7 rounded-full shrink-0" />
+                    <Skeleton className="h-4 flex-1" />
                   </div>
                 ))}
               </div>
+            ) : (
+              members.length > 0 && (
+                <div className="mb-2">
+                  <div className="px-2 py-1.5 text-xs font-semibold text-muted-foreground uppercase">
+                    Members — {members.length}
+                  </div>
+                  {members.map((member) => (
+                    <div
+                      key={member.id}
+                      className="flex items-center space-x-2 px-2 py-1.5 mx-1 rounded text-muted-foreground hover:bg-accent/50 hover:text-foreground cursor-pointer transition-colors"
+                    >
+                      <div className="relative">
+                        <Avatar className="h-7 w-7">
+                          <AvatarImage src={member.avatar_url} alt={member.username} />
+                          <AvatarFallback className="text-xs">
+                            {member.username.slice(0, 2).toUpperCase()}
+                          </AvatarFallback>
+                        </Avatar>
+                        <div
+                          className={cn(
+                            "absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full border-2 border-sidebar",
+                            "bg-gray-500"
+                          )}
+                        />
+                      </div>
+                      <span className="text-sm truncate">{member.username}</span>
+                      {member.role === "owner" && (
+                        <span className="ml-auto text-xs text-yellow-500">👑</span>
+                      )}
+                      {member.role === "admin" && (
+                        <span className="ml-auto text-xs text-blue-500">⚡</span>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              )
             )}
           </div>
         </ScrollArea>

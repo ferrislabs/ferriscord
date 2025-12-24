@@ -22,6 +22,7 @@ import { addServerFormSchema } from "@/lib/validation/add-server-schema"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { useQueryClient } from "@tanstack/react-query"
 import { toast } from "sonner"
+import { Skeleton } from "@/components/ui/skeleton"
 
 
 interface NavLinkButtonProps {
@@ -94,10 +95,23 @@ export default function ServerNav() {
   const [isCreateServerModalOpen, setIsCreateServerModalOpen] = useState<boolean>(false)
   const [theme, setTheme] = useState<'light' | 'dark'>(() => {
     if (typeof window !== 'undefined') {
+      const savedTheme = localStorage.getItem('theme') as 'light' | 'dark' | null
+      if (savedTheme) {
+        return savedTheme
+      }
       return document.documentElement.classList.contains('dark') ? 'dark' : 'light'
     }
     return 'light'
   })
+
+  // Apply theme on mount
+  useEffect(() => {
+    if (theme === 'dark') {
+      document.documentElement.classList.add('dark')
+    } else {
+      document.documentElement.classList.remove('dark')
+    }
+  }, [theme])
 
   const toggleTheme = () => {
     const newTheme = theme === 'light' ? 'dark' : 'light'
@@ -114,6 +128,7 @@ export default function ServerNav() {
   const {
     data: servers,
     isError: serversError,
+    isLoading: isLoadingServers,
     hasNextPage,
     isFetchingNextPage,
     fetchNextPage,
@@ -211,11 +226,29 @@ export default function ServerNav() {
         </Tooltip>
 
         <div className="no-scrollbar flex flex-1 flex-col gap-2 overflow-y-auto">
-          {servers?.pages
-            .flatMap((page) => page.data)
-            .map((server) => (
-              <ServerButton key={server.id} server={server} />
-            ))}
+          {isLoadingServers ? (
+            <>
+              <Skeleton className="h-10 w-10 rounded-sm" />
+              <Skeleton className="h-10 w-10 rounded-sm" />
+              <Skeleton className="h-10 w-10 rounded-sm" />
+              <Skeleton className="h-10 w-10 rounded-sm" />
+              <Skeleton className="h-10 w-10 rounded-sm" />
+            </>
+          ) : (
+            <>
+              {servers?.pages
+                .flatMap((page) => page.data)
+                .map((server) => (
+                  <ServerButton key={server.id} server={server} />
+                ))}
+              {isFetchingNextPage && (
+                <>
+                  <Skeleton className="h-10 w-10 rounded-sm" />
+                  <Skeleton className="h-10 w-10 rounded-sm" />
+                </>
+              )}
+            </>
+          )}
           <button
             ref={ref}
             onClick={() => fetchNextPage()}
