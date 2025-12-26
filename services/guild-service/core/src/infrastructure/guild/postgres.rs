@@ -81,10 +81,10 @@ impl GuildPort for PostgresGuildRepository {
         .map_err(|e| {
             error!("failed to insert guild: {}", e);
 
-            if let Some(db_err) = e.as_database_error() {
-                if db_err.constraint() == Some("guilds_slug_key") {
-                    return CoreError::GuildSlugAlreadyExists { slug: input.name };
-                }
+            if let Some(db_err) = e.as_database_error()
+                && db_err.constraint() == Some("guilds_slug_key")
+            {
+                return CoreError::GuildSlugAlreadyExists { slug: input.name };
             }
 
             CoreError::Unknown {
@@ -113,5 +113,19 @@ impl GuildPort for PostgresGuildRepository {
         let guilds: Vec<Guild> = rows.into_iter().map(Guild::from).collect();
 
         Ok(guilds)
+    }
+
+    async fn delete(&self, guild_id: &GuildId) -> Result<(), CoreError> {
+        query!("DELETE FROM guilds WHERE id = $1", guild_id.get_uuid())
+            .execute(&self.pool)
+            .await
+            .map_err(|e| {
+                error!("failed to delete guild: {}", e);
+                CoreError::Unknown {
+                    message: e.to_string(),
+                }
+            })?;
+
+        Ok(())
     }
 }

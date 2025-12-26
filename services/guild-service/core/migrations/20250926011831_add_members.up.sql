@@ -5,7 +5,7 @@ CREATE TABLE members (
     guild_id    UUID NOT NULL REFERENCES guilds(id) ON DELETE CASCADE,
     joined_at   TIMESTAMPTZ NOT NULL DEFAULT now(),
     nick        TEXT,
-    is_owner    BOOLEAN NOT NULL DEFAULT FALSE
+    permissions  BIGINT NOT NULL DEFAULT 0
 );
 
 CREATE TABLE role_assignments (

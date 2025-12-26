@@ -1,3 +1,5 @@
+use ferriscord_auth::Identity;
+
 use crate::domain::{
     errors::CoreError,
     guild::entities::{CreateGuildInput, Guild, GuildId, OwnerId},
@@ -16,6 +18,7 @@ pub trait GuildPort: Send + Sync {
         &self,
         owner_id: &OwnerId,
     ) -> impl Future<Output = Result<Vec<Guild>, CoreError>> + Send;
+    fn delete(&self, guild_id: &GuildId) -> impl Future<Output = Result<(), CoreError>> + Send;
 }
 
 pub trait GuildService: Send + Sync {
@@ -23,4 +26,9 @@ pub trait GuildService: Send + Sync {
         &self,
         input: CreateGuildInput,
     ) -> impl Future<Output = Result<Guild, CoreError>> + Send;
+    fn delete_guild(
+        &self,
+        identity: Identity,
+        guild_id: &GuildId,
+    ) -> impl Future<Output = Result<(), CoreError>> + Send;
 }

@@ -20,5 +20,7 @@ export function AuthWrapper({ children }: AuthWrapperProps) {
   }
 
   // User is authenticated, render the app
-  return <>{children}</>;
+  return <>
+    {children}
+  </>;
 }

@@ -1,5 +1,4 @@
 import { createFileRoute } from '@tanstack/react-router'
-import { AppLayout } from '@/components/layout/app-layout'
 import { AuthWrapper } from '@/components/auth/auth-wrapper'
 import { mockApi } from '@/lib/mock-data'
 import { useAuth } from '@/hooks/use-auth'
@@ -8,6 +7,7 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { cn, getStatusColor, formatDate } from '@/lib/utils'
+import { AppLayout } from '@/layouts/app-layout'
 
 export const Route = createFileRoute('/users/$userId')({
   loader: async ({ params }) => {
@@ -137,7 +137,7 @@ function UserProfile() {
                           Joined
                         </label>
                         <p className="text-sm text-gray-900">
-                          {formatDate(profileUser.joinedAt)}
+                          {formatDate(new Date(profileUser.joinedAt))}
                         </p>
                       </div>
                     </div>

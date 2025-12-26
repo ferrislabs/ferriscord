@@ -1,7 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useState, useEffect, useRef } from "react";
 import { MessageList } from "../ui/message-list";
-import { MessageInput } from "../ui/message-input";
+import { MessageInput } from "@/components/chat/message-input";
 import { cn } from "@/lib/utils";
 import { mockApi, mockWebSocketEvents, type Message } from "@/lib/mock-data";
 

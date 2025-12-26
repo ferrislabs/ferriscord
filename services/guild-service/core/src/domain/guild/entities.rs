@@ -1,16 +1,23 @@
 use std::fmt::Display;
 
 use chrono::{DateTime, Utc};
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
+use uuid::Uuid;
 
 use crate::domain::Id;
 
-#[derive(Clone, Debug, Eq, PartialEq, Serialize)]
+#[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
 pub struct GuildId(pub Id);
 
 impl GuildId {
     pub fn get_uuid(&self) -> &uuid::Uuid {
         &self.0.0
+    }
+}
+
+impl From<Uuid> for GuildId {
+    fn from(id: Uuid) -> Self {
+        GuildId(Id(id))
     }
 }
 
@@ -22,6 +29,13 @@ impl Display for GuildId {
 
 #[derive(Clone, Debug, Eq, PartialEq, Serialize)]
 pub struct OwnerId(pub Id);
+
+impl From<&str> for OwnerId {
+    fn from(value: &str) -> Self {
+        let uuid = Uuid::parse_str(value).expect("Invalid UUID string");
+        OwnerId(Id(uuid))
+    }
+}
 
 impl OwnerId {
     pub fn get_uuid(&self) -> &uuid::Uuid {
