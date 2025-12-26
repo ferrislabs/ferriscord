@@ -645,6 +645,13 @@ dependencies = [
 ]
 
 [[package]]
+name = "ferriscord-pagination"
+version = "0.1.0"
+dependencies = [
+ "serde",
+]
+
+[[package]]
 name = "ferriscord-permission"
 version = "0.1.0"
 dependencies = [
@@ -879,6 +886,7 @@ dependencies = [
  "chrono",
  "ferriscord-auth",
  "ferriscord-config",
+ "ferriscord-pagination",
  "ferriscord-permission",
  "serde",
  "sqlx",

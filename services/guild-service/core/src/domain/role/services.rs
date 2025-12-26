@@ -1,4 +1,5 @@
 use ferriscord_auth::{AuthRepository, Identity};
+use ferriscord_pagination::{PaginatedResponse, PaginationBuilder, PaginationParams};
 use ferriscord_permission::{Permissions, require_permission};
 
 use crate::domain::{
@@ -6,7 +7,7 @@ use crate::domain::{
     errors::CoreError,
     guild::{entities::GuildId, ports::GuildPort},
     role::{
-        entities::{CreateRoleInput, DeleteRoleInput, FindRoleInput, Role},
+        entities::{CreateRoleInput, DeleteRoleInput, FindRoleInput, FindRolesInput, Role},
         ports::{RoleRepository, RoleService},
     },
 };
@@ -60,5 +61,27 @@ where
 
         self.role_repository.delete_by_id(input.role_id).await?;
         Ok(())
+    }
+
+    async fn find_roles(
+        &self,
+        _identity: Identity,
+        input: FindRolesInput,
+    ) -> Result<PaginatedResponse<Vec<Role>>, CoreError> {
+        let page = input.page.unwrap_or(1);
+        let per_page = input.per_page.unwrap_or(50);
+        let params = PaginationParams {
+            page: page as u32,
+            per_page: per_page as u32,
+        };
+
+        let (roles, total) = self
+            .role_repository
+            .find_by_guild_id(input.guild_id, params)
+            .await?;
+
+        let response = PaginationBuilder::new("test").build(roles, params, total);
+
+        Ok(response)
     }
 }

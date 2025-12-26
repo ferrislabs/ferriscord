@@ -1,4 +1,5 @@
 use chrono::Utc;
+use ferriscord_pagination::PaginationParams;
 use ferriscord_permission::Permissions;
 use sqlx::PgPool;
 
@@ -125,5 +126,72 @@ impl RoleRepository for PostgresRoleRepository {
         }
 
         Ok(())
+    }
+
+    async fn find_by_guild_id(
+        &self,
+        guild_id: GuildId,
+        params: PaginationParams,
+    ) -> Result<(Vec<Role>, u64), CoreError> {
+        let count_row = sqlx::query!(
+            r#"
+            SELECT COUNT(*) as "count!"
+            FROM roles
+            WHERE guild_id = $1
+            "#,
+            guild_id.get_uuid()
+        )
+        .fetch_one(&self.pool)
+        .await
+        .map_err(|e| CoreError::Unknown {
+            message: format!("failed to count roles by guild id: {:?}", e),
+        })?;
+
+        let total = count_row.count as u64;
+
+        let offset = ((params.page.max(1) - 1) * params.per_page) as i64;
+        let limit = params.per_page as i64;
+
+        let rows = sqlx::query!(
+            r#"
+            SELECT id, guild_id, name, position, color, permissions, created_at
+            FROM roles
+            WHERE guild_id = $1
+            ORDER BY position ASC
+            LIMIT $2 OFFSET $3
+            "#,
+            guild_id.get_uuid(),
+            limit,
+            offset,
+        )
+        .fetch_all(&self.pool)
+        .await
+        .map_err(|e| CoreError::Unknown {
+            message: format!("failed to query roles by guild id: {:?}", e),
+        })?;
+
+        let roles: Result<Vec<Role>, CoreError> = rows
+            .into_iter()
+            .map(|row| {
+                let permissions =
+                    Permissions::from_bits(row.permissions as u64).ok_or(CoreError::Unknown {
+                        message: "invalid permissions bits".to_string(),
+                    })?;
+
+                Ok(Role {
+                    id: RoleId(Id(row.id)),
+                    guild_id: GuildId(Id(row.guild_id)),
+                    name: row.name,
+                    position: row.position,
+                    color: row.color.unwrap_or(0) as u32,
+                    hoist: false,
+                    mentionable: false,
+                    permissions,
+                    created_at: row.created_at,
+                })
+            })
+            .collect();
+
+        Ok((roles?, total))
     }
 }
