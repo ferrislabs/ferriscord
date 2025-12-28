@@ -1,17 +1,14 @@
 use chrono::Utc;
+use ferriscord_entities::{
+    Id,
+    guild::GuildId,
+    role::{Role, RoleId},
+};
 use ferriscord_pagination::PaginationParams;
 use ferriscord_permission::Permissions;
 use sqlx::PgPool;
 
-use crate::domain::{
-    Id,
-    errors::CoreError,
-    guild::entities::GuildId,
-    role::{
-        entities::{Role, RoleId},
-        ports::RoleRepository,
-    },
-};
+use crate::domain::{errors::CoreError, role::ports::RoleRepository};
 
 #[derive(Clone)]
 pub struct PostgresRoleRepository {

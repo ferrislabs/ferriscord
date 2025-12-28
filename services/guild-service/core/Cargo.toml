@@ -14,9 +14,11 @@ ferriscord-auth = { path = "../../../libs/auth" }
 ferriscord-config = { path = "../../../libs/config" }
 ferriscord-permission = { path = "../../../libs/permission" }
 ferriscord-pagination = { path = "../../../libs/pagination" }
+ferriscord-entities = { path = "../../../libs/entities" }
 chrono = { version = "0.4.42", features = ["serde"] }
 serde = { version = "1.0.226", features = ["derive"] }
 sqlx = { version = "0.8.6", features = ["chrono", "postgres", "runtime-tokio", "uuid"] }
 thiserror = "2.0.16"
 uuid = { version = "1.18.1", features = ["serde", "v7"] }
 tracing = "0.1.41"
+utoipa = { version = "5.4.0", features = ["chrono", "uuid"] }

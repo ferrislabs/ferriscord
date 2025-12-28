@@ -1,9 +1,7 @@
 use ferriscord_auth::Identity;
+use ferriscord_entities::guild::{Guild, GuildId, OwnerId};
 
-use crate::domain::{
-    errors::CoreError,
-    guild::entities::{CreateGuildInput, Guild, GuildId, OwnerId},
-};
+use crate::domain::{errors::CoreError, guild::entities::CreateGuildInput};
 
 pub trait GuildPort: Send + Sync {
     fn insert(

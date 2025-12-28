@@ -5,6 +5,7 @@ use ferriscord_error::ApiError;
 use ferriscord_server::http::response::Response;
 use guild_core::domain::role::{entities::DeleteRoleInput, ports::RoleService};
 use serde::{Deserialize, Serialize};
+use utoipa::ToSchema;
 use uuid::Uuid;
 
 use crate::state::AppState;
@@ -16,11 +17,32 @@ pub struct DeleteRoleRoute {
     role_id: Uuid,
 }
 
-#[derive(PartialEq, Serialize)]
+#[derive(PartialEq, Serialize, ToSchema)]
 pub struct DeleteRoleResponse {
     message: String,
 }
 
+#[utoipa::path(
+    delete,
+    path = "/guilds/{guild_id}/roles/{role_id}",
+    tag = "roles",
+    summary = "Delete a role from a guild",
+    description = "Deletes the specified role from the given guild.",
+    params(
+        ("guild_id" = String, Path, description = "Guild ID"),
+        ("role_id" = String, Path, description = "Role ID"),
+    ),
+    security(
+        ("Authorization" = ["Bearer"]),
+    ),
+    responses(
+        (status = 200, body = DeleteRoleResponse),
+        (status = 400, description = "Bad Request", body = ApiError),
+        (status = 401, description = "Unauthorized", body = ApiError),
+        (status = 403, description = "Forbidden", body = ApiError),
+        (status = 500, description = "Internal Server Error", body = ApiError)
+    )
+)]
 pub async fn delete_role_handler(
     DeleteRoleRoute { guild_id, role_id }: DeleteRoleRoute,
     State(state): State<AppState>,

@@ -1,14 +1,11 @@
 use ferriscord_auth::{AuthRepository, Identity};
+use ferriscord_entities::{
+    guild::GuildId,
+    role::{PermissionContext, Role},
+};
 use ferriscord_permission::Permissions;
 
-use crate::domain::{
-    errors::CoreError,
-    guild::{entities::GuildId, ports::GuildPort},
-    role::{
-        entities::{PermissionContext, Role},
-        ports::RoleRepository,
-    },
-};
+use crate::domain::{errors::CoreError, guild::ports::GuildPort, role::ports::RoleRepository};
 
 #[derive(Clone)]
 pub struct Service<G, A, R>

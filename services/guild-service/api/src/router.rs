@@ -1,25 +1,10 @@
-use axum::{Router, extract::State, http::StatusCode, middleware::Next, response::Response};
-use axum_extra::routing::RouterExt;
+use axum::Router;
 use ferriscord_error::ApiError;
-use ferriscord_server::http::auth_middleware;
 use tracing::info_span;
+use utoipa::OpenApi;
+use utoipa_scalar::{Scalar, Servable};
 
-use crate::{
-    handlers::{
-        create_guild::create_guild_handler, create_role::create_role_handler,
-        delete_guild::delete_guild_handler, delete_role::delete_role_handler,
-        get_role::get_role_handler, get_roles::get_roles_handler,
-    },
-    state::AppState,
-};
-
-async fn service_auth_middleware(
-    State(state): State<AppState>,
-    req: axum::extract::Request,
-    next: Next,
-) -> Result<Response, StatusCode> {
-    auth_middleware(State(state.service), req, next).await
-}
+use crate::{handlers::handlers_routes, openapi::ApiDoc, state::AppState};
 
 pub fn router(state: AppState) -> Result<Router, ApiError> {
     let trace_layer = tower_http::trace::TraceLayer::new_for_http().make_span_with(
@@ -29,18 +14,12 @@ pub fn router(state: AppState) -> Result<Router, ApiError> {
         },
     );
 
+    let openapi = ApiDoc::openapi();
+
     let router = Router::new()
-        .typed_post(create_guild_handler)
-        .typed_get(get_roles_handler)
-        .typed_get(get_role_handler)
-        .typed_post(create_role_handler)
-        .typed_delete(delete_role_handler)
-        .typed_delete(delete_guild_handler)
+        .merge(Scalar::with_url("/scalar", openapi.clone()))
+        .merge(handlers_routes(state.clone()))
         .layer(trace_layer)
-        .layer(axum::middleware::from_fn_with_state(
-            state.clone(),
-            service_auth_middleware,
-        ))
         .with_state(state);
 
     Ok(router)

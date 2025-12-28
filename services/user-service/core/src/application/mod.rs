@@ -1,3 +1,4 @@
+use ferriscord_auth::{HasAuthRepository, KeycloakAuthRepository};
 use sqlx::PgPool;
 
 use crate::{
@@ -8,7 +9,15 @@ use crate::{
     infrastructure::user::postgres::PostgresUserRepository,
 };
 
-pub type FerrisCordService = Service<PostgresUserRepository>;
+pub type FerrisCordService = Service<PostgresUserRepository, KeycloakAuthRepository>;
+
+impl HasAuthRepository for FerrisCordService {
+    type AuthRepo = KeycloakAuthRepository;
+
+    fn auth_repository(&self) -> &Self::AuthRepo {
+        &self.auth_repository
+    }
+}
 
 pub async fn create_service(config: Config) -> Result<FerrisCordService, CoreError> {
     let database_url = format!(
@@ -28,5 +37,10 @@ pub async fn create_service(config: Config) -> Result<FerrisCordService, CoreErr
 
     let user_repository = PostgresUserRepository::new(pool.clone());
 
-    Ok(FerrisCordService { user_repository })
+    let auth_repository = KeycloakAuthRepository::new(config.auth.issuer, None);
+
+    Ok(FerrisCordService {
+        user_repository,
+        auth_repository,
+    })
 }

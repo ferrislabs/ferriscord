@@ -1,6 +1,5 @@
+use ferriscord_entities::guild::GuildId;
 use thiserror::Error;
-
-use crate::domain::guild::entities::GuildId;
 
 #[derive(Debug, Error)]
 pub enum CoreError {
