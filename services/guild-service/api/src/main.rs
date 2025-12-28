@@ -10,6 +10,7 @@ use crate::{args::Args, router::router, state::state};
 mod args;
 mod auth;
 mod handlers;
+mod openapi;
 mod router;
 mod state;
 

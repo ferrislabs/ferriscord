@@ -1,13 +1,14 @@
 use ferriscord_auth::{AuthRepository, Identity};
+use ferriscord_entities::{guild::GuildId, role::Role};
 use ferriscord_pagination::{PaginatedResponse, PaginationBuilder, PaginationParams};
 use ferriscord_permission::{Permissions, require_permission};
 
 use crate::domain::{
     common::Service,
     errors::CoreError,
-    guild::{entities::GuildId, ports::GuildPort},
+    guild::ports::GuildPort,
     role::{
-        entities::{CreateRoleInput, DeleteRoleInput, FindRoleInput, FindRolesInput, Role},
+        entities::{CreateRoleInput, DeleteRoleInput, FindRoleInput, FindRolesInput},
         ports::{RoleRepository, RoleService},
     },
 };

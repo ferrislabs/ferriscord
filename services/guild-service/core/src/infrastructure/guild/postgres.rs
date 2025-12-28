@@ -1,15 +1,15 @@
 use chrono::{DateTime, Utc};
+use ferriscord_entities::{
+    Id,
+    guild::{Guild, GuildId, OwnerId},
+};
 use sqlx::{PgPool, query, query_as};
 use tracing::{debug, error};
 use uuid::Uuid;
 
 use crate::domain::{
-    Id,
     errors::CoreError,
-    guild::{
-        entities::{CreateGuildInput, Guild, GuildId, OwnerId},
-        ports::GuildPort,
-    },
+    guild::{entities::CreateGuildInput, ports::GuildPort},
 };
 
 #[derive(Clone)]

@@ -1,15 +1,14 @@
 use axum::{Json, extract::State};
 use axum_extra::routing::TypedPath;
+use ferriscord_entities::{
+    Id,
+    guild::{Guild, OwnerId},
+};
 use ferriscord_error::ApiError;
 use ferriscord_server::http::response::Response;
-use guild_core::domain::{
-    Id,
-    guild::{
-        entities::{CreateGuildInput, Guild, OwnerId},
-        ports::GuildService,
-    },
-};
+use guild_core::domain::guild::{entities::CreateGuildInput, ports::GuildService};
 use serde::Deserialize;
+use utoipa::ToSchema;
 
 use crate::state::AppState;
 
@@ -17,11 +16,28 @@ use crate::state::AppState;
 #[typed_path("/guilds")]
 pub struct CreateGuildRoute;
 
-#[derive(Deserialize)]
+#[derive(Deserialize, ToSchema)]
 pub struct CreateGuildRequest {
     name: String,
 }
 
+#[utoipa::path(
+    post,
+    path = "/guilds",
+    tag = "guilds",
+    summary = "Create a new guild",
+    description = "Creates a new guild with the specified name.",
+    request_body = CreateGuildRequest,
+    security(
+        ("Authorization" = ["Bearer"]),
+    ),
+    responses(
+        (status = 201, description = "Guild created", body = Guild),
+        (status = 401, description = "Unauthorized", body = ApiError),
+        (status = 403, description = "Forbidden", body = ApiError),
+        (status = 500, description = "Internal server error", body = ApiError),
+    )
+)]
 pub async fn create_guild_handler(
     _: CreateGuildRoute,
     State(state): State<AppState>,

@@ -1,8 +1,9 @@
 use bitflags::bitflags;
 use serde::{Deserialize, Serialize};
+use utoipa::{ToSchema, openapi::schema::SchemaType};
 
 bitflags! {
-    #[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq)]
+    #[derive(Debug, Clone, Eq, Copy, Serialize, Deserialize, PartialEq)]
     pub struct Permissions: u64 {
         // General permissions
         const VIEW_GUILD            = 1 << 0;
@@ -70,6 +71,38 @@ bitflags! {
             | Self::MANAGE_CHANNELS.bits()
             | Self::MANAGE_WEBHOOKS.bits()
             | Self::VIEW_AUDIT_LOG.bits();
+    }
+}
+
+impl utoipa::PartialSchema for Permissions {
+    fn schema() -> utoipa::openapi::RefOr<utoipa::openapi::schema::Schema> {
+        utoipa::openapi::ObjectBuilder::new()
+            .schema_type(SchemaType::AnyValue)
+            .format(Some(utoipa::openapi::SchemaFormat::KnownFormat(
+                utoipa::openapi::KnownFormat::Int64,
+            )))
+            .description(Some("Permission flags as u64 bitmask"))
+            .into()
+    }
+}
+
+impl ToSchema for Permissions {
+    fn schemas(
+        schemas: &mut Vec<(
+            String,
+            utoipa::openapi::RefOr<utoipa::openapi::schema::Schema>,
+        )>,
+    ) {
+        schemas.push((
+            "Permissions".to_string(),
+            utoipa::openapi::ObjectBuilder::new()
+                .schema_type(SchemaType::AnyValue)
+                .format(Some(utoipa::openapi::SchemaFormat::KnownFormat(
+                    utoipa::openapi::KnownFormat::Int64,
+                )))
+                .description(Some("Permission flags as u64 bitmask"))
+                .into(),
+        ));
     }
 }
 

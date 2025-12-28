@@ -1,23 +1,14 @@
 use std::fmt::Display;
 
 use chrono::Utc;
-use ferriscord_config::{AuthConfig, DatabaseConfig};
 use serde::{Deserialize, Serialize};
 use utoipa::ToSchema;
 use uuid::{NoContext, Timestamp, Uuid};
 
-pub mod errors;
-
-pub mod common;
 pub mod guild;
 pub mod member;
 pub mod role;
 pub mod user;
-
-pub struct Config {
-    pub database: DatabaseConfig,
-    pub auth: AuthConfig,
-}
 
 #[derive(Clone, Debug, Eq, PartialEq, Hash, Serialize, Deserialize, ToSchema)]
 pub struct Id(pub Uuid);

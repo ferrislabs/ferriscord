@@ -1,10 +1,11 @@
 use ferriscord_auth::{AuthRepository, Identity};
+use ferriscord_entities::guild::{Guild, GuildId, OwnerId};
 
 use crate::domain::{
     common::Service,
     errors::CoreError,
     guild::{
-        entities::{CreateGuildInput, Guild, GuildId, OwnerId},
+        entities::CreateGuildInput,
         ports::{GuildPort, GuildService},
     },
     role::ports::RoleRepository,

@@ -8,6 +8,7 @@ edition.workspace = true
 [dependencies]
 ferriscord-error = { path = "../../../libs/errors" }
 ferriscord-server = { path = "../../../libs/server" }
+ferriscord-config = { path = "../../../libs/config" }
 user-core = { path = "../core" }
 clap = { version = "4.5.48", features = ["env", "derive"] }
 dotenv = "0.15.0"
@@ -19,3 +20,7 @@ axum = "0.8.6"
 tower-http = { version = "0.6.6", features = ["trace"] }
 rustls = "0.23.33"
 axum-server = { version = "0.7.2", features = ["tls-rustls"] }
+axum-extra = { version = "0.12.5", features = ["typed-routing"] }
+utoipa = { version = "5.4.0", features = ["chrono", "uuid"] }
+utoipa-swagger-ui = { version = "9.0.2", features = ["axum"] }
+utoipa-scalar = { version = "0.3.0", features = ["axum"] }

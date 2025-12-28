@@ -1,12 +1,13 @@
 use ferriscord_auth::Identity;
+use ferriscord_entities::{
+    guild::GuildId,
+    role::{Role, RoleId},
+};
 use ferriscord_pagination::{PaginatedResponse, PaginationParams};
 
 use crate::domain::{
     errors::CoreError,
-    guild::entities::GuildId,
-    role::entities::{
-        CreateRoleInput, DeleteRoleInput, FindRoleInput, FindRolesInput, Role, RoleId,
-    },
+    role::entities::{CreateRoleInput, DeleteRoleInput, FindRoleInput, FindRolesInput},
 };
 
 pub trait RoleService: Send + Sync {
