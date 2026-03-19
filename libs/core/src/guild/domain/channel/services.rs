@@ -18,13 +18,14 @@ use super::{
     ports::{ChannelPort, ChannelService},
 };
 
-impl<G, A, R, M, C> ChannelService for Service<G, A, R, M, C>
+impl<G, A, R, M, C, Msg> ChannelService for Service<G, A, R, M, C, Msg>
 where
     G: GuildPort,
     A: AuthRepository,
     R: RoleRepository,
     M: MemberRepository,
     C: ChannelPort,
+    Msg: crate::guild::domain::message::ports::MessagePort,
 {
     async fn create_channel(
         &self,

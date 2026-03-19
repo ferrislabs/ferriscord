@@ -16,13 +16,14 @@ use crate::guild::domain::{
     role::ports::RoleRepository,
 };
 
-impl<G, A, R, M, C> GuildService for Service<G, A, R, M, C>
+impl<G, A, R, M, C, Msg> GuildService for Service<G, A, R, M, C, Msg>
 where
     G: GuildPort,
     A: AuthRepository,
     R: RoleRepository,
     M: MemberRepository,
     C: ChannelPort,
+    Msg: crate::guild::domain::message::ports::MessagePort,
 {
     async fn create_guild(&self, input: CreateGuildInput) -> Result<Guild, CoreError> {
         let guilds = self.guild_repository.list_by_owner(&input.owner_id).await?;

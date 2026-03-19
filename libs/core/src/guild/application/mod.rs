@@ -7,6 +7,7 @@ use crate::guild::{
         channel::postgres::PostgresChannelRepository,
         guild::postgres::PostgresGuildRepository,
         member::postgres::PostgresMemberRepository,
+        message::postgres::PostgresMessageRepository,
         role::postgres::PostgresRoleRepository,
     },
 };
@@ -17,6 +18,7 @@ pub type GuildFerrisCordService = Service<
     PostgresRoleRepository,
     PostgresMemberRepository,
     PostgresChannelRepository,
+    PostgresMessageRepository,
 >;
 
 impl HasAuthRepository for GuildFerrisCordService {
@@ -37,5 +39,6 @@ pub async fn create_guild_service(
         role_repository: PostgresRoleRepository::new(pool.clone()),
         member_repository: PostgresMemberRepository::new(pool.clone()),
         channel_repository: PostgresChannelRepository::new(pool.clone()),
+        message_repository: PostgresMessageRepository::new(pool.clone()),
     })
 }

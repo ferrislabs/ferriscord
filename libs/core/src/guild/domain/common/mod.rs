@@ -10,32 +10,36 @@ use crate::guild::domain::{
     errors::CoreError,
     guild::ports::GuildPort,
     member::ports::MemberRepository,
+    message::ports::MessagePort,
     role::ports::RoleRepository,
 };
 
 #[derive(Clone)]
-pub struct Service<G, A, R, M, C>
+pub struct Service<G, A, R, M, C, Msg>
 where
     G: GuildPort,
     A: AuthRepository,
     R: RoleRepository,
     M: MemberRepository,
     C: ChannelPort,
+    Msg: MessagePort,
 {
     pub(crate) guild_repository: G,
     pub auth_repository: A,
     pub(crate) role_repository: R,
     pub(crate) member_repository: M,
     pub(crate) channel_repository: C,
+    pub(crate) message_repository: Msg,
 }
 
-impl<G, A, R, M, C> Service<G, A, R, M, C>
+impl<G, A, R, M, C, Msg> Service<G, A, R, M, C, Msg>
 where
     G: GuildPort,
     A: AuthRepository,
     R: RoleRepository,
     M: MemberRepository,
     C: ChannelPort,
+    Msg: MessagePort,
 {
     pub(crate) async fn build_permission_context(
         &self,

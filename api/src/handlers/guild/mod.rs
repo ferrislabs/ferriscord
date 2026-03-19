@@ -4,7 +4,9 @@ use axum_extra::routing::RouterExt;
 use crate::{
     handlers::guild::{
         channel::{
-            create_channel::create_channel_handler, get_channels::get_channels_handler,
+            create_channel::create_channel_handler,
+            get_channels::get_channels_handler,
+            get_messages::get_messages_handler,
         },
         create_guild::create_guild_handler,
         create_role::create_role_handler,
@@ -36,4 +38,5 @@ pub fn guild_routes(state: AppState) -> Router<AppState> {
         .typed_delete(delete_guild_handler)
         .typed_get(get_channels_handler)
         .typed_post(create_channel_handler)
+        .typed_get(get_messages_handler)
 }

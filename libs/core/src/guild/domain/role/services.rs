@@ -15,13 +15,14 @@ use crate::guild::domain::{
     },
 };
 
-impl<G, A, R, M, C> RoleService for Service<G, A, R, M, C>
+impl<G, A, R, M, C, Msg> RoleService for Service<G, A, R, M, C, Msg>
 where
     G: GuildPort,
     A: AuthRepository,
     R: RoleRepository,
     M: MemberRepository,
     C: ChannelPort,
+    Msg: crate::guild::domain::message::ports::MessagePort,
 {
     async fn create_role(
         &self,
