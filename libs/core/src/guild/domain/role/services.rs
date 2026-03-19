@@ -4,6 +4,7 @@ use ferriscord_pagination::{PaginatedResponse, PaginationBuilder, PaginationPara
 use ferriscord_permission::{Permissions, require_permission};
 
 use crate::guild::domain::{
+    channel::ports::ChannelPort,
     common::Service,
     errors::CoreError,
     guild::ports::GuildPort,
@@ -14,12 +15,13 @@ use crate::guild::domain::{
     },
 };
 
-impl<G, A, R, M> RoleService for Service<G, A, R, M>
+impl<G, A, R, M, C> RoleService for Service<G, A, R, M, C>
 where
     G: GuildPort,
     A: AuthRepository,
     R: RoleRepository,
     M: MemberRepository,
+    C: ChannelPort,
 {
     async fn create_role(
         &self,

@@ -2,6 +2,10 @@ use utoipa::OpenApi;
 
 use super::handlers::{
     guild::{
+        channel::{
+            create_channel::__path_create_channel_handler,
+            get_channels::__path_get_channels_handler,
+        },
         create_guild::__path_create_guild_handler,
         create_role::__path_create_role_handler,
         delete_guild::__path_delete_guild_handler,
@@ -17,11 +21,13 @@ use super::handlers::{
     info(title = "FerrisCord API"),
     paths(
         create_guild_handler,
-        create_role_handler,
         delete_guild_handler,
+        create_role_handler,
         delete_role_handler,
         get_role_handler,
         get_roles_handler,
+        get_channels_handler,
+        create_channel_handler,
         get_user_guilds,
     )
 )]

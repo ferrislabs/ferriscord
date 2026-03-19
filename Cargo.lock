@@ -671,6 +671,7 @@ dependencies = [
  "ferriscord-pagination",
  "ferriscord-permission",
  "serde",
+ "serde_json",
  "sqlx",
  "thiserror",
  "tracing",

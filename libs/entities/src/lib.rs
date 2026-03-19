@@ -5,6 +5,7 @@ use serde::{Deserialize, Serialize};
 use utoipa::ToSchema;
 use uuid::{NoContext, Timestamp, Uuid};
 
+pub mod channel;
 pub mod guild;
 pub mod member;
 pub mod role;

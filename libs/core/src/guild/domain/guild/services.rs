@@ -5,6 +5,7 @@ use ferriscord_entities::{
 };
 
 use crate::guild::domain::{
+    channel::ports::ChannelPort,
     common::Service,
     errors::CoreError,
     guild::{
@@ -15,12 +16,13 @@ use crate::guild::domain::{
     role::ports::RoleRepository,
 };
 
-impl<G, A, R, M> GuildService for Service<G, A, R, M>
+impl<G, A, R, M, C> GuildService for Service<G, A, R, M, C>
 where
     G: GuildPort,
     A: AuthRepository,
     R: RoleRepository,
     M: MemberRepository,
+    C: ChannelPort,
 {
     async fn create_guild(&self, input: CreateGuildInput) -> Result<Guild, CoreError> {
         let guilds = self.guild_repository.list_by_owner(&input.owner_id).await?;
