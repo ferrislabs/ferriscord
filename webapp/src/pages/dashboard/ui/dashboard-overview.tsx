@@ -228,14 +228,14 @@ export function DashboardOverview({
                   {recentActivity.map((activity, index) => (
                     <div key={index} className="flex items-start space-x-3">
                       <Avatar className="h-8 w-8">
-                        <AvatarImage src={activity.user?.avatar} alt={activity.user?.username} />
+                        <AvatarImage src={activity.user?.avatar} alt={activity.user?.preferred_username} />
                         <AvatarFallback className="bg-gray-500 text-white text-xs">
-                          {activity.user?.username?.slice(0, 2).toUpperCase()}
+                          {activity.user?.preferred_username?.slice(0, 2).toUpperCase()}
                         </AvatarFallback>
                       </Avatar>
                       <div className="flex-1 min-w-0">
                         <p className="text-sm text-gray-900">
-                          <span className="font-medium">{activity.user?.username}</span>
+                          <span className="font-medium">{activity.user?.preferred_username}</span>
                           {' '}
                           <span className="text-gray-600">{activity.action}</span>
                           {' '}

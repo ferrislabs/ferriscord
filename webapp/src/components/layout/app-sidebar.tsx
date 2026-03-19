@@ -160,9 +160,9 @@ export function AppSidebar() {
           <div className="flex items-center space-x-2">
             <div className="relative">
               <Avatar className="h-8 w-8">
-                <AvatarImage src={user?.avatar} alt={user?.username} />
+                <AvatarImage src={user?.avatar} alt={user?.preferred_username} />
                 <AvatarFallback className="bg-primary text-primary-foreground text-xs">
-                  {user?.username?.slice(0, 2).toUpperCase() || "U"}
+                  {user?.preferred_username?.slice(0, 2).toUpperCase() || "U"}
                 </AvatarFallback>
               </Avatar>
               <div
@@ -174,7 +174,7 @@ export function AppSidebar() {
             </div>
             <div className="flex-1 min-w-0">
               <div className="text-sm font-medium text-foreground truncate">
-                {user?.username || "Unknown User"}
+                {user?.preferred_username || "Unknown User"}
               </div>
               <div className="text-xs text-muted-foreground capitalize">
                 {user?.status || "offline"}
@@ -424,9 +424,9 @@ export function AppSidebar() {
         <div className="flex items-center space-x-2">
           <div className="relative">
             <Avatar className="h-8 w-8">
-              <AvatarImage src={user?.avatar} alt={user?.username} />
+              <AvatarImage src={user?.avatar} alt={user?.preferred_username} />
               <AvatarFallback className="bg-primary text-primary-foreground text-xs">
-                {user?.username?.slice(0, 2).toUpperCase() || "U"}
+                {user?.preferred_username?.slice(0, 2).toUpperCase() || "U"}
               </AvatarFallback>
             </Avatar>
             <div
@@ -438,7 +438,7 @@ export function AppSidebar() {
           </div>
           <div className="flex-1 min-w-0">
             <div className="text-sm font-medium text-foreground truncate">
-              {user?.username || "Unknown User"}
+              {user?.preferred_username || "Unknown User"}
             </div>
             <div className="text-xs text-muted-foreground capitalize">
               {user?.status || "offline"}
