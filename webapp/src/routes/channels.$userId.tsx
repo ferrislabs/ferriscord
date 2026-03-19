@@ -20,7 +20,7 @@ export const Route = createFileRoute('/channels/$userId')({
     }
 
     console.log('✅ DM data loaded:', {
-      user: user.username,
+      user: user.preferred_username,
       messagesCount: messages.length
     })
 

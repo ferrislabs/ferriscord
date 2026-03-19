@@ -127,8 +127,8 @@ function DMConversationPage() {
         <div className="flex items-center space-x-3">
           <div className="relative">
             <Avatar className="h-8 w-8">
-              <AvatarImage src={user.avatar} alt={user.username} />
-              <AvatarFallback>{user.username.slice(0, 2).toUpperCase()}</AvatarFallback>
+              <AvatarImage src={user.avatar} alt={user.preferred_username} />
+              <AvatarFallback>{user.preferred_username.slice(0, 2).toUpperCase()}</AvatarFallback>
             </Avatar>
             <div
               className={cn(
@@ -138,7 +138,7 @@ function DMConversationPage() {
             />
           </div>
           <div>
-            <h2 className="font-semibold text-foreground">{user.username}</h2>
+            <h2 className="font-semibold text-foreground">{user.preferred_username}</h2>
             {user.customStatus && (
               <p className="text-xs text-muted-foreground">{user.customStatus}</p>
             )}
@@ -165,15 +165,15 @@ function DMConversationPage() {
         {/* Welcome Message */}
         <div className="flex flex-col items-center text-center py-8">
           <Avatar className="h-20 w-20 mb-4">
-            <AvatarImage src={user.avatar} alt={user.username} />
+            <AvatarImage src={user.avatar} alt={user.preferred_username} />
             <AvatarFallback className="text-2xl">
-              {user.username.slice(0, 2).toUpperCase()}
+              {user.preferred_username.slice(0, 2).toUpperCase()}
             </AvatarFallback>
           </Avatar>
-          <h2 className="text-2xl font-bold text-foreground mb-2">{user.username}</h2>
+          <h2 className="text-2xl font-bold text-foreground mb-2">{user.preferred_username}</h2>
           <p className="text-muted-foreground">
             This is the beginning of your direct message history with{' '}
-            <span className="font-semibold">@{user.username}</span>.
+            <span className="font-semibold">@{user.preferred_username}</span>.
           </p>
         </div>
 
@@ -219,7 +219,7 @@ function DMConversationPage() {
       <MessageInput
         onSendMessage={handleSendMessage}
         channelType="dm"
-        recipientName={user.username}
+        recipientName={user.preferred_username}
         className="border-t-0"
       />
     </div>

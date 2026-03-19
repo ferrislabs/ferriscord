@@ -8,19 +8,16 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
-import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import type { Schemas } from "@/api/api.client"
 import { Button } from "@/components/ui/button"
 import { useEffect, useState } from "react"
-import { useCreateServer } from "@/lib/queries/community-queries"
-import { useUserGuilds } from "@/lib/queries/guild-queries"
+import { useUserGuilds, useCreateGuild } from '@/lib/queries/guild-queries'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { AddServerForm } from "@/components/forms/add-server-form"
 import { useForm } from "react-hook-form"
 import type z from "zod"
 import { addServerFormSchema } from "@/lib/validation/add-server-schema"
 import { zodResolver } from "@hookform/resolvers/zod"
-import { useQueryClient } from "@tanstack/react-query"
 import { toast } from "sonner"
 import { Skeleton } from "@/components/ui/skeleton"
 
@@ -63,18 +60,12 @@ function ServerButton({ guild }: ServerButtonProps) {
   return (
     <Tooltip>
       <TooltipTrigger asChild>
-        <Button
-          variant="nav"
-          size="icon-sm"
-          className="cursor-pointer bg-transparent"
+        <button
           onClick={handleServerClick}
+          className='flex h-10 w-10 cursor-pointer items-center justify-center rounded-lg border border-border/50 bg-muted/50 text-sm font-semibold text-foreground transition-all duration-150 hover:border-primary/40 hover:bg-muted/80 active:scale-95'
         >
-          <Avatar className="h-7 w-7 rounded-sm">
-            <AvatarFallback className="text-sm">
-              {guild.name.charAt(0).toUpperCase()}
-            </AvatarFallback>
-          </Avatar>
-        </Button>
+          {guild.name.charAt(0).toUpperCase()}
+        </button>
       </TooltipTrigger>
       <TooltipContent side="right">{guild.name}</TooltipContent>
     </Tooltip>
@@ -83,8 +74,6 @@ function ServerButton({ guild }: ServerButtonProps) {
 
 export default function ServerNav() {
   const { t } = useTranslation()
-  const queryClient = useQueryClient()
-
   const [isCreateServerModalOpen, setIsCreateServerModalOpen] = useState<boolean>(false)
   const [theme, setTheme] = useState<'light' | 'dark'>(() => {
     if (typeof window !== 'undefined') {
@@ -124,12 +113,12 @@ export default function ServerNav() {
     isLoading: isLoadingServers,
   } = useUserGuilds()
   const {
-    mutateAsync: createServer,
+    mutateAsync: createGuild,
     isPending: isCreatingServer,
     isError: isCreateServerError,
     isSuccess: isCreateServerSuccess,
     data: createdServer,
-  } = useCreateServer()
+  } = useCreateGuild()
 
   // Handle errors (Could be replaced with a toast notification)
   useEffect(() => {
@@ -141,34 +130,22 @@ export default function ServerNav() {
   const addServerForm = useForm<z.infer<typeof addServerFormSchema>>({
     resolver: zodResolver(addServerFormSchema),
     defaultValues: {
-      name: "",
-      description: "",
-      picture_url: "",
-      banner_url: "",
-      visibility: "Public",
+      name: '',
     },
   })
 
   const onSubmitAddServer = async (values: z.infer<typeof addServerFormSchema>) => {
-    createServer({
-      name: values.name,
-      description: values.description,
-      picture_url: values.picture_url,
-      banner_url: values.banner_url,
-      visibility: values.visibility,
-    })
+    createGuild({ body: { name: values.name } })
   }
 
   useEffect(() => {
     if (isCreateServerSuccess && createdServer) {
-      queryClient.invalidateQueries({ queryKey: [{ _id: "/users/@me/guilds" }] })
       setIsCreateServerModalOpen(false)
-      toast.success(t("serverNav.success_creating_server"))
-      // Will be handled by clicking the server button
+      toast.success(t('serverNav.success_creating_server'))
     } else if (isCreateServerError) {
-      toast.error(t("serverNav.error_creating_server"))
+      toast.error(t('serverNav.error_creating_server'))
     }
-  }, [isCreateServerError, isCreateServerSuccess, createdServer, t, queryClient])
+  }, [isCreateServerError, isCreateServerSuccess, createdServer, t])
 
   useEffect(() => {
     if (!isCreateServerModalOpen) {

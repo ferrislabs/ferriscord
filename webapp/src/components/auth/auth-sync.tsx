@@ -1,40 +1,33 @@
-import { useOidc, useOidcAccessToken, useOidcIdToken, useOidcUser } from '@axa-fr/react-oidc'
+import { useOidc, useOidcAccessToken, useOidcIdToken } from '@axa-fr/react-oidc'
 import { useEffect } from 'react'
 import { useAuthStore } from '@/stores/auth.store'
 import { useUserStore } from '@/stores/user.store'
 
-/**
- * AuthSync — composant renderless monté dans __root.tsx.
- * Lit l'état OIDC et l'écrit dans les stores Zustand.
- * Doit être rendu à l'intérieur de OidcProvider.
- */
 export function AuthSync() {
   const { isAuthenticated } = useOidc()
   const { accessToken, accessTokenPayload } = useOidcAccessToken()
-  const { idToken } = useOidcIdToken()
-  const { oidcUser, oidcUserLoadingState } = useOidcUser()
+  const { idToken, idTokenPayload } = useOidcIdToken()
 
   const { setTokens } = useAuthStore()
   const { setAuthenticated, setUser, setExpiration, setLoading } = useUserStore()
 
   useEffect(() => {
-    const isLoading = oidcUserLoadingState === 'Loading user'
-    setLoading(isLoading)
+    setLoading(false)
     setAuthenticated(isAuthenticated)
 
-    if (isAuthenticated && oidcUser) {
+    if (isAuthenticated && idTokenPayload) {
       setUser({
-        avatar: oidcUser.picture ?? '',
-        preferred_username: oidcUser.preferred_username ?? '',
-        email: oidcUser.email ?? '',
-        name: oidcUser.name ?? '',
+        avatar: idTokenPayload.picture ?? '',
+        preferred_username: idTokenPayload.preferred_username ?? idTokenPayload.sub ?? '',
+        email: idTokenPayload.email ?? '',
+        name: idTokenPayload.name ?? '',
       })
       setExpiration(accessTokenPayload?.exp ?? null)
-    } else if (!isLoading) {
+    } else if (!isAuthenticated) {
       setUser(null)
       setExpiration(null)
     }
-  }, [isAuthenticated, oidcUser, oidcUserLoadingState, accessTokenPayload])
+  }, [isAuthenticated, idTokenPayload, accessTokenPayload])
 
   useEffect(() => {
     setTokens(accessToken ?? null, null, idToken ?? null)
