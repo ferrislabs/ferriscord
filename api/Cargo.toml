@@ -15,6 +15,7 @@ ferriscord-auth = { path = "../libs/auth" }
 ferriscord-config = { path = "../libs/config" }
 ferriscord-entities = { path = "../libs/entities" }
 ferriscord-core = { path = "../libs/core" }
+ferriscord-storage = { path = "../libs/storage" }
 clap = { version = "4.5.48", features = ["env", "derive"] }
 dotenv = "0.15.0"
 tokio = { version = "1.47.1", features = ["macros", "rt-multi-thread"] }

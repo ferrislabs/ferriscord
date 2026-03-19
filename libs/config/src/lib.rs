@@ -11,3 +11,12 @@ pub struct AuthConfig {
     pub client_id: String,
     pub client_secret: String,
 }
+
+#[derive(Debug, Clone)]
+pub struct StorageConfig {
+    pub endpoint: Option<String>,
+    pub region: String,
+    pub access_key_id: String,
+    pub secret_access_key: String,
+    pub force_path_style: bool,
+}

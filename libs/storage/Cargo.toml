@@ -1,0 +1,17 @@
+[package]
+name = "ferriscord-storage"
+version.workspace = true
+authors.workspace = true
+edition.workspace = true
+
+[dependencies]
+ferriscord-config = { path = "../config" }
+aws-config = { version = "1", features = ["behavior-version-latest"] }
+aws-credential-types = { version = "1", features = ["hardcoded-credentials"] }
+aws-sdk-s3 = { version = "1", features = ["behavior-version-latest"] }
+aws-types = "1"
+bytes = "1"
+chrono = { version = "0.4", features = ["serde"] }
+serde = { version = "1", features = ["derive"] }
+thiserror = "2"
+tracing = "0.1"

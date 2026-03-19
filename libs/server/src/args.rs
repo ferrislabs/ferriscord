@@ -3,6 +3,7 @@ use std::path::PathBuf;
 pub mod auth;
 pub mod database;
 pub mod log;
+pub mod storage;
 
 #[derive(clap::Args, Debug, Clone)]
 pub struct ServerArgs {

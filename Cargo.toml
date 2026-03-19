@@ -8,6 +8,7 @@ members = [
     "libs/pagination",
     "libs/entities",
     "libs/core",
+    "libs/storage",
 
     "api",
 ]
