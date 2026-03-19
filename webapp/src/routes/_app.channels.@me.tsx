@@ -1,5 +1,7 @@
 import { createFileRoute, Link } from '@tanstack/react-router'
+import { useEffect } from 'react'
 import { Inbox, Search, Plus, Users } from 'lucide-react'
+import { saveLastVisited } from '@/lib/last-visited'
 import { Button } from '@/components/ui/button'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { cn } from '@/lib/utils'
@@ -62,6 +64,10 @@ const getStatusColor = (status: string) => {
 }
 
 function DMListPage() {
+  useEffect(() => {
+    saveLastVisited('/channels/@me')
+  }, [])
+
   return (
     <div className="flex flex-col h-full">
       {/* Header */}

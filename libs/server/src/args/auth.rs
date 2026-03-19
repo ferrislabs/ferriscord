@@ -5,7 +5,7 @@ pub struct AuthArgs {
     #[arg(
         long = "auth-issuer",
         env = "AUTH_ISSUER",
-        default_value = "http://localhost:8080/realms/ferriscord",
+        default_value = "http://localhost:3333/realms/ferrislabs",
         name = "AUTH_ISSUER",
         long_help = "The issuer of the IAM"
     )]
@@ -33,7 +33,7 @@ pub struct AuthArgs {
 impl Default for AuthArgs {
     fn default() -> Self {
         Self {
-            issuer: "http://localhost:8080/realms/ferriscord".to_string(),
+            issuer: "http://localhost:3333/realms/ferrislabs".to_string(),
             client_id: "client_id".to_string(),
             client_secret: "client_secret".to_string(),
         }

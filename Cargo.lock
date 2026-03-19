@@ -224,33 +224,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "axum-extra"
-version = "0.12.5"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "fef252edff26ddba56bbcdf2ee3307b8129acb86f5749b68990c168a6fcc9c76"
-dependencies = [
- "axum",
- "axum-core",
- "axum-macros",
- "bytes",
- "form_urlencoded",
- "futures-core",
- "futures-util",
- "http",
- "http-body",
- "http-body-util",
- "mime",
- "percent-encoding",
- "pin-project-lite",
- "rustversion",
- "serde_core",
- "serde_html_form",
- "tower-layer",
- "tower-service",
- "tracing",
-]
-
-[[package]]
 name = "axum-macros"
 version = "0.5.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -642,6 +615,34 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "37909eebbb50d72f9059c3b6d82c0463f2ff062c9e95845c43a6c9c0355411be"
 
 [[package]]
+name = "ferriscord-api"
+version = "0.1.0"
+dependencies = [
+ "axum",
+ "axum-extra",
+ "base64",
+ "clap",
+ "dotenv",
+ "ferriscord-auth",
+ "ferriscord-config",
+ "ferriscord-core",
+ "ferriscord-entities",
+ "ferriscord-error",
+ "ferriscord-server",
+ "serde",
+ "sqlx",
+ "tokio",
+ "tower-http",
+ "tracing",
+ "tracing-subscriber",
+ "url",
+ "utoipa",
+ "utoipa-scalar",
+ "utoipa-swagger-ui",
+ "uuid",
+]
+
+[[package]]
 name = "ferriscord-auth"
 version = "0.1.0"
 dependencies = [
@@ -658,6 +659,24 @@ dependencies = [
 [[package]]
 name = "ferriscord-config"
 version = "0.1.0"
+
+[[package]]
+name = "ferriscord-core"
+version = "0.1.0"
+dependencies = [
+ "chrono",
+ "ferriscord-auth",
+ "ferriscord-config",
+ "ferriscord-entities",
+ "ferriscord-pagination",
+ "ferriscord-permission",
+ "serde",
+ "sqlx",
+ "thiserror",
+ "tracing",
+ "utoipa",
+ "uuid",
+]
 
 [[package]]
 name = "ferriscord-entities"
@@ -701,7 +720,7 @@ name = "ferriscord-server"
 version = "0.1.0"
 dependencies = [
  "axum",
- "axum-extra 0.10.3",
+ "axum-extra",
  "axum-server",
  "clap",
  "ferriscord-auth",
@@ -897,50 +916,6 @@ dependencies = [
  "libc",
  "r-efi",
  "wasip2",
-]
-
-[[package]]
-name = "guild-api"
-version = "0.1.0"
-dependencies = [
- "axum",
- "axum-extra 0.10.3",
- "base64",
- "clap",
- "dotenv",
- "ferriscord-auth",
- "ferriscord-entities",
- "ferriscord-error",
- "ferriscord-server",
- "guild-core",
- "serde",
- "tokio",
- "tower-http",
- "tracing",
- "tracing-subscriber",
- "url",
- "utoipa",
- "utoipa-scalar",
- "utoipa-swagger-ui",
- "uuid",
-]
-
-[[package]]
-name = "guild-core"
-version = "0.1.0"
-dependencies = [
- "chrono",
- "ferriscord-auth",
- "ferriscord-config",
- "ferriscord-entities",
- "ferriscord-pagination",
- "ferriscord-permission",
- "serde",
- "sqlx",
- "thiserror",
- "tracing",
- "utoipa",
- "uuid",
 ]
 
 [[package]]
@@ -1488,31 +1463,6 @@ name = "memchr"
 version = "2.7.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "f52b00d39961fc5b2736ea853c9cc86238e165017a493d1d5c8eac6bdc4cc273"
-
-[[package]]
-name = "message-api"
-version = "0.1.0"
-dependencies = [
- "clap",
- "dotenv",
- "ferriscord-error",
- "message-core",
- "tokio",
- "tracing",
- "tracing-subscriber",
- "url",
-]
-
-[[package]]
-name = "message-core"
-version = "0.1.0"
-dependencies = [
- "chrono",
- "serde",
- "sqlx",
- "thiserror",
- "uuid",
-]
 
 [[package]]
 name = "mime"
@@ -2192,6 +2142,19 @@ dependencies = [
  "serde",
  "serde_core",
  "zmij",
+]
+
+[[package]]
+name = "serde_norway"
+version = "0.9.42"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "e408f29489b5fd500fab51ff1484fc859bb655f32c671f307dcd733b72e8168c"
+dependencies = [
+ "indexmap",
+ "itoa",
+ "ryu",
+ "serde",
+ "unsafe-libyaml-norway",
 ]
 
 [[package]]
@@ -2939,6 +2902,12 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "7df058c713841ad818f1dc5d3fd88063241cc61f49f5fbea4b951e8cf5a8d71d"
 
 [[package]]
+name = "unsafe-libyaml-norway"
+version = "0.2.15"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "b39abd59bf32521c7f2301b52d05a6a2c975b6003521cbd0c6dc1582f0a22104"
+
+[[package]]
 name = "untrusted"
 version = "0.7.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2963,43 +2932,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "user-api"
-version = "0.1.0"
-dependencies = [
- "axum",
- "axum-extra 0.12.5",
- "axum-server",
- "clap",
- "dotenv",
- "ferriscord-config",
- "ferriscord-error",
- "ferriscord-server",
- "rustls",
- "tokio",
- "tower-http",
- "tracing",
- "tracing-subscriber",
- "url",
- "user-core",
- "utoipa",
- "utoipa-scalar",
- "utoipa-swagger-ui",
-]
-
-[[package]]
-name = "user-core"
-version = "0.1.0"
-dependencies = [
- "chrono",
- "ferriscord-auth",
- "ferriscord-config",
- "serde",
- "sqlx",
- "thiserror",
- "uuid",
-]
-
-[[package]]
 name = "utf8_iter"
 version = "1.0.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3020,6 +2952,7 @@ dependencies = [
  "indexmap",
  "serde",
  "serde_json",
+ "serde_norway",
  "utoipa-gen",
 ]
 

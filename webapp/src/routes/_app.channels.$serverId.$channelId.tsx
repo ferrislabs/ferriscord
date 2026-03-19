@@ -1,9 +1,11 @@
 import { createFileRoute } from '@tanstack/react-router'
+import { useEffect } from 'react'
 import { useServer, useChannels } from '@/lib/queries/community-queries'
 import { Hash, Volume2, Users, Pin, Bell, Search } from 'lucide-react'
 import { Skeleton } from '@/components/ui/skeleton'
 import { MessageListSkeleton } from '@/components/layout/message-list-skeleton'
 import { MessageInput } from '@/components/chat'
+import { saveLastVisited } from '@/lib/last-visited'
 
 export const Route = createFileRoute('/_app/channels/$serverId/$channelId')({
   component: ChannelPage,
@@ -11,6 +13,10 @@ export const Route = createFileRoute('/_app/channels/$serverId/$channelId')({
 
 function ChannelPage() {
   const { serverId, channelId } = Route.useParams()
+
+  useEffect(() => {
+    saveLastVisited(`/channels/${serverId}/${channelId}`)
+  }, [serverId, channelId])
   const { data: server, isLoading: isLoadingServer } = useServer(Number(serverId))
   const { data: channels = [], isLoading: isLoadingChannels } = useChannels(Number(serverId))
 

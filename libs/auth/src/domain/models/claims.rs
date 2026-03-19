@@ -15,7 +15,6 @@ pub struct Subject(pub String);
 pub struct Claims {
     pub sub: Subject,
     pub iss: String,
-    pub aud: Option<String>,
     pub exp: Option<i64>,
 
     pub email: Option<String>,

@@ -14,7 +14,7 @@ pub struct DatabaseArgs {
     #[arg(
         long = "database-name",
         env = "DATABASE_NAME",
-        default_value = "ferriscord_guild",
+        default_value = "ferriscord",
         name = "DATABASE_NAME",
         long_help = "The database name to use"
     )]
@@ -49,7 +49,7 @@ impl Default for DatabaseArgs {
     fn default() -> Self {
         Self {
             host: "localhost".to_string(),
-            name: "ferriscord_guild".to_string(),
+            name: "ferriscord".to_string(),
             password: "postgres".to_string(),
             port: 5432,
             user: "postgres".to_string(),
