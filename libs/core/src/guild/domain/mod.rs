@@ -1,3 +1,4 @@
+pub mod channel;
 pub mod common;
 pub mod errors;
 pub mod guild;

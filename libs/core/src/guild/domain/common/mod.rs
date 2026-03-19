@@ -6,6 +6,7 @@ use ferriscord_entities::{
 use ferriscord_permission::Permissions;
 
 use crate::guild::domain::{
+    channel::ports::ChannelPort,
     errors::CoreError,
     guild::ports::GuildPort,
     member::ports::MemberRepository,
@@ -13,25 +14,28 @@ use crate::guild::domain::{
 };
 
 #[derive(Clone)]
-pub struct Service<G, A, R, M>
+pub struct Service<G, A, R, M, C>
 where
     G: GuildPort,
     A: AuthRepository,
     R: RoleRepository,
     M: MemberRepository,
+    C: ChannelPort,
 {
     pub(crate) guild_repository: G,
     pub auth_repository: A,
     pub(crate) role_repository: R,
     pub(crate) member_repository: M,
+    pub(crate) channel_repository: C,
 }
 
-impl<G, A, R, M> Service<G, A, R, M>
+impl<G, A, R, M, C> Service<G, A, R, M, C>
 where
     G: GuildPort,
     A: AuthRepository,
     R: RoleRepository,
     M: MemberRepository,
+    C: ChannelPort,
 {
     pub(crate) async fn build_permission_context(
         &self,

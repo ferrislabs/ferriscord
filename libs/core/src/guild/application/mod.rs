@@ -1,9 +1,10 @@
-use ferriscord_auth::{HasAuthRepository, FerriskeyAuthRepository};
+use ferriscord_auth::{FerriskeyAuthRepository, HasAuthRepository};
 use sqlx::PgPool;
 
 use crate::guild::{
     domain::{common::Service, errors::CoreError},
     infrastructure::{
+        channel::postgres::PostgresChannelRepository,
         guild::postgres::PostgresGuildRepository,
         member::postgres::PostgresMemberRepository,
         role::postgres::PostgresRoleRepository,
@@ -15,6 +16,7 @@ pub type GuildFerrisCordService = Service<
     FerriskeyAuthRepository,
     PostgresRoleRepository,
     PostgresMemberRepository,
+    PostgresChannelRepository,
 >;
 
 impl HasAuthRepository for GuildFerrisCordService {
@@ -29,15 +31,11 @@ pub async fn create_guild_service(
     pool: PgPool,
     issuer: impl Into<String>,
 ) -> Result<GuildFerrisCordService, CoreError> {
-    let guild_repository = PostgresGuildRepository::new(pool.clone());
-    let auth_repository = FerriskeyAuthRepository::new(issuer.into(), None);
-    let role_repository = PostgresRoleRepository::new(pool.clone());
-    let member_repository = PostgresMemberRepository::new(pool.clone());
-
     Ok(GuildFerrisCordService {
-        guild_repository,
-        auth_repository,
-        role_repository,
-        member_repository,
+        guild_repository: PostgresGuildRepository::new(pool.clone()),
+        auth_repository: FerriskeyAuthRepository::new(issuer.into(), None),
+        role_repository: PostgresRoleRepository::new(pool.clone()),
+        member_repository: PostgresMemberRepository::new(pool.clone()),
+        channel_repository: PostgresChannelRepository::new(pool.clone()),
     })
 }

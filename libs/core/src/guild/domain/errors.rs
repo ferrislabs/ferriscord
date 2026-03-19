@@ -1,10 +1,16 @@
-use ferriscord_entities::guild::GuildId;
+use ferriscord_entities::{channel::ChannelId, guild::GuildId};
 use thiserror::Error;
 
 #[derive(Debug, Error)]
 pub enum CoreError {
     #[error("guild with id {guild_id} not found")]
     GuildNotFound { guild_id: GuildId },
+
+    #[error("channel with id {channel_id} not found")]
+    ChannelNotFound { channel_id: ChannelId },
+
+    #[error("parent channel is invalid: must be a Category in the same guild")]
+    InvalidChannelParent,
 
     #[error("guild with id {guild_id} already exists")]
     GuildAlreadyExists { guild_id: GuildId },
