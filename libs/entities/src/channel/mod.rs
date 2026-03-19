@@ -35,7 +35,6 @@ impl std::fmt::Display for ChannelId {
 // ─── ChannelKind ─────────────────────────────────────────────────────────────
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, ToSchema)]
-#[serde(into = "i16", try_from = "i16")]
 pub enum ChannelKind {
     Text = 0,
     Voice = 2,
@@ -69,7 +68,6 @@ impl TryFrom<i16> for ChannelKind {
 // ─── OverwriteKind ───────────────────────────────────────────────────────────
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, ToSchema)]
-#[serde(into = "i16", try_from = "i16")]
 pub enum OverwriteKind {
     Role = 0,
     Member = 1,
@@ -126,7 +124,6 @@ impl Default for ChannelFlags {
 // ─── AutoArchiveDuration ─────────────────────────────────────────────────────
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, ToSchema)]
-#[serde(into = "u32", try_from = "u32")]
 pub enum AutoArchiveDuration {
     OneHour = 60,
     OneDay = 1440,
@@ -156,7 +153,6 @@ impl TryFrom<u32> for AutoArchiveDuration {
 // ─── SortOrder ───────────────────────────────────────────────────────────────
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, ToSchema)]
-#[serde(into = "i16", try_from = "i16")]
 pub enum SortOrder {
     LatestActivity = 0,
     CreationDate = 1,
@@ -182,7 +178,6 @@ impl TryFrom<i16> for SortOrder {
 // ─── ForumLayout ─────────────────────────────────────────────────────────────
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, ToSchema)]
-#[serde(into = "i16", try_from = "i16")]
 pub enum ForumLayout {
     NotSet = 0,
     ListView = 1,
