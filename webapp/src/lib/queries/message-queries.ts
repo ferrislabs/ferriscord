@@ -1,4 +1,4 @@
-import { useQuery } from '@tanstack/react-query'
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useAuthStore } from '@/stores/auth.store'
 import { useUserStore } from '@/stores/user.store'
 
@@ -17,5 +17,27 @@ export function useChannelMessages(
       },
     ).queryOptions,
     enabled: isAuthenticated && !!accessToken && !!guildId && !!channelId,
+  })
+}
+
+export function useSendMessage(guildId: string, channelId: string) {
+  const queryClient = useQueryClient()
+  const { mutationOptions } = window.tanstackApi.mutation(
+    'post',
+    '/guilds/{guild_id}/channels/{channel_id}/messages',
+  )
+
+  return useMutation({
+    ...mutationOptions,
+    onSuccess: () => {
+      queryClient.invalidateQueries({
+        queryKey: [
+          {
+            _id: '/guilds/{guild_id}/channels/{channel_id}/messages',
+            path: { guild_id: guildId, channel_id: channelId },
+          },
+        ],
+      })
+    },
   })
 }

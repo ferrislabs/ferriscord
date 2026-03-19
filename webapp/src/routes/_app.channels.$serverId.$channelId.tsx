@@ -7,7 +7,7 @@ import { MessageInput } from '@/components/chat'
 import { MessageList } from '@/pages/chat/ui/message-list'
 import { saveLastVisited } from '@/lib/last-visited'
 import { useGuildChannels } from '@/lib/queries/channel-queries'
-import { useChannelMessages } from '@/lib/queries/message-queries'
+import { useChannelMessages, useSendMessage } from '@/lib/queries/message-queries'
 
 export const Route = createFileRoute('/_app/channels/$serverId/$channelId')({
   component: ChannelPage,
@@ -22,12 +22,13 @@ function ChannelPage() {
 
   const { data: channels = [], isLoading: isLoadingChannels } = useGuildChannels(serverId)
   const { data: messages = [], isLoading: isLoadingMessages } = useChannelMessages(serverId, channelId)
+  const { mutate: sendMessage, isPending: isSending } = useSendMessage(serverId, channelId)
 
   const selectedChannel = channels.find((ch) => ch.id === channelId)
   const isLoading = isLoadingChannels
 
   const handleSendMessage = (content: string) => {
-    console.log('Sending message to channel:', selectedChannel?.name, content)
+    sendMessage({ path: { guild_id: serverId, channel_id: channelId }, body: { content } })
   }
 
   // Map API messages to MessageList format
@@ -118,6 +119,7 @@ function ChannelPage() {
       ) : selectedChannel && (
         <MessageInput
           onSendMessage={handleSendMessage}
+          isLoading={isSending}
           channelName={selectedChannel.name}
           channelType="text"
           className="border-t-0"

@@ -117,23 +117,24 @@ export namespace Schemas {
     slug: string
   }
   export type GuildId = Id
-  export type OwnerId = Id
-  export type RoleId = Id
-  export type MessageId = Id
-  export type UserId = Id
   export type MessageAuthor = {
-    id: UserId
-    username: string
     avatar_url?: (string | null) | undefined
+    id: Id
+    username: string
   }
   export type Message = {
-    id: MessageId
-    channel_id: ChannelId
     author: MessageAuthor
+    channel_id: Id
     content: string
-    edited_at?: (string | null) | undefined
     created_at: string
+    edited_at?: (string | null) | undefined
+    id: Id
   }
+  export type MessageId = Id
+  export type OwnerId = Id
+  export type RoleId = Id
+  export type SendMessageRequest = { content: string }
+  export type UserId = Id
 
   // </Schemas>
 }
@@ -202,6 +203,43 @@ export namespace Endpoints {
       500: Schemas.ApiError
     }
   }
+  export type get_Get_messages_handler = {
+    method: 'GET'
+    path: '/guilds/{guild_id}/channels/{channel_id}/messages'
+    requestFormat: 'json'
+    parameters: {
+      path: {
+        guild_id: string
+        channel_id: string
+        before: string | null
+        limit: number | null
+      }
+    }
+    responses: {
+      200: Array<Schemas.Message>
+      401: Schemas.ApiError
+      403: Schemas.ApiError
+      404: Schemas.ApiError
+      500: Schemas.ApiError
+    }
+  }
+  export type post_Send_message_handler = {
+    method: 'POST'
+    path: '/guilds/{guild_id}/channels/{channel_id}/messages'
+    requestFormat: 'json'
+    parameters: {
+      path: { guild_id: string; channel_id: string }
+
+      body: Schemas.SendMessageRequest
+    }
+    responses: {
+      201: Schemas.Message
+      400: Schemas.ApiError
+      401: Schemas.ApiError
+      403: Schemas.ApiError
+      500: Schemas.ApiError
+    }
+  }
   export type get_Get_roles_handler = {
     method: 'GET'
     path: '/guilds/{guild_id}/roles'
@@ -264,22 +302,6 @@ export namespace Endpoints {
       500: Schemas.ApiError
     }
   }
-  export type get_Get_messages_handler = {
-    method: 'GET'
-    path: '/guilds/{guild_id}/channels/{channel_id}/messages'
-    requestFormat: 'json'
-    parameters: {
-      path: { guild_id: string; channel_id: string }
-      query?: { before?: string; limit?: number }
-    }
-    responses: {
-      200: Array<Schemas.Message>
-      401: Schemas.ApiError
-      403: Schemas.ApiError
-      404: Schemas.ApiError
-      500: Schemas.ApiError
-    }
-  }
   export type get_Get_user_guilds = {
     method: 'GET'
     path: '/users/@me/guilds'
@@ -302,6 +324,7 @@ export type EndpointByMethod = {
   post: {
     '/guilds': Endpoints.post_Create_guild_handler
     '/guilds/{guild_id}/channels': Endpoints.post_Create_channel_handler
+    '/guilds/{guild_id}/channels/{channel_id}/messages': Endpoints.post_Send_message_handler
     '/guilds/{guild_id}/roles': Endpoints.post_Create_role_handler
   }
   delete: {

@@ -6,6 +6,7 @@ use super::handlers::{
             create_channel::__path_create_channel_handler,
             get_channels::__path_get_channels_handler,
             get_messages::__path_get_messages_handler,
+            send_message::__path_send_message_handler,
         },
         create_guild::__path_create_guild_handler,
         create_role::__path_create_role_handler,
@@ -30,6 +31,7 @@ use super::handlers::{
         get_channels_handler,
         create_channel_handler,
         get_messages_handler,
+        send_message_handler,
         get_user_guilds,
     )
 )]

@@ -8,6 +8,12 @@ pub trait UserService: Send + Sync {
         &self,
         id: UserId,
     ) -> impl Future<Output = Result<Option<User>, CoreError>> + Send;
+
+    fn upsert_by_sub(
+        &self,
+        sub: &str,
+        username: &str,
+    ) -> impl Future<Output = Result<User, CoreError>> + Send;
 }
 
 pub trait UserRepository: Send + Sync {

@@ -43,4 +43,22 @@ where
             .list_by_channel(&channel_id, before, limit.min(100))
             .await
     }
+
+    async fn send_message(
+        &self,
+        identity: Identity,
+        guild_id: GuildId,
+        channel_id: ChannelId,
+        content: String,
+    ) -> Result<Message, CoreError> {
+        let mut permission_context =
+            self.build_permission_context(&identity, &guild_id).await?;
+
+        require_permission!(permission_context, Permissions::SEND_MESSAGES);
+
+        // Pass the JWT sub directly; the repository resolves it to a user UUID via oauth_sub
+        self.message_repository
+            .insert(&channel_id, identity.id(), content)
+            .await
+    }
 }

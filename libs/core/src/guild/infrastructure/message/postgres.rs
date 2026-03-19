@@ -5,6 +5,7 @@ use ferriscord_entities::{
     message::{Message, MessageAuthor, MessageId},
     user::UserId,
 };
+
 use sqlx::PgPool;
 use tracing::error;
 use uuid::Uuid;
@@ -72,29 +73,36 @@ impl MessagePort for PostgresMessageRepository {
     async fn insert(
         &self,
         channel_id: &ChannelId,
-        author_id: &UserId,
+        author_sub: &str,
         content: String,
     ) -> Result<Message, CoreError> {
         let id = Id::new().get_uuid();
         let now = chrono::Utc::now();
 
-        sqlx::query(
+        // Resolve oauth_sub → users.id in a single INSERT … SELECT
+        let rows_affected = sqlx::query(
             r#"
             INSERT INTO messages (id, channel_id, author_id, content, created_at)
-            VALUES ($1, $2, $3, $4, $5)
+            SELECT $1, $2, id, $3, $4 FROM users WHERE oauth_sub = $5
             "#,
         )
         .bind(id)
         .bind(channel_id.get_uuid())
-        .bind(author_id.get_uuid())
         .bind(&content)
         .bind(now)
+        .bind(author_sub)
         .execute(&self.pool)
         .await
         .map_err(|e| {
             error!("failed to insert message: {}", e);
             CoreError::Unknown { message: e.to_string() }
         })?;
+
+        if rows_affected.rows_affected() == 0 {
+            return Err(CoreError::Unknown {
+                message: format!("user with sub '{}' not found", author_sub),
+            });
+        }
 
         let sql = format!("{} WHERE m.id = $1", SELECT_SQL);
         let row = sqlx::query_as::<_, MessageRow>(&sql)
