@@ -42,7 +42,7 @@ export function SetupAppLayout({ children, isConfiguring = false, error = null }
   }
 
   // Show loading state while configuring
-  if (isConfiguring || !window.oidcConfiguration) {
+  if (isConfiguring || !window.oidcConfiguration || !window.tanstackApi) {
     return (
       <div className="h-screen">
         <PageLoader message="Configuring application..." />

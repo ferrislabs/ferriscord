@@ -7,3 +7,4 @@ edition.workspace = true
 [dependencies]
 bitflags = { version = "2.10.0", features = ["serde"] }
 serde = { version = "1.0.228", features = ["derive"] }
+utoipa = { version = "5.4.0", features = ["chrono", "uuid"] }

@@ -1,0 +1,12 @@
+[package]
+name = "ferriscord-entities"
+version.workspace = true
+authors.workspace = true
+edition.workspace = true
+
+[dependencies]
+chrono = "0.4.42"
+serde = { version = "1.0.228", features = ["derive"] }
+utoipa = { version = "5.4.0", features = ["chrono", "time"] }
+uuid = { version = "1.19.0", features = ["serde"] }
+ferriscord-permission = { path = "../permission" }

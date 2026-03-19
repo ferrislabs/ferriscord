@@ -8,8 +8,8 @@ pub mod log;
 pub struct ServerArgs {
     #[arg(
         short,
-        long,
-        env,
+        long = "allowed-origins",
+        env = "ALLOWED_ORIGINS",
         num_args = 0..,
         value_delimiter = ',',
         long_help = "The port to run the application on",
@@ -29,10 +29,19 @@ pub struct ServerArgs {
         long = "server-port",
         env = "SERVER_PORT",
         name = "SERVER_PORT",
-        default_value_t = 3333,
+        default_value_t = 7001,
         long_help = "The port to run the application on"
     )]
     pub port: u16,
+
+    #[arg(
+        long = "internal-port",
+        env = "INTERNAL_SERVER_PORT",
+        name = "INTERNAL_SERVER_PORT",
+        default_value_t = 7002,
+        long_help = "The internal port to run the application on"
+    )]
+    pub internal_port: u16,
     #[command(flatten)]
     pub tls: Option<ServerTlsArgs>,
 }
@@ -63,7 +72,8 @@ impl Default for ServerArgs {
         Self {
             allowed_origins: vec![],
             host: "0.0.0.0".into(),
-            port: 3333,
+            port: 7000,
+            internal_port: 7001,
             tls: None,
         }
     }

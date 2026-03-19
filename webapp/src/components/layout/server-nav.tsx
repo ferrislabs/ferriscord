@@ -8,12 +8,12 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
-import type { Server } from "@/lib/queries/community-types"
+import { Avatar, AvatarFallback } from "@/components/ui/avatar"
+import type { Schemas } from "@/api/api.client"
 import { Button } from "@/components/ui/button"
 import { useEffect, useState } from "react"
-import { useCreateServer, useServers, useChannels } from "@/lib/queries/community-queries"
-import { useInView } from "react-intersection-observer"
+import { useCreateServer } from "@/lib/queries/community-queries"
+import { useUserGuilds } from "@/lib/queries/guild-queries"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { AddServerForm } from "@/components/forms/add-server-form"
 import { useForm } from "react-hook-form"
@@ -47,22 +47,17 @@ function NavLinkButton({ to, icon: Icon, tooltip }: NavLinkButtonProps) {
 }
 
 interface ServerButtonProps {
-  server: Server
+  guild: Schemas.Guild
 }
 
-function ServerButton({ server }: ServerButtonProps) {
+function ServerButton({ guild }: ServerButtonProps) {
   const navigate = useNavigate()
-  const { data: channels } = useChannels(server.id)
 
-  const handleServerClick = async () => {
-    // Navigate to first text channel, or first channel if no text channel exists
-    const firstChannel = channels?.find(ch => ch.type === 'text') || channels?.[0]
-    if (firstChannel) {
-      navigate({
-        to: '/channels/$serverId/$channelId',
-        params: { serverId: String(server.id), channelId: String(firstChannel.id) }
-      })
-    }
+  const handleServerClick = () => {
+    navigate({
+      to: '/channels/$serverId/$channelId',
+      params: { serverId: guild.id, channelId: '0' }
+    })
   }
 
   return (
@@ -75,14 +70,13 @@ function ServerButton({ server }: ServerButtonProps) {
           onClick={handleServerClick}
         >
           <Avatar className="h-7 w-7 rounded-sm">
-            <AvatarImage src={server.picture_url ?? undefined} alt={server.name} />
             <AvatarFallback className="text-sm">
-              {server.name.charAt(0).toUpperCase()}
+              {guild.name.charAt(0).toUpperCase()}
             </AvatarFallback>
           </Avatar>
         </Button>
       </TooltipTrigger>
-      <TooltipContent side="right">{server.name}</TooltipContent>
+      <TooltipContent side="right">{guild.name}</TooltipContent>
     </Tooltip>
   )
 }
@@ -91,7 +85,6 @@ export default function ServerNav() {
   const { t } = useTranslation()
   const queryClient = useQueryClient()
 
-  const { ref, inView } = useInView()
   const [isCreateServerModalOpen, setIsCreateServerModalOpen] = useState<boolean>(false)
   const [theme, setTheme] = useState<'light' | 'dark'>(() => {
     if (typeof window !== 'undefined') {
@@ -126,13 +119,10 @@ export default function ServerNav() {
   }
 
   const {
-    data: servers,
+    data: guilds,
     isError: serversError,
     isLoading: isLoadingServers,
-    hasNextPage,
-    isFetchingNextPage,
-    fetchNextPage,
-  } = useServers()
+  } = useUserGuilds()
   const {
     mutateAsync: createServer,
     isPending: isCreatingServer,
@@ -140,12 +130,6 @@ export default function ServerNav() {
     isSuccess: isCreateServerSuccess,
     data: createdServer,
   } = useCreateServer()
-
-  useEffect(() => {
-    if (inView && hasNextPage && !isFetchingNextPage) {
-      fetchNextPage()
-    }
-  }, [inView, hasNextPage, isFetchingNextPage, fetchNextPage])
 
   // Handle errors (Could be replaced with a toast notification)
   useEffect(() => {
@@ -177,7 +161,7 @@ export default function ServerNav() {
 
   useEffect(() => {
     if (isCreateServerSuccess && createdServer) {
-      queryClient.invalidateQueries({ queryKey: ["servers"] })
+      queryClient.invalidateQueries({ queryKey: [{ _id: "/users/@me/guilds" }] })
       setIsCreateServerModalOpen(false)
       toast.success(t("serverNav.success_creating_server"))
       // Will be handled by clicking the server button
@@ -236,24 +220,11 @@ export default function ServerNav() {
             </>
           ) : (
             <>
-              {servers?.pages
-                .flatMap((page) => page.data)
-                .map((server) => (
-                  <ServerButton key={server.id} server={server} />
-                ))}
-              {isFetchingNextPage && (
-                <>
-                  <Skeleton className="h-10 w-10 rounded-sm" />
-                  <Skeleton className="h-10 w-10 rounded-sm" />
-                </>
-              )}
+              {guilds?.map((guild) => (
+                <ServerButton key={guild.id} guild={guild} />
+              ))}
             </>
           )}
-          <button
-            ref={ref}
-            onClick={() => fetchNextPage()}
-            disabled={!hasNextPage || isFetchingNextPage}
-          ></button>
         </div>
 
         <Tooltip>

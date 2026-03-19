@@ -6,15 +6,10 @@ members = [
     "libs/config",
     "libs/permission",
     "libs/pagination",
+    "libs/entities",
+    "libs/core",
 
-    "services/guild-service/core",
-    "services/guild-service/api",
-
-    "services/user-service/core",
-    "services/user-service/api",
-
-    "services/message-service/core",
-    "services/message-service/api"
+    "api",
 ]
 resolver = "2"
 

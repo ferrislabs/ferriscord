@@ -1,8 +1,9 @@
 use axum::{Json, http::StatusCode, response::IntoResponse};
 use serde::Serialize;
 use thiserror::Error;
+use utoipa::ToSchema;
 
-#[derive(Debug, Error)]
+#[derive(Debug, Error, ToSchema)]
 pub enum ApiError {
     #[error("unknown error: {message}")]
     Unknown { message: String },
@@ -14,7 +15,7 @@ pub enum ApiError {
     InvalidToken { message: String },
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, ToSchema)]
 pub struct ApiErrorResponse {
     pub code: String,
     pub status: u16,
