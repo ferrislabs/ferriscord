@@ -14,6 +14,7 @@ import { useEffect, useState } from "react"
 import { useUserGuilds, useCreateGuild } from '@/lib/queries/guild-queries'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { AddServerForm } from "@/components/forms/add-server-form"
+import { JoinGuildModal } from "@/components/guild/join-guild-modal"
 import { useForm } from "react-hook-form"
 import type z from "zod"
 import { addServerFormSchema } from "@/lib/validation/add-server-schema"
@@ -75,6 +76,7 @@ function ServerButton({ guild }: ServerButtonProps) {
 export default function ServerNav() {
   const { t } = useTranslation()
   const [isCreateServerModalOpen, setIsCreateServerModalOpen] = useState<boolean>(false)
+  const [isJoinServerModalOpen, setIsJoinServerModalOpen] = useState<boolean>(false)
   const [theme, setTheme] = useState<'light' | 'dark'>(() => {
     if (typeof window !== 'undefined') {
       const savedTheme = localStorage.getItem('theme') as 'light' | 'dark' | null
@@ -179,7 +181,13 @@ export default function ServerNav() {
               >
                 {t("serverNav.create_server")}
               </DropdownMenuItem>
-              <DropdownMenuItem className="text-responsive-base!">
+              <DropdownMenuItem
+                className="text-responsive-base!"
+                onSelect={(e) => {
+                  e.preventDefault()
+                  setIsJoinServerModalOpen(true)
+                }}
+              >
                 {t("serverNav.join_server")}
               </DropdownMenuItem>
             </DropdownMenuContent>
@@ -239,6 +247,7 @@ export default function ServerNav() {
             </DialogContent>
           </form>
         </Dialog>
+        <JoinGuildModal open={isJoinServerModalOpen} onOpenChange={setIsJoinServerModalOpen} />
       </nav>
     </TooltipProvider>
   )

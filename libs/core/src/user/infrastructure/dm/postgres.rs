@@ -477,4 +477,26 @@ impl DmRepository for PostgresDmRepository {
 
         Ok(row_to_message(row, att_list))
     }
+
+    async fn delete_message(
+        &self,
+        caller_sub: &str,
+        channel_id: Uuid,
+        message_id: Uuid,
+    ) -> Result<bool, CoreError> {
+        let result = sqlx::query(
+            "DELETE FROM messages WHERE id = $1 AND channel_id = $2 AND author_id = (SELECT id FROM users WHERE oauth_sub = $3)",
+        )
+        .bind(message_id)
+        .bind(channel_id)
+        .bind(caller_sub)
+        .execute(&self.pool)
+        .await
+        .map_err(|e| {
+            error!("failed to delete dm message: {}", e);
+            CoreError::InternalServerError { message: e.to_string() }
+        })?;
+
+        Ok(result.rows_affected() > 0)
+    }
 }

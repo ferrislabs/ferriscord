@@ -62,6 +62,26 @@ export function useSendDmMessage(channelId: string) {
   })
 }
 
+export function useDeleteDmMessage(channelId: string) {
+  const queryClient = useQueryClient()
+  const { mutationOptions } = window.tanstackApi.mutation(
+    'delete',
+    '/channels/@me/{channel_id}/messages/{message_id}',
+  )
+  return useMutation({
+    ...mutationOptions,
+    onSuccess: () => {
+      queryClient.invalidateQueries({
+        queryKey: [{ _id: '/channels/@me/{channel_id}/messages', path: { channel_id: channelId } }],
+      })
+    },
+    mutationFn: (messageId: string) =>
+      mutationOptions.mutationFn({
+        path: { channel_id: channelId, message_id: messageId },
+      }),
+  })
+}
+
 export function useCreateOrGetDm() {
   const queryClient = useQueryClient()
   const { mutationOptions } = window.tanstackApi.mutation('post', '/channels/@me')

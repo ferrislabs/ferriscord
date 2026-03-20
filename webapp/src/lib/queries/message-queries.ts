@@ -20,6 +20,26 @@ export function useChannelMessages(
   })
 }
 
+export function useDeleteMessage(guildId: string, channelId: string) {
+  const queryClient = useQueryClient()
+  const { mutationOptions } = window.tanstackApi.mutation(
+    'delete',
+    '/guilds/{guild_id}/channels/{channel_id}/messages/{message_id}',
+  )
+  return useMutation({
+    ...mutationOptions,
+    onSuccess: () => {
+      queryClient.invalidateQueries({
+        queryKey: [{ _id: '/guilds/{guild_id}/channels/{channel_id}/messages' }],
+      })
+    },
+    mutationFn: (messageId: string) =>
+      mutationOptions.mutationFn({
+        path: { guild_id: guildId, channel_id: channelId, message_id: messageId },
+      }),
+  })
+}
+
 export function useSendMessage(guildId: string, channelId: string) {
   const queryClient = useQueryClient()
   const { mutationOptions, queryKey: messagesQueryKey } = {

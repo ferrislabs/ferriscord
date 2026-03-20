@@ -12,6 +12,7 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as AppRouteImport } from './routes/_app'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as UsersUserIdRouteImport } from './routes/users.$userId'
+import { Route as InviteCodeRouteImport } from './routes/invite.$code'
 import { Route as DiscoveryServersRouteImport } from './routes/discovery.servers'
 import { Route as AppExploreRouteImport } from './routes/_app.explore'
 import { Route as AppChannelsAtmeRouteImport } from './routes/_app.channels.@me'
@@ -30,6 +31,11 @@ const IndexRoute = IndexRouteImport.update({
 const UsersUserIdRoute = UsersUserIdRouteImport.update({
   id: '/users/$userId',
   path: '/users/$userId',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const InviteCodeRoute = InviteCodeRouteImport.update({
+  id: '/invite/$code',
+  path: '/invite/$code',
   getParentRoute: () => rootRouteImport,
 } as any)
 const DiscoveryServersRoute = DiscoveryServersRouteImport.update({
@@ -64,6 +70,7 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/explore': typeof AppExploreRoute
   '/discovery/servers': typeof DiscoveryServersRoute
+  '/invite/$code': typeof InviteCodeRoute
   '/users/$userId': typeof UsersUserIdRoute
   '/channels/@me': typeof AppChannelsAtmeRouteWithChildren
   '/channels/$serverId/$channelId': typeof AppChannelsServerIdChannelIdRoute
@@ -73,6 +80,7 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/explore': typeof AppExploreRoute
   '/discovery/servers': typeof DiscoveryServersRoute
+  '/invite/$code': typeof InviteCodeRoute
   '/users/$userId': typeof UsersUserIdRoute
   '/channels/@me': typeof AppChannelsAtmeRouteWithChildren
   '/channels/$serverId/$channelId': typeof AppChannelsServerIdChannelIdRoute
@@ -84,6 +92,7 @@ export interface FileRoutesById {
   '/_app': typeof AppRouteWithChildren
   '/_app/explore': typeof AppExploreRoute
   '/discovery/servers': typeof DiscoveryServersRoute
+  '/invite/$code': typeof InviteCodeRoute
   '/users/$userId': typeof UsersUserIdRoute
   '/_app/channels/@me': typeof AppChannelsAtmeRouteWithChildren
   '/_app/channels/$serverId/$channelId': typeof AppChannelsServerIdChannelIdRoute
@@ -95,6 +104,7 @@ export interface FileRouteTypes {
     | '/'
     | '/explore'
     | '/discovery/servers'
+    | '/invite/$code'
     | '/users/$userId'
     | '/channels/@me'
     | '/channels/$serverId/$channelId'
@@ -104,6 +114,7 @@ export interface FileRouteTypes {
     | '/'
     | '/explore'
     | '/discovery/servers'
+    | '/invite/$code'
     | '/users/$userId'
     | '/channels/@me'
     | '/channels/$serverId/$channelId'
@@ -114,6 +125,7 @@ export interface FileRouteTypes {
     | '/_app'
     | '/_app/explore'
     | '/discovery/servers'
+    | '/invite/$code'
     | '/users/$userId'
     | '/_app/channels/@me'
     | '/_app/channels/$serverId/$channelId'
@@ -124,6 +136,7 @@ export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AppRoute: typeof AppRouteWithChildren
   DiscoveryServersRoute: typeof DiscoveryServersRoute
+  InviteCodeRoute: typeof InviteCodeRoute
   UsersUserIdRoute: typeof UsersUserIdRoute
 }
 
@@ -148,6 +161,13 @@ declare module '@tanstack/react-router' {
       path: '/users/$userId'
       fullPath: '/users/$userId'
       preLoaderRoute: typeof UsersUserIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/invite/$code': {
+      id: '/invite/$code'
+      path: '/invite/$code'
+      fullPath: '/invite/$code'
+      preLoaderRoute: typeof InviteCodeRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/discovery/servers': {
@@ -218,6 +238,7 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AppRoute: AppRouteWithChildren,
   DiscoveryServersRoute: DiscoveryServersRoute,
+  InviteCodeRoute: InviteCodeRoute,
   UsersUserIdRoute: UsersUserIdRoute,
 }
 export const routeTree = rootRouteImport

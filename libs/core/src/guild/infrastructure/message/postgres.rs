@@ -285,4 +285,20 @@ impl MessagePort for PostgresMessageRepository {
 
         Ok(messages)
     }
+
+    async fn delete(&self, message_id: Uuid, caller_sub: &str) -> Result<bool, CoreError> {
+        let result = sqlx::query(
+            "DELETE FROM messages WHERE id = $1 AND author_id = (SELECT id FROM users WHERE oauth_sub = $2)",
+        )
+        .bind(message_id)
+        .bind(caller_sub)
+        .execute(&self.pool)
+        .await
+        .map_err(|e| {
+            error!("failed to delete message: {}", e);
+            CoreError::Unknown { message: e.to_string() }
+        })?;
+
+        Ok(result.rows_affected() > 0)
+    }
 }

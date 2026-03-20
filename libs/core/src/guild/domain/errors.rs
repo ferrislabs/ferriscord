@@ -29,6 +29,15 @@ pub enum CoreError {
 
     #[error("insufficient permissions to perform this action")]
     InsufficientPermissions,
+
+    #[error("invite not found")]
+    InviteNotFound,
+
+    #[error("invite has expired")]
+    InviteExpired,
+
+    #[error("invite has reached its maximum number of uses")]
+    InviteMaxUsesReached,
 }
 
 impl From<&str> for CoreError {

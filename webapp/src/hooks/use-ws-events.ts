@@ -25,7 +25,8 @@ export function useWsEvents() {
   useEffect(() => {
     const remove = wsClient.addListener((event: WsEvent) => {
       switch (event.type) {
-        case 'message.new': {
+        case 'message.new':
+        case 'message.delete': {
           // room is either "channel:<uuid>" or "dm:<uuid>"
           const [kind, id] = event.room.split(':')
           if (kind === 'channel') {

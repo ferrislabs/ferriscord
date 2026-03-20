@@ -1,11 +1,13 @@
 import { createFileRoute } from '@tanstack/react-router'
 import { useRef, useEffect } from 'react'
-import { Phone, Video, Pin, Search } from 'lucide-react'
+import { Phone, Video, Pin, Search, Trash2 } from 'lucide-react'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { MessageInput } from '@/components/chat'
-import { useDmMessages, useSendDmMessage, useListDms } from '@/lib/queries/dm-queries'
+import { useDmMessages, useSendDmMessage, useListDms, useDeleteDmMessage } from '@/lib/queries/dm-queries'
+import { useGetMe } from '@/lib/queries/user-queries'
 import { useWsRoom } from '@/hooks/use-ws-events'
 import { AttachmentList } from '@/components/chat/attachment-list'
+import { InviteEmbed, extractInviteCodes } from '@/components/chat/invite-embed'
 import { toast } from 'sonner'
 
 export const Route = createFileRoute('/_app/channels/@me/$channelId')({
@@ -20,6 +22,8 @@ function DMConversationPage() {
   const { data: dms = [] } = useListDms()
   const { data: messages = [], isLoading } = useDmMessages(channelId)
   const sendMessage = useSendDmMessage(channelId)
+  const { mutate: deleteMessage } = useDeleteDmMessage(channelId)
+  const { data: me } = useGetMe()
   const bottomRef = useRef<HTMLDivElement>(null)
 
   const dm = dms.find((d) => d.id === channelId)
@@ -103,9 +107,21 @@ function DMConversationPage() {
                 <span className="text-xs text-muted-foreground">
                   {new Date(msg.created_at).toLocaleTimeString()}
                 </span>
+                {me?.id === msg.author.id && (
+                  <button
+                    onClick={() => deleteMessage(msg.id)}
+                    className="ml-auto opacity-0 group-hover:opacity-100 p-1 text-muted-foreground hover:text-red-500 transition-all"
+                    title="Supprimer le message"
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </button>
+                )}
               </div>
               <p className="text-foreground mt-1 break-words">{msg.content}</p>
               <AttachmentList attachments={msg.attachments} />
+              {extractInviteCodes(msg.content).map((code) => (
+                <InviteEmbed key={code} code={code} />
+              ))}
             </div>
           </div>
         ))}

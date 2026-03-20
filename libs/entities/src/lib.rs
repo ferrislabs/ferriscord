@@ -9,6 +9,7 @@ pub mod attachment;
 pub mod channel;
 pub mod friendship;
 pub mod guild;
+pub mod invite;
 pub mod member;
 pub mod message;
 pub mod role;

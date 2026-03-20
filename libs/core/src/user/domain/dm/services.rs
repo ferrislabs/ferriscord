@@ -43,4 +43,13 @@ impl<D: DmRepository> DmService for DmServiceImpl<D> {
     ) -> Result<Message, CoreError> {
         self.dm_repository.send_message(caller_sub, channel_id, content, attachments).await
     }
+
+    async fn delete_message(
+        &self,
+        caller_sub: &str,
+        channel_id: Uuid,
+        message_id: Uuid,
+    ) -> Result<bool, CoreError> {
+        self.dm_repository.delete_message(caller_sub, channel_id, message_id).await
+    }
 }

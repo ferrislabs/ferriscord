@@ -4,8 +4,9 @@ use ferriscord_auth::{FerriskeyAuthRepository, HasAuthRepository};
 use ferriscord_config::{AuthConfig, DatabaseConfig, StorageConfig};
 use ferriscord_core::{
     guild::application::{
-        ChannelFerrisCordService, GuildFerrisCordService, MessageFerrisCordService,
-        RoleFerrisCordService, create_auth_repository, create_guild_services,
+        ChannelFerrisCordService, GuildFerrisCordService, InviteFerrisCordService,
+        MessageFerrisCordService, RoleFerrisCordService, create_auth_repository,
+        create_guild_services,
     },
     user::application::{
         DmFerrisCordService, FriendFerrisCordService, UserFerrisCordService, create_user_services,
@@ -31,6 +32,7 @@ pub struct AppState {
     pub role_service: RoleFerrisCordService,
     pub channel_service: ChannelFerrisCordService,
     pub message_service: MessageFerrisCordService,
+    pub invite_service: InviteFerrisCordService,
     pub storage: S3Client,
     pub hub: WsHub,
 }
@@ -63,7 +65,7 @@ pub async fn state(args: Arc<Args>) -> Result<AppState, ApiError> {
         create_user_services(pool.clone(), auth_config.issuer.clone())
             .map_err(|e| ApiError::Unknown { message: e.to_string() })?;
 
-    let (guild_service, role_service, channel_service, message_service) =
+    let (guild_service, role_service, channel_service, message_service, invite_service) =
         create_guild_services(pool.clone(), auth_config.issuer.clone())
             .map_err(|e| ApiError::Unknown { message: e.to_string() })?;
 
@@ -81,6 +83,7 @@ pub async fn state(args: Arc<Args>) -> Result<AppState, ApiError> {
         role_service,
         channel_service,
         message_service,
+        invite_service,
         storage,
         hub: WsHub::new(),
     })

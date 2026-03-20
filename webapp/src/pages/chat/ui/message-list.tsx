@@ -2,12 +2,13 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { cn } from "@/lib/utils";
 import { useState, useCallback } from "react";
-import { MoreHorizontal, Reply, Smile, Copy } from "lucide-react";
+import { MoreHorizontal, Reply, Smile, Copy, Trash2 } from "lucide-react";
 import { FormattedMessage } from "@/components/ui/formatted-message";
 import { MessageReactions } from "@/components/ui/message-reactions";
 import type { Schemas } from "@/api/api.client";
 import { UserProfileCard, type UserCardInfo } from "@/components/chat/user-profile-card";
 import { AttachmentList } from "@/components/chat/attachment-list";
+import { InviteEmbed, extractInviteCodes } from "@/components/chat/invite-embed";
 
 
 interface Message {
@@ -32,6 +33,7 @@ interface Message {
 interface MessageListProps {
   messages: Message[];
   className?: string;
+  onDeleteMessage?: (messageId: string) => void;
 }
 
 function shouldGroupMessages(currentMessage: Message, previousMessage: Message | null): boolean {
@@ -51,11 +53,13 @@ function shouldGroupMessages(currentMessage: Message, previousMessage: Message |
 function MessageItem({
   message,
   isGrouped,
-  showTimestamp
+  showTimestamp,
+  onDeleteMessage,
 }: {
   message: Message;
   isGrouped: boolean;
   showTimestamp: boolean;
+  onDeleteMessage?: (id: string) => void;
 }) {
   const [isHovered, setIsHovered] = useState(false);
   const [profileCard, setProfileCard] = useState<{ user: UserCardInfo; anchorRect: DOMRect } | null>(null);
@@ -123,6 +127,15 @@ function MessageItem({
           <button className="p-1.5 text-gray-500 hover:text-gray-700 hover:bg-gray-100 transition-colors">
             <Copy className="w-4 h-4" />
           </button>
+          {message.isOwn && onDeleteMessage && (
+            <button
+              onClick={() => onDeleteMessage(message.id)}
+              className="p-1.5 text-gray-500 hover:text-red-600 hover:bg-red-50 transition-colors"
+              title="Supprimer le message"
+            >
+              <Trash2 className="w-4 h-4" />
+            </button>
+          )}
           <button className="p-1.5 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-r-md transition-colors">
             <MoreHorizontal className="w-4 h-4" />
           </button>
@@ -176,6 +189,10 @@ function MessageItem({
             <AttachmentList attachments={message.attachments} />
           )}
 
+          {extractInviteCodes(message.content).map((code) => (
+            <InviteEmbed key={code} code={code} />
+          ))}
+
           {/* Message reactions */}
           {message.reactions && message.reactions.length > 0 && (
             <MessageReactions
@@ -217,7 +234,7 @@ function MessageDateSeparator({ date }: { date: string }) {
   );
 }
 
-export function MessageList({ messages, className }: MessageListProps) {
+export function MessageList({ messages, className, onDeleteMessage }: MessageListProps) {
   if (messages.length === 0) {
     return (
       <div className="flex-1 flex items-center justify-center">
@@ -282,6 +299,7 @@ export function MessageList({ messages, className }: MessageListProps) {
                 message={message}
                 isGrouped={isGrouped}
                 showTimestamp={showTimestamp}
+                onDeleteMessage={onDeleteMessage}
               />
             </div>
           );

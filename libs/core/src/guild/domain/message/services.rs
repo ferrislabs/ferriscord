@@ -4,6 +4,7 @@ use ferriscord_entities::{
     guild::GuildId,
     message::{Message, MessageId},
 };
+use uuid::Uuid;
 use ferriscord_permission::{Permissions, require_permission};
 
 use crate::guild::domain::{
@@ -61,5 +62,24 @@ where
         self.message_repository
             .insert(&channel_id, identity.id(), content, attachments)
             .await
+    }
+
+    async fn delete_message(
+        &self,
+        identity: Identity,
+        guild_id: GuildId,
+        _channel_id: ChannelId,
+        message_id: Uuid,
+    ) -> Result<(), CoreError> {
+        let mut permission_context =
+            build_permission_context(&self.guild_repository, &identity, &guild_id).await?;
+
+        require_permission!(permission_context, Permissions::VIEW_CHANNEL);
+
+        let deleted = self.message_repository.delete(message_id, identity.id()).await?;
+        if !deleted {
+            return Err(CoreError::InsufficientPermissions);
+        }
+        Ok(())
     }
 }

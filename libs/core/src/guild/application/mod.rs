@@ -6,12 +6,14 @@ use crate::guild::{
         channel::ChannelServiceImpl,
         errors::CoreError,
         guild::GuildServiceImpl,
+        invite::InviteServiceImpl,
         message::MessageServiceImpl,
         role::RoleServiceImpl,
     },
     infrastructure::{
         channel::postgres::PostgresChannelRepository,
         guild::postgres::PostgresGuildRepository,
+        invite::postgres::PostgresInviteRepository,
         member::postgres::PostgresMemberRepository,
         message::postgres::PostgresMessageRepository,
         role::postgres::PostgresRoleRepository,
@@ -39,11 +41,17 @@ pub type MessageFerrisCordService = MessageServiceImpl<
     PostgresMessageRepository,
 >;
 
+pub type InviteFerrisCordService = InviteServiceImpl<
+    PostgresInviteRepository,
+    PostgresGuildRepository,
+    PostgresMemberRepository,
+>;
+
 pub fn create_guild_services(
     pool: PgPool,
     _issuer: impl Into<String>,
 ) -> Result<
-    (GuildFerrisCordService, RoleFerrisCordService, ChannelFerrisCordService, MessageFerrisCordService),
+    (GuildFerrisCordService, RoleFerrisCordService, ChannelFerrisCordService, MessageFerrisCordService, InviteFerrisCordService),
     CoreError,
 > {
     let guild_repo = PostgresGuildRepository::new(pool.clone());
@@ -51,12 +59,13 @@ pub fn create_guild_services(
     let member_repo = PostgresMemberRepository::new(pool.clone());
     let channel_repo = PostgresChannelRepository::new(pool.clone());
     let message_repo = PostgresMessageRepository::new(pool.clone());
+    let invite_repo = PostgresInviteRepository::new(pool.clone());
 
     Ok((
         GuildServiceImpl {
             guild_repository: guild_repo.clone(),
             role_repository: role_repo.clone(),
-            member_repository: member_repo,
+            member_repository: member_repo.clone(),
         },
         RoleServiceImpl {
             guild_repository: guild_repo.clone(),
@@ -67,8 +76,13 @@ pub fn create_guild_services(
             channel_repository: channel_repo,
         },
         MessageServiceImpl {
-            guild_repository: guild_repo,
+            guild_repository: guild_repo.clone(),
             message_repository: message_repo,
+        },
+        InviteServiceImpl {
+            invite_repository: invite_repo,
+            guild_repository: guild_repo,
+            member_repository: member_repo,
         },
     ))
 }

@@ -22,4 +22,5 @@ sqlx = { version = "0.8.6", features = ["chrono", "postgres", "runtime-tokio", "
 thiserror = "2.0.16"
 uuid = { version = "1.18.1", features = ["serde", "v7"] }
 tracing = "0.1.41"
+rand = "0.8"
 utoipa = { version = "5.4.0", features = ["chrono", "uuid"] }

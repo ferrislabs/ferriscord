@@ -41,6 +41,7 @@ import type { Schemas } from '@/api/api.client'
 import { ProfileDialog } from '@/components/layout/profile-dialog'
 import { useGetMe } from '@/lib/queries/user-queries'
 import { useListDms } from '@/lib/queries/dm-queries'
+import { InviteModal } from '@/components/guild/invite-modal'
 
 const getStatusColor = (status?: string) => {
   switch (status) {
@@ -230,6 +231,7 @@ export function AppSidebar() {
   const [createDialogOpen, setCreateDialogOpen] = useState(false)
   const [createDialogDefaultKind, setCreateDialogDefaultKind] = useState<ChannelKind>('Text')
   const [profileDialogOpen, setProfileDialogOpen] = useState(false)
+  const [inviteModalOpen, setInviteModalOpen] = useState(false)
 
   const isDMRoute =
     matchRoute({ to: '/channels/@me' }) ||
@@ -420,6 +422,10 @@ export function AppSidebar() {
                 <Plus className='h-4 w-4 mr-2' />
                 Créer un channel
               </DropdownMenuItem>
+              <DropdownMenuItem onSelect={() => setInviteModalOpen(true)}>
+                <Users className='h-4 w-4 mr-2' />
+                Inviter des gens
+              </DropdownMenuItem>
               <DropdownMenuItem className='text-destructive'>
                 Quitter le serveur
               </DropdownMenuItem>
@@ -552,6 +558,13 @@ export function AppSidebar() {
           onOpenChange={setCreateDialogOpen}
           guildId={serverId}
           defaultKind={createDialogDefaultKind}
+        />
+      )}
+      {serverId && (
+        <InviteModal
+          open={inviteModalOpen}
+          onOpenChange={setInviteModalOpen}
+          guildId={serverId}
         />
       )}
       <ProfileDialog open={profileDialogOpen} onOpenChange={setProfileDialogOpen} />

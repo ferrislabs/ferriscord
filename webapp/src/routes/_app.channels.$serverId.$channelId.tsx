@@ -7,7 +7,8 @@ import { MessageInput } from '@/components/chat'
 import { MessageList } from '@/pages/chat/ui/message-list'
 import { saveLastVisited } from '@/lib/last-visited'
 import { useGuildChannels } from '@/lib/queries/channel-queries'
-import { useChannelMessages, useSendMessage } from '@/lib/queries/message-queries'
+import { useChannelMessages, useSendMessage, useDeleteMessage } from '@/lib/queries/message-queries'
+import { useGetMe } from '@/lib/queries/user-queries'
 import { useWsRoom } from '@/hooks/use-ws-events'
 
 export const Route = createFileRoute('/_app/channels/$serverId/$channelId')({
@@ -26,6 +27,12 @@ function ChannelPage() {
   const { data: channels = [], isLoading: isLoadingChannels } = useGuildChannels(serverId)
   const { data: messages = [], isLoading: isLoadingMessages } = useChannelMessages(serverId, channelId)
   const { mutate: sendMessage, isPending: isSending } = useSendMessage(serverId, channelId)
+  const { mutate: deleteMessage } = useDeleteMessage(serverId, channelId)
+  const { data: me } = useGetMe()
+
+  const handleDeleteMessage = (messageId: string) => {
+    deleteMessage(messageId)
+  }
 
   const selectedChannel = channels.find((ch) => ch.id === channelId)
   const isLoading = isLoadingChannels
@@ -45,6 +52,7 @@ function ChannelPage() {
       avatar: msg.author.avatar_url ?? undefined,
     },
     timestamp: msg.created_at,
+    isOwn: me?.id === msg.author.id,
   }))
 
   return (
@@ -101,7 +109,7 @@ function ChannelPage() {
         {isLoading || isLoadingMessages ? (
           <MessageListSkeleton />
         ) : selectedChannel ? (
-          <MessageList messages={formattedMessages} className="flex-1" />
+          <MessageList messages={formattedMessages} className="flex-1" onDeleteMessage={handleDeleteMessage} />
         ) : (
           <div className="flex items-center justify-center h-full">
             <div className="text-center">

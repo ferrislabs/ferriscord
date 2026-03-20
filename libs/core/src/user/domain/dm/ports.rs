@@ -44,6 +44,13 @@ pub trait DmRepository: Send + Sync {
         content: String,
         attachments: Vec<DmAttachmentInput>,
     ) -> impl Future<Output = Result<Message, CoreError>> + Send;
+
+    fn delete_message(
+        &self,
+        caller_sub: &str,
+        channel_id: Uuid,
+        message_id: Uuid,
+    ) -> impl Future<Output = Result<bool, CoreError>> + Send;
 }
 
 pub trait DmService: Send + Sync {
@@ -73,4 +80,11 @@ pub trait DmService: Send + Sync {
         content: String,
         attachments: Vec<DmAttachmentInput>,
     ) -> impl Future<Output = Result<Message, CoreError>> + Send;
+
+    fn delete_message(
+        &self,
+        caller_sub: &str,
+        channel_id: Uuid,
+        message_id: Uuid,
+    ) -> impl Future<Output = Result<bool, CoreError>> + Send;
 }
