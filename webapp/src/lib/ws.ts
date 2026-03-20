@@ -1,5 +1,6 @@
 export type WsEventType =
   | 'message.new'
+  | 'message.delete'
   | 'friend_request.received'
   | 'friend_request.accepted'
   | 'pong'
@@ -11,6 +12,7 @@ export interface WsEvent {
 }
 
 type WsListener = (event: WsEvent) => void
+type ReconnectListener = () => void
 
 const PING_INTERVAL_MS = 30_000
 const RECONNECT_DELAY_MS = 3_000
@@ -18,11 +20,13 @@ const RECONNECT_DELAY_MS = 3_000
 class FerrisWsClient {
   private ws: WebSocket | null = null
   private listeners = new Set<WsListener>()
+  private reconnectListeners = new Set<ReconnectListener>()
   private pendingRooms = new Set<string>()
   private reconnectTimer: ReturnType<typeof setTimeout> | null = null
   private pingTimer: ReturnType<typeof setInterval> | null = null
   private token: string | null = null
   private url: string | null = null
+  private hasConnectedBefore = false
 
   connect(apiUrl: string, token: string) {
     if (this.ws?.readyState === WebSocket.OPEN && this.token === token) return
@@ -56,6 +60,13 @@ class FerrisWsClient {
         this.sendSubscribe([...this.pendingRooms])
       }
 
+      // Notify reconnect listeners so they can refetch stale data
+      // (skip the very first connection — only fire on actual reconnects)
+      if (this.hasConnectedBefore) {
+        this.reconnectListeners.forEach((fn) => fn())
+      }
+      this.hasConnectedBefore = true
+
       this.startPing()
     }
 
@@ -87,11 +98,20 @@ class FerrisWsClient {
 
   unsubscribe(rooms: string[]) {
     rooms.forEach((r) => this.pendingRooms.delete(r))
+    // Tell the server to stop forwarding these rooms so it can clean up tasks
+    if (this.ws?.readyState === WebSocket.OPEN) {
+      this.ws.send(JSON.stringify({ type: 'unsubscribe', rooms }))
+    }
   }
 
   addListener(fn: WsListener) {
     this.listeners.add(fn)
     return () => this.listeners.delete(fn)
+  }
+
+  addReconnectListener(fn: ReconnectListener) {
+    this.reconnectListeners.add(fn)
+    return () => this.reconnectListeners.delete(fn)
   }
 
   disconnect() {
@@ -108,6 +128,7 @@ class FerrisWsClient {
     this.token = null
     this.url = null
     this.pendingRooms.clear()
+    this.hasConnectedBefore = false
   }
 
   private startPing() {

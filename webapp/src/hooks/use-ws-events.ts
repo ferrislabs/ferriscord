@@ -21,6 +21,20 @@ export function useWsEvents() {
     wsClient.connect(window.apiUrl ?? '', accessToken)
   }, [isAuthenticated, accessToken])
 
+  // On reconnect, invalidate all message queries so we catch anything missed
+  // while the connection was down (e.g. a delete that fired during the gap).
+  useEffect(() => {
+    const remove = wsClient.addReconnectListener(() => {
+      queryClient.invalidateQueries({
+        queryKey: [{ _id: '/guilds/{guild_id}/channels/{channel_id}/messages' }],
+      })
+      queryClient.invalidateQueries({
+        queryKey: [{ _id: '/channels/@me/{channel_id}/messages' }],
+      })
+    })
+    return remove
+  }, [queryClient])
+
   // Listen to events and invalidate the right query caches
   useEffect(() => {
     const remove = wsClient.addListener((event: WsEvent) => {
@@ -30,6 +44,8 @@ export function useWsEvents() {
           // room is either "channel:<uuid>" or "dm:<uuid>"
           const [kind, id] = event.room.split(':')
           if (kind === 'channel') {
+            // Invalidate all channel message caches — the server broadcasts to the
+            // specific room so only observers of that channel will refetch.
             queryClient.invalidateQueries({
               queryKey: [{ _id: '/guilds/{guild_id}/channels/{channel_id}/messages' }],
             })

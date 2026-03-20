@@ -10,7 +10,8 @@ use ferriscord_core::user::domain::user::ports::UserService;
 use futures_util::{SinkExt, StreamExt};
 use serde::Deserialize;
 use tokio::sync::{RwLock, broadcast, mpsc};
-use tracing::error;
+use tokio::task::JoinHandle;
+use tracing::{error, warn};
 
 use crate::state::AppState;
 
@@ -116,6 +117,10 @@ async fn handle_socket(socket: WebSocket, hub: WsHub, user_room: String) {
         }
     });
 
+    // Track one forwarding task per room so we can cancel on unsubscribe
+    // and avoid duplicate tasks if the client re-subscribes to the same room.
+    let mut room_tasks: HashMap<String, JoinHandle<()>> = HashMap::new();
+
     // Handle incoming messages from the client
     while let Some(Ok(msg)) = ws_rx.next().await {
         match msg {
@@ -126,9 +131,14 @@ async fn handle_socket(socket: WebSocket, hub: WsHub, user_room: String) {
                 match cmd.kind.as_str() {
                     "subscribe" => {
                         for room in cmd.rooms.unwrap_or_default() {
+                            // Skip rooms we are already forwarding to prevent duplicates.
+                            if room_tasks.contains_key(&room) {
+                                continue;
+                            }
                             let mut rx = hub.subscribe(&room).await;
                             let tx = conn_tx.clone();
-                            tokio::spawn(async move {
+                            let room_name = room.clone();
+                            let handle = tokio::spawn(async move {
                                 loop {
                                     match rx.recv().await {
                                         Ok(msg) => {
@@ -137,10 +147,29 @@ async fn handle_socket(socket: WebSocket, hub: WsHub, user_room: String) {
                                             }
                                         }
                                         Err(broadcast::error::RecvError::Closed) => break,
-                                        Err(broadcast::error::RecvError::Lagged(_)) => continue,
+                                        Err(broadcast::error::RecvError::Lagged(skipped)) => {
+                                            // We missed some messages — log it so it's
+                                            // visible, then continue (the client will
+                                            // eventually refetch on reconnect).
+                                            warn!(
+                                                room = %room_name,
+                                                skipped,
+                                                "broadcast lagged: {} messages dropped",
+                                                skipped
+                                            );
+                                            continue;
+                                        }
                                     }
                                 }
                             });
+                            room_tasks.insert(room, handle);
+                        }
+                    }
+                    "unsubscribe" => {
+                        for room in cmd.rooms.unwrap_or_default() {
+                            if let Some(handle) = room_tasks.remove(&room) {
+                                handle.abort();
+                            }
                         }
                     }
                     "ping" => {
@@ -154,5 +183,9 @@ async fn handle_socket(socket: WebSocket, hub: WsHub, user_room: String) {
         }
     }
 
+    // Clean up all room tasks when the connection closes
+    for (_, handle) in room_tasks {
+        handle.abort();
+    }
     send_task.abort();
 }
