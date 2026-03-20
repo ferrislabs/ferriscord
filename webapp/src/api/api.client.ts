@@ -40,6 +40,7 @@ export namespace Schemas {
   export type ChannelFlags = number
   export type ChannelKind =
     | 'Text'
+    | 'Dm'
     | 'Voice'
     | 'Category'
     | 'Announcement'
@@ -62,7 +63,7 @@ export namespace Schemas {
     default_sort_order?: (null | SortOrder) | undefined
     default_thread_rate_limit_per_user: number
     flags: ChannelFlags
-    guild_id: Id
+    guild_id?: (null | Id) | undefined
     id: Id
     kind: ChannelKind
     last_message_id?: (string | null) | undefined
@@ -151,6 +152,24 @@ export namespace Schemas {
     id: string
     updated_at: string
     username: string
+  }
+  export type FriendUser = {
+    avatar_url?: (string | null) | undefined
+    display_name?: (string | null) | undefined
+    id: Id
+    username: string
+  }
+  export type FriendshipStatus = 'pending' | 'accepted' | 'declined'
+  export type Friendship = {
+    created_at: string
+    id: string
+    status: FriendshipStatus
+    user: FriendUser
+  }
+  export type DmChannel = {
+    created_at: string
+    id: Id
+    recipient: FriendUser
   }
 
   // </Schemas>
@@ -354,6 +373,139 @@ export namespace Endpoints {
       500: Schemas.ApiErrorResponse
     }
   }
+  export type post_Send_friend_request = {
+    method: 'POST'
+    path: '/friends/requests'
+    requestFormat: 'json'
+    parameters: {
+      body: { username: string }
+    }
+    responses: {
+      201: Schemas.Friendship
+      400: Schemas.ApiError
+      401: Schemas.ApiError
+      404: Schemas.ApiError
+    }
+  }
+  export type get_List_friends = {
+    method: 'GET'
+    path: '/friends'
+    requestFormat: 'json'
+    parameters: never
+    responses: {
+      200: Array<Schemas.Friendship>
+      401: Schemas.ApiError
+    }
+  }
+  export type get_List_incoming_requests = {
+    method: 'GET'
+    path: '/friends/requests/incoming'
+    requestFormat: 'json'
+    parameters: never
+    responses: {
+      200: Array<Schemas.Friendship>
+      401: Schemas.ApiError
+    }
+  }
+  export type get_List_outgoing_requests = {
+    method: 'GET'
+    path: '/friends/requests/outgoing'
+    requestFormat: 'json'
+    parameters: never
+    responses: {
+      200: Array<Schemas.Friendship>
+      401: Schemas.ApiError
+    }
+  }
+  export type patch_Accept_friend_request = {
+    method: 'PATCH'
+    path: '/friends/requests/{request_id}/accept'
+    requestFormat: 'json'
+    parameters: {
+      path: { request_id: string }
+    }
+    responses: {
+      200: Schemas.Friendship
+      401: Schemas.ApiError
+      404: Schemas.ApiError
+    }
+  }
+  export type patch_Decline_friend_request = {
+    method: 'PATCH'
+    path: '/friends/requests/{request_id}/decline'
+    requestFormat: 'json'
+    parameters: {
+      path: { request_id: string }
+    }
+    responses: {
+      204: unknown
+      401: Schemas.ApiError
+      404: Schemas.ApiError
+    }
+  }
+  export type delete_Remove_friend = {
+    method: 'DELETE'
+    path: '/friends/{user_id}'
+    requestFormat: 'json'
+    parameters: {
+      path: { user_id: string }
+    }
+    responses: {
+      204: unknown
+      401: Schemas.ApiError
+      404: Schemas.ApiError
+    }
+  }
+  export type post_Create_or_get_dm = {
+    method: 'POST'
+    path: '/channels/@me'
+    requestFormat: 'json'
+    parameters: {
+      body: { recipient_id: string }
+    }
+    responses: {
+      200: Schemas.DmChannel
+      401: Schemas.ApiError
+      404: Schemas.ApiError
+    }
+  }
+  export type get_List_dms = {
+    method: 'GET'
+    path: '/channels/@me'
+    requestFormat: 'json'
+    parameters: never
+    responses: {
+      200: Array<Schemas.DmChannel>
+      401: Schemas.ApiError
+    }
+  }
+  export type get_Get_dm_messages = {
+    method: 'GET'
+    path: '/channels/@me/{channel_id}/messages'
+    requestFormat: 'json'
+    parameters: {
+      path: { channel_id: string }
+      query: { before?: string | null; limit?: number | null }
+    }
+    responses: {
+      200: Array<Schemas.Message>
+      401: Schemas.ApiError
+      404: Schemas.ApiError
+    }
+  }
+  export type post_Send_dm_message = {
+    method: 'POST'
+    path: '/channels/@me/{channel_id}/messages'
+    requestFormat: 'json'
+    parameters: {
+      path: { channel_id: string }
+    }
+    responses: {
+      201: Schemas.Message
+      401: Schemas.ApiError
+      404: Schemas.ApiError
+    }
+  }
 
   // </Endpoints>
 }
@@ -365,10 +517,14 @@ export type EndpointByMethod = {
     '/guilds/{guild_id}/channels': Endpoints.post_Create_channel_handler
     '/guilds/{guild_id}/channels/{channel_id}/messages': Endpoints.post_Send_message_handler
     '/guilds/{guild_id}/roles': Endpoints.post_Create_role_handler
+    '/friends/requests': Endpoints.post_Send_friend_request
+    '/channels/@me': Endpoints.post_Create_or_get_dm
+    '/channels/@me/{channel_id}/messages': Endpoints.post_Send_dm_message
   }
   delete: {
     '/guilds/{guild_id}': Endpoints.delete_Delete_guild_handler
     '/guilds/{guild_id}/roles/{role_id}': Endpoints.delete_Delete_role_handler
+    '/friends/{user_id}': Endpoints.delete_Remove_friend
   }
   get: {
     '/guilds/{guild_id}/channels': Endpoints.get_Get_channels_handler
@@ -377,9 +533,16 @@ export type EndpointByMethod = {
     '/guilds/{guild_id}/roles/{role_id}': Endpoints.get_Get_role_handler
     '/users/@me': Endpoints.get_Get_me_handler
     '/users/@me/guilds': Endpoints.get_Get_user_guilds
+    '/friends': Endpoints.get_List_friends
+    '/friends/requests/incoming': Endpoints.get_List_incoming_requests
+    '/friends/requests/outgoing': Endpoints.get_List_outgoing_requests
+    '/channels/@me': Endpoints.get_List_dms
+    '/channels/@me/{channel_id}/messages': Endpoints.get_Get_dm_messages
   }
   patch: {
     '/users/@me': Endpoints.patch_Update_profile_handler
+    '/friends/requests/{request_id}/accept': Endpoints.patch_Accept_friend_request
+    '/friends/requests/{request_id}/decline': Endpoints.patch_Decline_friend_request
   }
 }
 

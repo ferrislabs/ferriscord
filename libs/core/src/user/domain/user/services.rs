@@ -2,16 +2,20 @@ use ferriscord_auth::AuthRepository;
 
 use crate::user::domain::{
     common::{CoreError, Service},
+    dm::ports::DmRepository,
+    friend::ports::FriendRepository,
     user::{
         User, UserId,
         ports::{UserRepository, UserService},
     },
 };
 
-impl<U, A> UserService for Service<U, A>
+impl<U, A, F, D> UserService for Service<U, A, F, D>
 where
     U: UserRepository,
     A: AuthRepository,
+    F: FriendRepository,
+    D: DmRepository,
 {
     async fn get_profile(&self, id: UserId) -> Result<Option<User>, CoreError> {
         self.user_repository.find_by_id(id).await

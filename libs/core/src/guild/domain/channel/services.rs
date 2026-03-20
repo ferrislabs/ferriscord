@@ -52,7 +52,7 @@ where
                 return Err(CoreError::InvalidChannelParent);
             }
 
-            if parent.guild_id != guild_id {
+            if parent.guild_id.as_ref() != Some(&guild_id) {
                 return Err(CoreError::InvalidChannelParent);
             }
         }

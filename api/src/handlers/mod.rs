@@ -10,6 +10,7 @@ use ferriscord_core::user::domain::user::ports::UserService;
 use ferriscord_server::http::extract_token_from_bearer;
 use tracing::error;
 
+pub mod dm;
 pub mod guild;
 pub mod user;
 
@@ -58,6 +59,7 @@ pub fn handlers_routes(state: crate::state::AppState) -> Router<crate::state::Ap
     Router::new()
         .merge(guild::guild_routes(state.clone()))
         .merge(user::user_routes(state.clone()))
+        .merge(dm::dm_routes(state.clone()))
         .layer(middleware::from_fn_with_state(
             state.clone(),
             service_auth_middleware,

@@ -1,176 +1,345 @@
-import { createFileRoute, Link } from '@tanstack/react-router'
-import { useEffect } from 'react'
-import { Inbox, Search, Plus, Users } from 'lucide-react'
+import { createFileRoute, useNavigate, Outlet, useMatchRoute } from '@tanstack/react-router'
+import { useEffect, useState } from 'react'
+import { UserPlus, Users, Clock, Check, X, Trash2 } from 'lucide-react'
 import { saveLastVisited } from '@/lib/last-visited'
 import { Button } from '@/components/ui/button'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
+import { Input } from '@/components/ui/input'
 import { cn } from '@/lib/utils'
+import {
+  useListFriends,
+  useListIncomingRequests,
+  useListOutgoingRequests,
+  useSendFriendRequest,
+  useAcceptFriendRequest,
+  useDeclineFriendRequest,
+  useRemoveFriend,
+} from '@/lib/queries/friend-queries'
+import { useCreateOrGetDm } from '@/lib/queries/dm-queries'
+import { toast } from 'sonner'
+import type { Schemas } from '@/api/api.client'
 
 export const Route = createFileRoute('/_app/channels/@me')({
-  component: DMListPage,
+  component: FriendsPage,
 })
 
-// Mock DM conversations
-const mockDMConversations = [
-  {
-    userId: '935833137349541918',
-    username: 'Alice',
-    avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Alice',
-    status: 'online',
-    lastMessage: 'Hey, how are you doing?',
-    timestamp: '2m ago',
-    unread: 2,
-  },
-  {
-    userId: '835833137349541919',
-    username: 'Bob',
-    avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Bob',
-    status: 'idle',
-    lastMessage: 'Did you see the new update?',
-    timestamp: '1h ago',
-    unread: 0,
-  },
-  {
-    userId: '735833137349541920',
-    username: 'Charlie',
-    avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Charlie',
-    status: 'dnd',
-    lastMessage: 'Thanks for your help!',
-    timestamp: '3h ago',
-    unread: 0,
-  },
-  {
-    userId: '635833137349541921',
-    username: 'Diana',
-    avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Diana',
-    status: 'offline',
-    lastMessage: 'See you tomorrow',
-    timestamp: '1d ago',
-    unread: 0,
-  },
-]
+type Tab = 'all' | 'pending'
 
-const getStatusColor = (status: string) => {
-  switch (status) {
-    case 'online':
-      return 'bg-green-500'
-    case 'idle':
-      return 'bg-yellow-500'
-    case 'dnd':
-      return 'bg-red-500'
-    default:
-      return 'bg-gray-500'
-  }
+function FriendRow({
+  friendship,
+  onMessage,
+}: {
+  friendship: Schemas.Friendship
+  onMessage: (userId: string) => void
+}) {
+  const removeFriend = useRemoveFriend()
+  const displayName = friendship.user.display_name ?? friendship.user.username
+
+  return (
+    <div className="flex items-center px-4 py-3 hover:bg-accent/50 rounded-lg transition-colors">
+      <Avatar className="h-10 w-10 mr-3">
+        <AvatarImage src={friendship.user.avatar_url ?? undefined} alt={displayName} />
+        <AvatarFallback>{displayName.slice(0, 2).toUpperCase()}</AvatarFallback>
+      </Avatar>
+      <div className="flex-1 min-w-0">
+        <div className="font-medium text-foreground truncate">{displayName}</div>
+        <div className="text-sm text-muted-foreground truncate">
+          @{friendship.user.username}
+        </div>
+      </div>
+      <div className="flex items-center gap-2">
+        <Button
+          size="sm"
+          variant="secondary"
+          onClick={() => onMessage(friendship.user.id)}
+        >
+          Message
+        </Button>
+        <Button
+          size="icon"
+          variant="ghost"
+          className="h-8 w-8 text-muted-foreground hover:text-destructive"
+          onClick={() =>
+            removeFriend.mutate(
+              { path: { user_id: friendship.user.id } },
+              {
+                onSuccess: () => toast.success(`${displayName} retiré de vos amis`),
+                onError: () => toast.error('Erreur'),
+              },
+            )
+          }
+        >
+          <Trash2 className="h-4 w-4" />
+        </Button>
+      </div>
+    </div>
+  )
 }
 
-function DMListPage() {
+function IncomingRow({
+  friendship,
+  onAccepted,
+}: {
+  friendship: Schemas.Friendship
+  onAccepted: (userId: string) => void
+}) {
+  const accept = useAcceptFriendRequest()
+  const decline = useDeclineFriendRequest()
+  const displayName = friendship.user.display_name ?? friendship.user.username
+
+  return (
+    <div className="flex items-center px-4 py-3 hover:bg-accent/50 rounded-lg transition-colors">
+      <Avatar className="h-10 w-10 mr-3">
+        <AvatarImage src={friendship.user.avatar_url ?? undefined} alt={displayName} />
+        <AvatarFallback>{displayName.slice(0, 2).toUpperCase()}</AvatarFallback>
+      </Avatar>
+      <div className="flex-1 min-w-0">
+        <div className="font-medium text-foreground truncate">{displayName}</div>
+        <div className="text-sm text-muted-foreground">Demande reçue</div>
+      </div>
+      <div className="flex items-center gap-2">
+        <Button
+          size="icon"
+          variant="secondary"
+          className="h-8 w-8"
+          onClick={() =>
+            accept.mutate(
+              { path: { request_id: friendship.id } },
+              {
+                onSuccess: () => {
+                  toast.success(`${displayName} ajouté comme ami`)
+                  onAccepted(friendship.user.id)
+                },
+                onError: () => toast.error('Erreur'),
+              },
+            )
+          }
+          disabled={accept.isPending}
+        >
+          <Check className="h-4 w-4" />
+        </Button>
+        <Button
+          size="icon"
+          variant="ghost"
+          className="h-8 w-8 text-muted-foreground hover:text-destructive"
+          onClick={() =>
+            decline.mutate(
+              { path: { request_id: friendship.id } },
+              {
+                onSuccess: () => toast.success('Demande refusée'),
+                onError: () => toast.error('Erreur'),
+              },
+            )
+          }
+          disabled={decline.isPending}
+        >
+          <X className="h-4 w-4" />
+        </Button>
+      </div>
+    </div>
+  )
+}
+
+function OutgoingRow({ friendship }: { friendship: Schemas.Friendship }) {
+  const displayName = friendship.user.display_name ?? friendship.user.username
+
+  return (
+    <div className="flex items-center px-4 py-3 hover:bg-accent/50 rounded-lg transition-colors">
+      <Avatar className="h-10 w-10 mr-3">
+        <AvatarImage src={friendship.user.avatar_url ?? undefined} alt={displayName} />
+        <AvatarFallback>{displayName.slice(0, 2).toUpperCase()}</AvatarFallback>
+      </Avatar>
+      <div className="flex-1 min-w-0">
+        <div className="font-medium text-foreground truncate">{displayName}</div>
+        <div className="text-sm text-muted-foreground">Demande envoyée</div>
+      </div>
+      <Clock className="h-4 w-4 text-muted-foreground" />
+    </div>
+  )
+}
+
+function FriendsPage() {
+  const navigate = useNavigate()
+  const matchRoute = useMatchRoute()
+  const isInDm = matchRoute({ to: '/channels/@me/$channelId', fuzzy: true })
+  const [tab, setTab] = useState<Tab>('all')
+  const [addUsername, setAddUsername] = useState('')
+
+  const { data: friends = [], isLoading: friendsLoading, isError: friendsError } = useListFriends()
+  const { data: incoming = [] } = useListIncomingRequests()
+  const { data: outgoing = [] } = useListOutgoingRequests()
+  const sendRequest = useSendFriendRequest()
+  const createOrGetDm = useCreateOrGetDm()
+
   useEffect(() => {
     saveLastVisited('/channels/@me')
   }, [])
 
+  const pendingCount = incoming.length
+
+  const handleAddFriend = (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!addUsername.trim()) return
+    sendRequest.mutate(
+      { body: { username: addUsername.trim() } },
+      {
+        onSuccess: () => {
+          toast.success(`Demande envoyée à @${addUsername.trim()}`)
+          setAddUsername('')
+        },
+        onError: (err: any) => {
+          toast.error(err?.response?.data?.Unknown?.message ?? 'Erreur lors de la demande')
+        },
+      },
+    )
+  }
+
+  const handleMessage = (userId: string) => {
+    createOrGetDm.mutate(
+      { body: { recipient_id: userId } },
+      {
+        onSuccess: (dm) => {
+          navigate({ to: '/channels/@me/$channelId', params: { channelId: dm.id } })
+        },
+        onError: () => toast.error('Impossible d\'ouvrir la conversation'),
+      },
+    )
+  }
+
+  if (isInDm) {
+    return <Outlet />
+  }
+
   return (
     <div className="flex flex-col h-full">
       {/* Header */}
-      <div className="h-12 border-b border-sidebar-border px-4 flex items-center justify-between bg-background">
-        <div className="flex items-center space-x-2">
-          <Inbox className="h-5 w-5 text-muted-foreground" />
-          <h2 className="font-semibold text-foreground">Direct Messages</h2>
+      <div className="h-12 border-b border-sidebar-border px-4 flex items-center gap-4 bg-background">
+        <div className="flex items-center gap-2 text-foreground font-semibold">
+          <Users className="h-5 w-5" />
+          <span>Amis</span>
         </div>
-        <div className="flex items-center space-x-2">
-          <button className="p-2 hover:bg-accent rounded text-muted-foreground hover:text-foreground transition-colors">
-            <Search className="h-5 w-5" />
+        <div className="w-px h-5 bg-border" />
+        <div className="flex items-center gap-1">
+          <button
+            onClick={() => setTab('all')}
+            className={cn(
+              'px-3 py-1 rounded text-sm font-medium transition-colors',
+              tab === 'all'
+                ? 'bg-accent text-accent-foreground'
+                : 'text-muted-foreground hover:text-foreground hover:bg-accent/50',
+            )}
+          >
+            Tous ({friends.length})
           </button>
-          <button className="p-2 hover:bg-accent rounded text-muted-foreground hover:text-foreground transition-colors">
-            <Plus className="h-5 w-5" />
+          <button
+            onClick={() => setTab('pending')}
+            className={cn(
+              'px-3 py-1 rounded text-sm font-medium transition-colors flex items-center gap-1.5',
+              tab === 'pending'
+                ? 'bg-accent text-accent-foreground'
+                : 'text-muted-foreground hover:text-foreground hover:bg-accent/50',
+            )}
+          >
+            En attente
+            {pendingCount > 0 && (
+              <span className="bg-primary text-primary-foreground text-xs rounded-full px-1.5 py-0.5 leading-none">
+                {pendingCount}
+              </span>
+            )}
           </button>
         </div>
       </div>
 
       {/* Content */}
       <div className="flex-1 overflow-auto">
-        {/* Friends Section */}
-        <div className="p-4">
-          <Link to="/channels/@me">
-            <div className="flex items-center space-x-3 p-3 rounded-lg hover:bg-accent transition-colors cursor-pointer">
-              <div className="w-10 h-10 bg-primary/10 rounded-full flex items-center justify-center">
-                <Users className="h-5 w-5 text-primary" />
-              </div>
-              <span className="font-semibold text-foreground">Friends</span>
-            </div>
-          </Link>
-        </div>
-
-        {/* Direct Messages List */}
-        <div className="px-4 pb-4 space-y-1">
-          <div className="text-xs font-semibold text-muted-foreground uppercase mb-2 px-2">
-            Direct Messages
-          </div>
-          {mockDMConversations.map((dm) => (
-            <Link
-              key={dm.userId}
-              to="/channels/@me/$userId"
-              params={{ userId: dm.userId }}
+        {/* Add friend form */}
+        <div className="p-4 border-b border-sidebar-border">
+          <p className="text-sm font-semibold text-foreground mb-2 flex items-center gap-2">
+            <UserPlus className="h-4 w-4" />
+            Ajouter un ami
+          </p>
+          <form onSubmit={handleAddFriend} className="flex gap-2">
+            <Input
+              value={addUsername}
+              onChange={(e) => setAddUsername(e.target.value)}
+              placeholder="Nom d'utilisateur"
+              className="flex-1"
+              disabled={sendRequest.isPending}
+            />
+            <Button
+              type="submit"
+              disabled={!addUsername.trim() || sendRequest.isPending}
+              size="sm"
             >
-              <div className="flex items-center space-x-3 p-2 rounded-lg hover:bg-accent transition-colors cursor-pointer group">
-                <div className="relative">
-                  <Avatar className="h-10 w-10">
-                    <AvatarImage src={dm.avatar} alt={dm.username} />
-                    <AvatarFallback>
-                      {dm.username.slice(0, 2).toUpperCase()}
-                    </AvatarFallback>
-                  </Avatar>
-                  <div
-                    className={cn(
-                      'absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full border-2 border-background',
-                      getStatusColor(dm.status)
-                    )}
-                  />
-                </div>
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center justify-between">
-                    <span className="font-medium text-foreground truncate">
-                      {dm.username}
-                    </span>
-                    <span className="text-xs text-muted-foreground shrink-0 ml-2">
-                      {dm.timestamp}
-                    </span>
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <p className="text-sm text-muted-foreground truncate">
-                      {dm.lastMessage}
-                    </p>
-                    {dm.unread > 0 && (
-                      <span className="shrink-0 ml-2 bg-primary text-primary-foreground text-xs font-bold rounded-full w-5 h-5 flex items-center justify-center">
-                        {dm.unread}
-                      </span>
-                    )}
-                  </div>
-                </div>
-              </div>
-            </Link>
-          ))}
+              {sendRequest.isPending ? 'Envoi...' : 'Envoyer'}
+            </Button>
+          </form>
         </div>
 
-        {/* Empty State (if no conversations) */}
-        {mockDMConversations.length === 0 && (
-          <div className="flex items-center justify-center h-full">
-            <div className="text-center max-w-md p-8">
-              <div className="w-20 h-20 bg-primary/10 rounded-full flex items-center justify-center mx-auto mb-4">
-                <Inbox className="h-10 w-10 text-primary" />
-              </div>
-              <h2 className="text-2xl font-bold text-foreground mb-2">
-                No Direct Messages
-              </h2>
-              <p className="text-muted-foreground mb-6">
-                You don't have any direct messages yet. Start a conversation with your friends!
-              </p>
-              <Button>
-                <Plus className="h-4 w-4 mr-2" />
-                New Message
-              </Button>
+        <div className="p-4">
+          {tab === 'all' && (
+            <>
+              {friendsLoading ? (
+                <div className="text-center py-12 text-muted-foreground">
+                  <p>Chargement...</p>
+                </div>
+              ) : friendsError ? (
+                <div className="text-center py-12 text-destructive">
+                  <p>Erreur lors du chargement des amis</p>
+                </div>
+              ) : friends.length === 0 ? (
+                <div className="text-center py-12 text-muted-foreground">
+                  <Users className="h-12 w-12 mx-auto mb-3 opacity-40" />
+                  <p>Pas encore d'amis. Envoyez une demande ci-dessus !</p>
+                </div>
+              ) : (
+                <div className="space-y-1">
+                  <div className="text-xs font-semibold text-muted-foreground uppercase mb-2">
+                    Amis — {friends.length}
+                  </div>
+                  {friends.map((f) => (
+                    <FriendRow key={f.id} friendship={f} onMessage={handleMessage} />
+                  ))}
+                </div>
+              )}
+            </>
+          )}
+
+          {tab === 'pending' && (
+            <div className="space-y-4">
+              {incoming.length > 0 && (
+                <div>
+                  <div className="text-xs font-semibold text-muted-foreground uppercase mb-2">
+                    Demandes reçues — {incoming.length}
+                  </div>
+                  <div className="space-y-1">
+                    {incoming.map((f) => (
+                      <IncomingRow key={f.id} friendship={f} onAccepted={handleMessage} />
+                    ))}
+                  </div>
+                </div>
+              )}
+              {outgoing.length > 0 && (
+                <div>
+                  <div className="text-xs font-semibold text-muted-foreground uppercase mb-2">
+                    Demandes envoyées — {outgoing.length}
+                  </div>
+                  <div className="space-y-1">
+                    {outgoing.map((f) => (
+                      <OutgoingRow key={f.id} friendship={f} />
+                    ))}
+                  </div>
+                </div>
+              )}
+              {incoming.length === 0 && outgoing.length === 0 && (
+                <div className="text-center py-12 text-muted-foreground">
+                  <Clock className="h-12 w-12 mx-auto mb-3 opacity-40" />
+                  <p>Aucune demande en attente</p>
+                </div>
+              )}
             </div>
-          </div>
-        )}
+          )}
+        </div>
       </div>
     </div>
   )

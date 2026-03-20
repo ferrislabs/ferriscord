@@ -10,6 +10,7 @@ use crate::{
     state::AppState,
 };
 
+pub mod friends;
 pub mod get_me;
 pub mod get_user_guilds;
 pub mod update_profile;
@@ -19,4 +20,5 @@ pub fn user_routes(state: AppState) -> Router<AppState> {
         .typed_get(get_user_guilds)
         .typed_get(get_me_handler)
         .typed_patch(update_profile_handler)
+        .merge(friends::friend_routes(state.clone()))
 }

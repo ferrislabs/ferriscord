@@ -40,34 +40,7 @@ import { toast } from 'sonner'
 import type { Schemas } from '@/api/api.client'
 import { ProfileDialog } from '@/components/layout/profile-dialog'
 import { useGetMe } from '@/lib/queries/user-queries'
-
-// Mock DM users
-const mockDMUsers = [
-  {
-    userId: '935833137349541918',
-    username: 'Alice',
-    avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Alice',
-    status: 'online',
-  },
-  {
-    userId: '835833137349541919',
-    username: 'Bob',
-    avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Bob',
-    status: 'idle',
-  },
-  {
-    userId: '735833137349541920',
-    username: 'Charlie',
-    avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Charlie',
-    status: 'dnd',
-  },
-  {
-    userId: '635833137349541921',
-    username: 'Diana',
-    avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Diana',
-    status: 'offline',
-  },
-]
+import { useListDms } from '@/lib/queries/dm-queries'
 
 const getStatusColor = (status?: string) => {
   switch (status) {
@@ -260,12 +233,14 @@ export function AppSidebar() {
 
   const isDMRoute =
     matchRoute({ to: '/channels/@me' }) ||
-    matchRoute({ to: '/channels/@me/$userId' })
+    matchRoute({ to: '/channels/@me/$channelId' })
 
   const serverId = params.serverId ?? null
   const channelId = params.channelId
-  const currentUserId = params.userId
+  // In the DM route, channelId param holds the DM channel ID
+  const dmChannelId = isDMRoute ? channelId : undefined
 
+  const { data: dms = [] } = useListDms()
   const { data: guilds } = useUserGuilds()
   const guild = guilds?.find((g) => g.id === serverId)
 
@@ -303,7 +278,7 @@ export function AppSidebar() {
                 <div
                   className={cn(
                     'flex items-center space-x-2 px-2 py-1.5 rounded cursor-pointer transition-colors',
-                    !currentUserId
+                    !dmChannelId
                       ? 'bg-accent text-accent-foreground'
                       : 'text-muted-foreground hover:bg-accent/50 hover:text-foreground',
                   )}
@@ -319,38 +294,33 @@ export function AppSidebar() {
                 </div>
               </div>
 
-              {mockDMUsers.map((dmUser) => (
-                <Link
-                  key={dmUser.userId}
-                  to='/channels/@me/$userId'
-                  params={{ userId: dmUser.userId }}
-                >
-                  <div
-                    className={cn(
-                      'flex items-center space-x-2 px-2 py-1.5 rounded cursor-pointer transition-colors',
-                      currentUserId === dmUser.userId
-                        ? 'bg-accent text-accent-foreground'
-                        : 'text-muted-foreground hover:bg-accent/50 hover:text-foreground',
-                    )}
+              {dms.map((dm) => {
+                const displayName = dm.recipient.display_name ?? dm.recipient.username
+                return (
+                  <Link
+                    key={dm.id}
+                    to='/channels/@me/$channelId'
+                    params={{ channelId: dm.id }}
                   >
-                    <div className='relative'>
+                    <div
+                      className={cn(
+                        'flex items-center space-x-2 px-2 py-1.5 rounded cursor-pointer transition-colors',
+                        dmChannelId === dm.id
+                          ? 'bg-accent text-accent-foreground'
+                          : 'text-muted-foreground hover:bg-accent/50 hover:text-foreground',
+                      )}
+                    >
                       <Avatar className='h-7 w-7'>
-                        <AvatarImage src={dmUser.avatar} alt={dmUser.username} />
+                        <AvatarImage src={dm.recipient.avatar_url ?? undefined} alt={displayName} />
                         <AvatarFallback className='text-xs'>
-                          {dmUser.username.slice(0, 2).toUpperCase()}
+                          {displayName.slice(0, 2).toUpperCase()}
                         </AvatarFallback>
                       </Avatar>
-                      <div
-                        className={cn(
-                          'absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full border-2 border-sidebar',
-                          getStatusColor(dmUser.status),
-                        )}
-                      />
+                      <span className='text-sm truncate'>{displayName}</span>
                     </div>
-                    <span className='text-sm truncate'>{dmUser.username}</span>
-                  </div>
-                </Link>
-              ))}
+                  </Link>
+                )
+              })}
             </div>
           </ScrollArea>
         </SidebarContent>

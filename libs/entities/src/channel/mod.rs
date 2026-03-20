@@ -37,6 +37,7 @@ impl std::fmt::Display for ChannelId {
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, ToSchema)]
 pub enum ChannelKind {
     Text = 0,
+    Dm = 1,
     Voice = 2,
     Category = 4,
     Announcement = 5,
@@ -55,6 +56,7 @@ impl TryFrom<i16> for ChannelKind {
     fn try_from(v: i16) -> Result<Self, Self::Error> {
         match v {
             0 => Ok(Self::Text),
+            1 => Ok(Self::Dm),
             2 => Ok(Self::Voice),
             4 => Ok(Self::Category),
             5 => Ok(Self::Announcement),
@@ -227,7 +229,7 @@ pub struct DefaultReaction {
 pub struct Channel {
     pub id: ChannelId,
     pub kind: ChannelKind,
-    pub guild_id: GuildId,
+    pub guild_id: Option<GuildId>,
     pub position: i32,
     pub permission_overwrites: Vec<PermissionOverwrite>,
     pub name: String,

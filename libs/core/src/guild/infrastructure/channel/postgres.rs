@@ -31,7 +31,7 @@ impl PostgresChannelRepository {
 struct ChannelRow {
     id: Uuid,
     kind: i16,
-    guild_id: Uuid,
+    guild_id: Option<Uuid>,
     position: i32,
     name: String,
     topic: Option<String>,
@@ -89,7 +89,7 @@ impl TryFrom<ChannelRow> for Channel {
         Ok(Channel {
             id: ChannelId(Id(row.id)),
             kind,
-            guild_id: GuildId(Id(row.guild_id)),
+            guild_id: row.guild_id.map(|id| GuildId(Id(id))),
             position: row.position,
             permission_overwrites,
             name: row.name,
