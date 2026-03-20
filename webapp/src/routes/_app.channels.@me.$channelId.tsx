@@ -4,6 +4,7 @@ import { Phone, Video, Pin, Search } from 'lucide-react'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { MessageInput } from '@/components/chat'
 import { useDmMessages, useSendDmMessage, useListDms } from '@/lib/queries/dm-queries'
+import { useWsRoom } from '@/hooks/use-ws-events'
 import { toast } from 'sonner'
 
 export const Route = createFileRoute('/_app/channels/@me/$channelId')({
@@ -12,6 +13,9 @@ export const Route = createFileRoute('/_app/channels/@me/$channelId')({
 
 function DMConversationPage() {
   const { channelId } = Route.useParams()
+
+  useWsRoom(`dm:${channelId}`)
+
   const { data: dms = [] } = useListDms()
   const { data: messages = [], isLoading } = useDmMessages(channelId)
   const sendMessage = useSendDmMessage(channelId)

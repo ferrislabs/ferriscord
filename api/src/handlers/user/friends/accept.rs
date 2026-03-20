@@ -40,5 +40,15 @@ pub async fn accept_friend_request_handler(
         .await
         .map_err(|e| ApiError::Unknown { message: e.to_string() })?;
 
+    // Notify the original requester
+    let room = format!("user:{}", friendship.user.id.get_uuid());
+    if let Ok(payload) = serde_json::to_string(&serde_json::json!({
+        "type": "friend_request.accepted",
+        "room": room,
+        "data": &friendship,
+    })) {
+        state.hub.publish(&room, payload).await;
+    }
+
     Ok(Response::OK(friendship))
 }

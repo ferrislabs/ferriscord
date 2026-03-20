@@ -14,6 +14,10 @@ use uuid::Uuid;
 
 use crate::state::AppState;
 
+fn channel_room(channel_id: &ChannelId) -> String {
+    format!("channel:{}", channel_id.get_uuid())
+}
+
 #[derive(TypedPath, Deserialize)]
 #[typed_path("/guilds/{guild_id}/channels/{channel_id}/messages")]
 pub struct SendMessageRoute {
@@ -109,7 +113,7 @@ pub async fn send_message_handler(
 
     let mut message = state
         .message_service
-        .send_message(identity, guild_id, channel_id, content, attachment_inputs)
+        .send_message(identity, guild_id, channel_id.clone(), content, attachment_inputs)
         .await
         .map_err(|e| ApiError::Unknown {
             message: e.to_string(),
@@ -127,6 +131,15 @@ pub async fn send_message_handler(
                     message: format!("failed to generate attachment URL: {}", e),
                 }
             })?;
+    }
+
+    let room = channel_room(&channel_id);
+    if let Ok(payload) = serde_json::to_string(&serde_json::json!({
+        "type": "message.new",
+        "room": room,
+        "data": &message,
+    })) {
+        state.hub.publish(&room, payload).await;
     }
 
     Ok(Response::Created(message))
