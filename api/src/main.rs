@@ -12,6 +12,7 @@ mod handlers;
 mod openapi;
 mod router;
 mod state;
+mod ws;
 
 fn init_logger(args: &LogArgs) {
     let filter = EnvFilter::try_new(&args.filter).unwrap_or_else(|err| {

@@ -8,6 +8,7 @@ import { MessageList } from '@/pages/chat/ui/message-list'
 import { saveLastVisited } from '@/lib/last-visited'
 import { useGuildChannels } from '@/lib/queries/channel-queries'
 import { useChannelMessages, useSendMessage } from '@/lib/queries/message-queries'
+import { useWsRoom } from '@/hooks/use-ws-events'
 
 export const Route = createFileRoute('/_app/channels/$serverId/$channelId')({
   component: ChannelPage,
@@ -15,6 +16,8 @@ export const Route = createFileRoute('/_app/channels/$serverId/$channelId')({
 
 function ChannelPage() {
   const { serverId, channelId } = Route.useParams()
+
+  useWsRoom(`channel:${channelId}`)
 
   useEffect(() => {
     saveLastVisited(`/channels/${serverId}/${channelId}`)

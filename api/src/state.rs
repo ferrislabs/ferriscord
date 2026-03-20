@@ -16,6 +16,7 @@ use ferriscord_storage::S3Client;
 use sqlx::PgPool;
 
 use crate::args::Args;
+use crate::ws::WsHub;
 
 #[derive(Clone)]
 pub struct AppState {
@@ -31,6 +32,7 @@ pub struct AppState {
     pub channel_service: ChannelFerrisCordService,
     pub message_service: MessageFerrisCordService,
     pub storage: S3Client,
+    pub hub: WsHub,
 }
 
 impl HasAuthRepository for AppState {
@@ -80,5 +82,6 @@ pub async fn state(args: Arc<Args>) -> Result<AppState, ApiError> {
         channel_service,
         message_service,
         storage,
+        hub: WsHub::new(),
     })
 }

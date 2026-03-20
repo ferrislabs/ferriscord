@@ -14,6 +14,10 @@ use uuid::Uuid;
 
 use crate::state::AppState;
 
+fn dm_room(channel_id: Uuid) -> String {
+    format!("dm:{}", channel_id)
+}
+
 #[derive(TypedPath, Deserialize)]
 #[typed_path("/channels/@me/{channel_id}/messages")]
 pub struct SendDmMessageRoute {
@@ -116,6 +120,15 @@ pub async fn send_dm_message_handler(
                 );
             }
         }
+    }
+
+    let room = dm_room(channel_id);
+    if let Ok(payload) = serde_json::to_string(&serde_json::json!({
+        "type": "message.new",
+        "room": room,
+        "data": &message,
+    })) {
+        state.hub.publish(&room, payload).await;
     }
 
     Ok(Response::Created(message))

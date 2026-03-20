@@ -13,7 +13,7 @@ use tracing::info_span;
 use utoipa::OpenApi;
 use utoipa_scalar::{Scalar, Servable};
 
-use crate::{handlers::handlers_routes, openapi::ApiDoc, state::AppState};
+use crate::{handlers::handlers_routes, openapi::ApiDoc, state::AppState, ws::ws_handler};
 
 async fn openapi_json() -> impl IntoResponse {
     let json = ApiDoc::openapi().to_json().unwrap_or_default();
@@ -78,6 +78,7 @@ pub fn router(state: AppState) -> Result<Router, ApiError> {
         .merge(Scalar::with_url("/scalar", openapi.clone()))
         .route("/openapi.json", get(openapi_json))
         .route("/openapi.yaml", get(openapi_yaml))
+        .route("/ws", get(ws_handler))
         .merge(handlers_routes(state.clone()))
         .layer(cors_layer)
         .layer(trace_layer)
