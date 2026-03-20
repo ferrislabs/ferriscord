@@ -9,19 +9,16 @@ export function useWsEvents() {
   const isAuthenticated = useUserStore((s) => s.isAuthenticated)
   const queryClient = useQueryClient()
 
-  // Connect / disconnect when auth state changes
+  // Connect / disconnect when auth state changes.
+  // No cleanup on token refresh — disconnect only happens on logout (!isAuthenticated).
+  // Removing the cleanup prevents pendingRooms from being wiped on every silent token renewal.
   useEffect(() => {
     if (!isAuthenticated || !accessToken) {
       wsClient.disconnect()
       return
     }
 
-    const apiUrl = window.apiUrl ?? ''
-    wsClient.connect(apiUrl, accessToken)
-
-    return () => {
-      wsClient.disconnect()
-    }
+    wsClient.connect(window.apiUrl ?? '', accessToken)
   }, [isAuthenticated, accessToken])
 
   // Listen to events and invalidate the right query caches
