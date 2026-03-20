@@ -41,4 +41,11 @@ pub trait GuildService: Send + Sync {
         identity: Identity,
         user_id: UserId,
     ) -> impl Future<Output = Result<Vec<Guild>, CoreError>> + Send;
+
+    fn leave_guild(
+        &self,
+        identity: Identity,
+        guild_id: &GuildId,
+        user_id: UserId,
+    ) -> impl Future<Output = Result<(), CoreError>> + Send;
 }

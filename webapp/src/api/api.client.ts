@@ -196,6 +196,16 @@ export namespace Schemas {
     recipient: FriendUser
   }
   export type DeleteMessageResponse = { message: string }
+  export type PresenceStatus = 'online' | 'idle' | 'do_not_disturb' | 'offline'
+  export type GuildMemberResponse = {
+    member_id: string
+    user_id: string
+    username: string
+    display_name?: (string | null) | undefined
+    avatar_url?: (string | null) | undefined
+    joined_at: string
+    status: PresenceStatus
+  }
 
   // </Schemas>
 }
@@ -599,6 +609,18 @@ export namespace Endpoints {
       404: Schemas.ApiError
     }
   }
+  export type get_Get_members_handler = {
+    method: 'GET'
+    path: '/guilds/{guild_id}/members'
+    requestFormat: 'json'
+    parameters: {
+      path: { guild_id: string }
+    }
+    responses: {
+      200: Array<Schemas.GuildMemberResponse>
+      401: Schemas.ApiError
+    }
+  }
 
   // </Endpoints>
 }
@@ -638,6 +660,7 @@ export type EndpointByMethod = {
     '/friends/requests/outgoing': Endpoints.get_List_outgoing_requests
     '/channels/@me': Endpoints.get_List_dms
     '/channels/@me/{channel_id}/messages': Endpoints.get_Get_dm_messages
+    '/guilds/{guild_id}/members': Endpoints.get_Get_members_handler
   }
   patch: {
     '/users/@me': Endpoints.patch_Update_profile_handler

@@ -9,7 +9,7 @@ const SidebarContext = React.createContext<{
   setCollapsed: () => { },
 })
 
-function useSidebar() {
+export function useSidebar() {
   return React.useContext(SidebarContext)
 }
 
@@ -19,7 +19,18 @@ interface SidebarProviderProps {
 }
 
 export function SidebarProvider({ children, defaultCollapsed = false }: SidebarProviderProps) {
-  const [collapsed, setCollapsed] = React.useState(defaultCollapsed)
+  const [collapsed, setCollapsed] = React.useState(() => {
+    if (typeof window !== 'undefined' && window.innerWidth < 768) return true
+    return defaultCollapsed
+  })
+
+  // Sync with viewport: collapse on mobile, expand on desktop
+  React.useEffect(() => {
+    const mq = window.matchMedia('(max-width: 767px)')
+    const handler = (e: MediaQueryListEvent) => setCollapsed(e.matches)
+    mq.addEventListener('change', handler)
+    return () => mq.removeEventListener('change', handler)
+  }, [])
 
   return (
     <SidebarContext.Provider value={{ collapsed, setCollapsed }}>
@@ -34,19 +45,31 @@ interface SidebarProps extends React.HTMLAttributes<HTMLDivElement> {
 
 export const Sidebar = React.forwardRef<HTMLDivElement, SidebarProps>(
   ({ className, side = "left", ...props }, ref) => {
-    const { collapsed } = useSidebar()
+    const { collapsed, setCollapsed } = useSidebar()
 
     return (
-      <div
-        ref={ref}
-        className={cn(
-          "bg-sidebar border-sidebar-border flex flex-col border-r transition-all duration-300",
-          collapsed ? "w-0" : "w-60",
-          side === "right" && "border-r-0 border-l",
-          className
+      <>
+        {/* Mobile backdrop — closes sidebar on tap outside */}
+        {!collapsed && (
+          <div
+            className="fixed inset-0 z-30 bg-black/50 md:hidden"
+            onClick={() => setCollapsed(true)}
+          />
         )}
-        {...props}
-      />
+        <div
+          ref={ref}
+          className={cn(
+            "bg-sidebar border-sidebar-border flex flex-col border-r transition-all duration-300 overflow-hidden",
+            collapsed ? "w-0" : "w-60",
+            // Mobile: fixed overlay on top of content
+            // Desktop: normal flow element
+            "fixed inset-y-0 left-0 z-40 md:static md:inset-auto md:z-auto",
+            side === "right" && "border-r-0 border-l",
+            className
+          )}
+          {...props}
+        />
+      </>
     )
   }
 )

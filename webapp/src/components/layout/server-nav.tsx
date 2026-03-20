@@ -1,4 +1,4 @@
-import { Compass, Ellipsis, Inbox, Moon, Sun, type LucideIcon } from "lucide-react"
+import { Compass, Ellipsis, Inbox, Menu, Moon, Sun, type LucideIcon } from "lucide-react"
 import { useTranslation } from "@/hooks/use-translation"
 import { Link, useNavigate } from "@tanstack/react-router"
 import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from "@/components/ui/tooltip"
@@ -19,8 +19,9 @@ import { useForm } from "react-hook-form"
 import type z from "zod"
 import { addServerFormSchema } from "@/lib/validation/add-server-schema"
 import { zodResolver } from "@hookform/resolvers/zod"
-import { toast } from "sonner"
+import { toast } from '@/lib/toast'
 import { Skeleton } from "@/components/ui/skeleton"
+import { useSidebar } from "@/components/ui/sidebar"
 
 
 interface NavLinkButtonProps {
@@ -155,9 +156,13 @@ export default function ServerNav() {
     }
   }, [isCreateServerModalOpen, addServerForm])
 
+  const { setCollapsed } = useSidebar()
+  const navigate = useNavigate()
+
   return (
     <TooltipProvider>
-      <nav className="bg-sidebar border-sidebar-border flex h-screen flex-col items-center gap-2 border-l p-2">
+      {/* Desktop: vertical right sidebar */}
+      <nav className="hidden md:flex bg-sidebar border-sidebar-border h-screen flex-col items-center gap-2 border-l p-2">
         <NavLinkButton to="/channels/@me" icon={Inbox} tooltip={t("serverNav.messages")} />
         <NavLinkButton to="/explore" icon={Compass} tooltip={t("serverNav.explore")} />
 
@@ -248,6 +253,45 @@ export default function ServerNav() {
           </form>
         </Dialog>
         <JoinGuildModal open={isJoinServerModalOpen} onOpenChange={setIsJoinServerModalOpen} />
+      </nav>
+
+      {/* Mobile: fixed bottom navigation bar */}
+      <nav className="fixed bottom-0 left-0 right-0 z-20 flex md:hidden h-14 bg-sidebar border-t border-sidebar-border items-center gap-1 px-2">
+        {/* Static actions */}
+        <button
+          onClick={() => setCollapsed(false)}
+          className="shrink-0 p-2 text-muted-foreground hover:text-foreground transition-colors"
+          aria-label="Menu"
+        >
+          <Menu className="h-5 w-5" />
+        </button>
+        <Link to="/channels/@me" className="shrink-0 p-2 text-muted-foreground hover:text-foreground transition-colors">
+          <Inbox className="h-5 w-5" />
+        </Link>
+
+        {/* Scrollable guild list */}
+        <div className="flex-1 overflow-x-auto no-scrollbar">
+          <div className="flex items-center gap-1.5 px-1">
+            {guilds?.map((guild) => (
+              <button
+                key={guild.id}
+                onClick={() => navigate({ to: '/channels/$serverId/$channelId', params: { serverId: guild.id, channelId: '0' } })}
+                className="shrink-0 h-8 w-8 flex items-center justify-center rounded-lg border border-border/50 bg-muted/50 text-xs font-semibold text-foreground transition-all hover:border-primary/40 hover:bg-muted/80 active:scale-95"
+              >
+                {guild.name.charAt(0).toUpperCase()}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* Theme toggle */}
+        <button
+          onClick={toggleTheme}
+          className="shrink-0 p-2 text-muted-foreground hover:text-foreground transition-colors"
+          aria-label="Toggle theme"
+        >
+          {theme === 'light' ? <Moon className="h-5 w-5" /> : <Sun className="h-5 w-5" />}
+        </button>
       </nav>
     </TooltipProvider>
   )

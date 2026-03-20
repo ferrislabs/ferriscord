@@ -19,8 +19,11 @@ import {
   SidebarHeader,
 } from '@/components/ui/sidebar'
 import { useGuildChannels, useCreateChannel } from '@/lib/queries/channel-queries'
-import { useUserGuilds } from '@/lib/queries/guild-queries'
+import { useUserGuilds, useLeaveGuild } from '@/lib/queries/guild-queries'
+import { useOidcUser } from '@axa-fr/react-oidc'
 import { useAuth } from '@/hooks/use-auth'
+import { useMobile } from '@/hooks/use-mobile'
+import { useSidebar } from '@/components/ui/sidebar'
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -36,21 +39,21 @@ import {
 import { Input } from '@/components/ui/input'
 import { Skeleton } from '@/components/ui/skeleton'
 import { useState, useEffect } from 'react'
-import { toast } from 'sonner'
+import { toast } from '@/lib/toast'
 import type { Schemas } from '@/api/api.client'
 import { ProfileDialog } from '@/components/layout/profile-dialog'
 import { useGetMe } from '@/lib/queries/user-queries'
 import { useListDms } from '@/lib/queries/dm-queries'
 import { InviteModal } from '@/components/guild/invite-modal'
+import { usePresenceStore, type PresenceStatus } from '@/stores/presence.store'
+import { PresenceIndicator } from '@/components/ui/presence-indicator'
 
-const getStatusColor = (status?: string) => {
-  switch (status) {
-    case 'online': return 'bg-green-500'
-    case 'idle': return 'bg-yellow-500'
-    case 'dnd': return 'bg-red-500'
-    default: return 'bg-gray-500'
-  }
-}
+const STATUS_OPTIONS: { value: PresenceStatus; label: string }[] = [
+  { value: 'online', label: 'En ligne' },
+  { value: 'idle', label: 'Absent' },
+  { value: 'dnd', label: 'Ne pas déranger' },
+  { value: 'offline', label: 'Invisible' },
+]
 
 type ChannelKind = 'Text' | 'Voice'
 
@@ -172,6 +175,7 @@ interface ChannelSectionProps {
   serverId: string
   channelId: string | undefined
   onCreateClick: () => void
+  onChannelClick?: () => void
 }
 
 function ChannelSection({
@@ -180,6 +184,7 @@ function ChannelSection({
   serverId,
   channelId,
   onCreateClick,
+  onChannelClick,
 }: ChannelSectionProps) {
   const kindIcon = label === 'Texte' ? Hash : Volume2
   const Icon = kindIcon
@@ -203,6 +208,7 @@ function ChannelSection({
           key={channel.id}
           to='/channels/$serverId/$channelId'
           params={{ serverId, channelId: channel.id }}
+          onClick={onChannelClick}
         >
           <div
             className={cn(
@@ -226,7 +232,13 @@ export function AppSidebar() {
   const navigate = useNavigate()
   const matchRoute = useMatchRoute()
   const { user, signOut } = useAuth()
+  const { oidcUser } = useOidcUser()
   const { data: profile } = useGetMe()
+  const isMobile = useMobile()
+  const { setCollapsed } = useSidebar()
+  const closeSidebarOnMobile = () => { if (isMobile) setCollapsed(true) }
+  const myStatus = usePresenceStore((s) => s.myStatus)
+  const setMyStatus = usePresenceStore((s) => s.setMyStatus)
 
   const [createDialogOpen, setCreateDialogOpen] = useState(false)
   const [createDialogDefaultKind, setCreateDialogDefaultKind] = useState<ChannelKind>('Text')
@@ -257,10 +269,30 @@ export function AppSidebar() {
     navigate({ to: '/' })
   }
 
+  const { mutate: leaveGuild, isPending: isLeaving } = useLeaveGuild()
+
   const openCreateDialog = (kind: ChannelKind) => {
     setCreateDialogDefaultKind(kind)
     setCreateDialogOpen(true)
   }
+
+  const handleLeaveGuild = () => {
+    if (!serverId) return
+    leaveGuild(
+      { path: { guild_id: serverId } },
+      {
+        onSuccess: () => {
+          toast.success('Vous avez quitté le serveur')
+          navigate({ to: '/channels/@me' })
+        },
+        onError: () => {
+          toast.error('Impossible de quitter le serveur')
+        },
+      }
+    )
+  }
+
+  const isGuildOwner = !!guild && !!oidcUser && guild.owner_id === (oidcUser as any).sub
 
   // DM Sidebar
   if (isDMRoute) {
@@ -303,6 +335,7 @@ export function AppSidebar() {
                     key={dm.id}
                     to='/channels/@me/$channelId'
                     params={{ channelId: dm.id }}
+                    onClick={closeSidebarOnMobile}
                   >
                     <div
                       className={cn(
@@ -329,20 +362,34 @@ export function AppSidebar() {
 
         <SidebarFooter>
           <div className='flex items-center space-x-2'>
-            <div className='relative'>
-              <Avatar className='h-8 w-8'>
-                <AvatarImage src={profile?.avatar_url ?? user?.avatar} alt={profile?.display_name ?? user?.preferred_username} />
-                <AvatarFallback className='bg-primary text-primary-foreground text-xs'>
-                  {(profile?.display_name ?? user?.preferred_username)?.[0].toUpperCase() || 'U'}
-                </AvatarFallback>
-              </Avatar>
-              <div
-                className={cn(
-                  'absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full border-2 border-sidebar',
-                  getStatusColor('offline'),
-                )}
-              />
-            </div>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <button className='relative shrink-0'>
+                  <Avatar className='h-8 w-8'>
+                    <AvatarImage src={profile?.avatar_url ?? user?.avatar} alt={profile?.display_name ?? user?.preferred_username} />
+                    <AvatarFallback className='bg-primary text-primary-foreground text-xs'>
+                      {(profile?.display_name ?? user?.preferred_username)?.[0].toUpperCase() || 'U'}
+                    </AvatarFallback>
+                  </Avatar>
+                  <PresenceIndicator
+                    status={myStatus}
+                    className='absolute -bottom-0.5 -right-0.5'
+                  />
+                </button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align='start' side='top' className='w-44'>
+                {STATUS_OPTIONS.map((opt) => (
+                  <DropdownMenuItem
+                    key={opt.value}
+                    onSelect={() => setMyStatus(opt.value)}
+                    className='flex items-center gap-2'
+                  >
+                    <PresenceIndicator status={opt.value} />
+                    <span>{opt.label}</span>
+                  </DropdownMenuItem>
+                ))}
+              </DropdownMenuContent>
+            </DropdownMenu>
             <div className='flex-1 min-w-0'>
               <div className='text-sm font-medium text-foreground truncate'>
                 {profile?.display_name ?? user?.preferred_username ?? 'Unknown User'}
@@ -426,9 +473,15 @@ export function AppSidebar() {
                 <Users className='h-4 w-4 mr-2' />
                 Inviter des gens
               </DropdownMenuItem>
-              <DropdownMenuItem className='text-destructive'>
-                Quitter le serveur
-              </DropdownMenuItem>
+              {!isGuildOwner && (
+                <DropdownMenuItem
+                  className='text-destructive'
+                  onSelect={handleLeaveGuild}
+                  disabled={isLeaving}
+                >
+                  Quitter le serveur
+                </DropdownMenuItem>
+              )}
             </DropdownMenuContent>
           </DropdownMenu>
         </SidebarHeader>
@@ -460,6 +513,7 @@ export function AppSidebar() {
                       serverId={serverId}
                       channelId={channelId}
                       onCreateClick={() => openCreateDialog('Text')}
+                      onChannelClick={closeSidebarOnMobile}
                     />
                   )}
                   {voiceChannels.length > 0 && serverId && (
@@ -469,6 +523,7 @@ export function AppSidebar() {
                       serverId={serverId}
                       channelId={channelId}
                       onCreateClick={() => openCreateDialog('Voice')}
+                      onChannelClick={closeSidebarOnMobile}
                     />
                   )}
                   {/* Show create button in sections that are empty */}
@@ -511,20 +566,34 @@ export function AppSidebar() {
         {/* User Panel */}
         <SidebarFooter>
           <div className='flex items-center space-x-2'>
-            <div className='relative'>
-              <Avatar className='h-8 w-8'>
-                <AvatarImage src={profile?.avatar_url ?? user?.avatar} alt={profile?.display_name ?? user?.preferred_username} />
-                <AvatarFallback className='bg-primary text-primary-foreground text-xs'>
-                  {(profile?.display_name ?? user?.preferred_username)?.[0].toUpperCase() || 'U'}
-                </AvatarFallback>
-              </Avatar>
-              <div
-                className={cn(
-                  'absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full border-2 border-sidebar',
-                  getStatusColor('offline'),
-                )}
-              />
-            </div>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <button className='relative shrink-0'>
+                  <Avatar className='h-8 w-8'>
+                    <AvatarImage src={profile?.avatar_url ?? user?.avatar} alt={profile?.display_name ?? user?.preferred_username} />
+                    <AvatarFallback className='bg-primary text-primary-foreground text-xs'>
+                      {(profile?.display_name ?? user?.preferred_username)?.[0].toUpperCase() || 'U'}
+                    </AvatarFallback>
+                  </Avatar>
+                  <PresenceIndicator
+                    status={myStatus}
+                    className='absolute -bottom-0.5 -right-0.5'
+                  />
+                </button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align='start' side='top' className='w-44'>
+                {STATUS_OPTIONS.map((opt) => (
+                  <DropdownMenuItem
+                    key={opt.value}
+                    onSelect={() => setMyStatus(opt.value)}
+                    className='flex items-center gap-2'
+                  >
+                    <PresenceIndicator status={opt.value} />
+                    <span>{opt.label}</span>
+                  </DropdownMenuItem>
+                ))}
+              </DropdownMenuContent>
+            </DropdownMenu>
             <div className='flex-1 min-w-0'>
               <div className='text-sm font-medium text-foreground truncate'>
                 {profile?.display_name ?? user?.preferred_username ?? 'Unknown User'}

@@ -3,6 +3,7 @@ import { useQueryClient } from '@tanstack/react-query'
 import { useAuthStore } from '@/stores/auth.store'
 import { useUserStore } from '@/stores/user.store'
 import { wsClient, type WsEvent } from '@/lib/ws'
+import { usePresenceStore, type PresenceStatus } from '@/stores/presence.store'
 
 export function useWsEvents() {
   const accessToken = useAuthStore((s) => s.accessToken)
@@ -10,15 +11,16 @@ export function useWsEvents() {
   const queryClient = useQueryClient()
 
   // Connect / disconnect when auth state changes.
-  // No cleanup on token refresh — disconnect only happens on logout (!isAuthenticated).
-  // Removing the cleanup prevents pendingRooms from being wiped on every silent token renewal.
+  // We pass a getter instead of the token value so that every automatic
+  // reconnect reads the latest token from the store — this prevents the WS
+  // from reconnecting with a stale, expired token after a silent OIDC refresh.
   useEffect(() => {
     if (!isAuthenticated || !accessToken) {
       wsClient.disconnect()
       return
     }
 
-    wsClient.connect(window.apiUrl ?? '', accessToken)
+    wsClient.connect(window.apiUrl ?? '', () => useAuthStore.getState().accessToken)
   }, [isAuthenticated, accessToken])
 
   // On reconnect, invalidate all message queries so we catch anything missed
@@ -54,6 +56,15 @@ export function useWsEvents() {
               queryKey: [{ _id: '/channels/@me/{channel_id}/messages', path: { channel_id: id } }],
             })
           }
+          break
+        }
+
+        case 'presence.update': {
+          const data = event.data as { user_id: string; status: PresenceStatus }
+          usePresenceStore.getState().updateUserPresence(data.user_id, data.status)
+          queryClient.invalidateQueries({
+            queryKey: [{ _id: '/guilds/{guild_id}/members' }],
+          })
           break
         }
 

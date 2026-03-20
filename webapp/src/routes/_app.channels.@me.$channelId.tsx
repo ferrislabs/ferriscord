@@ -1,6 +1,6 @@
 import { createFileRoute } from '@tanstack/react-router'
 import { useRef, useEffect } from 'react'
-import { Phone, Video, Pin, Search, Trash2 } from 'lucide-react'
+import { Phone, Video, Pin, Search, Trash2, Menu } from 'lucide-react'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { MessageInput } from '@/components/chat'
 import { useDmMessages, useSendDmMessage, useListDms, useDeleteDmMessage } from '@/lib/queries/dm-queries'
@@ -8,7 +8,9 @@ import { useGetMe } from '@/lib/queries/user-queries'
 import { useWsRoom } from '@/hooks/use-ws-events'
 import { AttachmentList } from '@/components/chat/attachment-list'
 import { InviteEmbed, extractInviteCodes } from '@/components/chat/invite-embed'
-import { toast } from 'sonner'
+import { toast } from '@/lib/toast'
+import { useSidebar } from '@/components/ui/sidebar'
+import { useProfileCardStore } from '@/stores/profile-card.store'
 
 export const Route = createFileRoute('/_app/channels/@me/$channelId')({
   component: DMConversationPage,
@@ -16,6 +18,8 @@ export const Route = createFileRoute('/_app/channels/@me/$channelId')({
 
 function DMConversationPage() {
   const { channelId } = Route.useParams()
+  const { setCollapsed } = useSidebar()
+  const toggleProfile = useProfileCardStore((s) => s.toggle)
 
   useWsRoom(`dm:${channelId}`)
 
@@ -48,6 +52,12 @@ function DMConversationPage() {
       {/* Header */}
       <div className="h-12 border-b border-sidebar-border px-4 flex items-center justify-between bg-background shrink-0">
         <div className="flex items-center space-x-3">
+          <button
+            className="md:hidden p-1.5 hover:bg-accent rounded text-muted-foreground hover:text-foreground transition-colors"
+            onClick={() => setCollapsed(false)}
+          >
+            <Menu className="h-5 w-5" />
+          </button>
           <Avatar className="h-8 w-8">
             <AvatarImage
               src={dm?.recipient.avatar_url ?? undefined}
@@ -97,13 +107,23 @@ function DMConversationPage() {
             key={msg.id}
             className="flex items-start space-x-3 hover:bg-accent/50 p-2 rounded group"
           >
-            <Avatar className="h-10 w-10 shrink-0">
-              <AvatarImage src={msg.author.avatar_url ?? undefined} alt={msg.author.username} />
-              <AvatarFallback>{msg.author.username[0].toUpperCase()}</AvatarFallback>
-            </Avatar>
+            <button
+              onClick={(e) => toggleProfile({ id: msg.author.id, username: msg.author.username, avatarUrl: msg.author.avatar_url }, e)}
+              className="shrink-0"
+            >
+              <Avatar className="h-10 w-10 hover:opacity-80 transition-opacity">
+                <AvatarImage src={msg.author.avatar_url ?? undefined} alt={msg.author.username} />
+                <AvatarFallback>{msg.author.username[0].toUpperCase()}</AvatarFallback>
+              </Avatar>
+            </button>
             <div className="flex-1 min-w-0">
               <div className="flex items-baseline space-x-2">
-                <span className="font-semibold text-foreground">{msg.author.username}</span>
+                <button
+                  onClick={(e) => toggleProfile({ id: msg.author.id, username: msg.author.username, avatarUrl: msg.author.avatar_url }, e)}
+                  className="font-semibold text-foreground hover:underline"
+                >
+                  {msg.author.username}
+                </button>
                 <span className="text-xs text-muted-foreground">
                   {new Date(msg.created_at).toLocaleTimeString()}
                 </span>

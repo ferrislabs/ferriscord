@@ -1,6 +1,6 @@
 import { createFileRoute, useNavigate, Outlet, useMatchRoute } from '@tanstack/react-router'
 import { useEffect, useState } from 'react'
-import { UserPlus, Users, Clock, Check, X, Trash2 } from 'lucide-react'
+import { UserPlus, Users, Clock, Check, X, Trash2, Menu } from 'lucide-react'
 import { saveLastVisited } from '@/lib/last-visited'
 import { Button } from '@/components/ui/button'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
@@ -16,8 +16,10 @@ import {
   useRemoveFriend,
 } from '@/lib/queries/friend-queries'
 import { useCreateOrGetDm } from '@/lib/queries/dm-queries'
-import { toast } from 'sonner'
+import { toast } from '@/lib/toast'
 import type { Schemas } from '@/api/api.client'
+import { useSidebar } from '@/components/ui/sidebar'
+import { useProfileCardStore } from '@/stores/profile-card.store'
 
 export const Route = createFileRoute('/_app/channels/@me')({
   component: FriendsPage,
@@ -33,20 +35,26 @@ function FriendRow({
   onMessage: (userId: string) => void
 }) {
   const removeFriend = useRemoveFriend()
+  const toggleProfile = useProfileCardStore((s) => s.toggle)
   const displayName = friendship.user.display_name ?? friendship.user.username
 
   return (
     <div className="flex items-center px-4 py-3 hover:bg-accent/50 rounded-lg transition-colors">
-      <Avatar className="h-10 w-10 mr-3">
-        <AvatarImage src={friendship.user.avatar_url ?? undefined} alt={displayName} />
-        <AvatarFallback>{displayName[0].toUpperCase()}</AvatarFallback>
-      </Avatar>
-      <div className="flex-1 min-w-0">
-        <div className="font-medium text-foreground truncate">{displayName}</div>
-        <div className="text-sm text-muted-foreground truncate">
-          @{friendship.user.username}
+      <button
+        className="flex items-center gap-3 flex-1 min-w-0 text-left"
+        onClick={(e) => toggleProfile({ id: friendship.user.id, username: friendship.user.username, displayName: friendship.user.display_name, avatarUrl: friendship.user.avatar_url }, e)}
+      >
+        <Avatar className="h-10 w-10 shrink-0">
+          <AvatarImage src={friendship.user.avatar_url ?? undefined} alt={displayName} />
+          <AvatarFallback>{displayName[0].toUpperCase()}</AvatarFallback>
+        </Avatar>
+        <div className="min-w-0">
+          <div className="font-medium text-foreground truncate">{displayName}</div>
+          <div className="text-sm text-muted-foreground truncate">
+            @{friendship.user.username}
+          </div>
         </div>
-      </div>
+      </button>
       <div className="flex items-center gap-2">
         <Button
           size="sm"
@@ -85,18 +93,24 @@ function IncomingRow({
 }) {
   const accept = useAcceptFriendRequest()
   const decline = useDeclineFriendRequest()
+  const toggleProfile = useProfileCardStore((s) => s.toggle)
   const displayName = friendship.user.display_name ?? friendship.user.username
 
   return (
     <div className="flex items-center px-4 py-3 hover:bg-accent/50 rounded-lg transition-colors">
-      <Avatar className="h-10 w-10 mr-3">
-        <AvatarImage src={friendship.user.avatar_url ?? undefined} alt={displayName} />
-        <AvatarFallback>{displayName[0].toUpperCase()}</AvatarFallback>
-      </Avatar>
-      <div className="flex-1 min-w-0">
-        <div className="font-medium text-foreground truncate">{displayName}</div>
-        <div className="text-sm text-muted-foreground">Demande reçue</div>
-      </div>
+      <button
+        className="flex items-center gap-3 flex-1 min-w-0 text-left"
+        onClick={(e) => toggleProfile({ id: friendship.user.id, username: friendship.user.username, displayName: friendship.user.display_name, avatarUrl: friendship.user.avatar_url }, e)}
+      >
+        <Avatar className="h-10 w-10 shrink-0">
+          <AvatarImage src={friendship.user.avatar_url ?? undefined} alt={displayName} />
+          <AvatarFallback>{displayName[0].toUpperCase()}</AvatarFallback>
+        </Avatar>
+        <div className="min-w-0">
+          <div className="font-medium text-foreground truncate">{displayName}</div>
+          <div className="text-sm text-muted-foreground">Demande reçue</div>
+        </div>
+      </button>
       <div className="flex items-center gap-2">
         <Button
           size="icon"
@@ -141,24 +155,31 @@ function IncomingRow({
 }
 
 function OutgoingRow({ friendship }: { friendship: Schemas.Friendship }) {
+  const toggleProfile = useProfileCardStore((s) => s.toggle)
   const displayName = friendship.user.display_name ?? friendship.user.username
 
   return (
     <div className="flex items-center px-4 py-3 hover:bg-accent/50 rounded-lg transition-colors">
-      <Avatar className="h-10 w-10 mr-3">
-        <AvatarImage src={friendship.user.avatar_url ?? undefined} alt={displayName} />
-        <AvatarFallback>{displayName[0].toUpperCase()}</AvatarFallback>
-      </Avatar>
-      <div className="flex-1 min-w-0">
-        <div className="font-medium text-foreground truncate">{displayName}</div>
-        <div className="text-sm text-muted-foreground">Demande envoyée</div>
-      </div>
+      <button
+        className="flex items-center gap-3 flex-1 min-w-0 text-left"
+        onClick={(e) => toggleProfile({ id: friendship.user.id, username: friendship.user.username, displayName: friendship.user.display_name, avatarUrl: friendship.user.avatar_url }, e)}
+      >
+        <Avatar className="h-10 w-10 shrink-0">
+          <AvatarImage src={friendship.user.avatar_url ?? undefined} alt={displayName} />
+          <AvatarFallback>{displayName[0].toUpperCase()}</AvatarFallback>
+        </Avatar>
+        <div className="min-w-0">
+          <div className="font-medium text-foreground truncate">{displayName}</div>
+          <div className="text-sm text-muted-foreground">Demande envoyée</div>
+        </div>
+      </button>
       <Clock className="h-4 w-4 text-muted-foreground" />
     </div>
   )
 }
 
 function FriendsPage() {
+  const { setCollapsed } = useSidebar()
   const navigate = useNavigate()
   const matchRoute = useMatchRoute()
   const isInDm = matchRoute({ to: '/channels/@me/$channelId', fuzzy: true })
@@ -214,6 +235,12 @@ function FriendsPage() {
     <div className="flex flex-col h-full">
       {/* Header */}
       <div className="h-12 border-b border-sidebar-border px-4 flex items-center gap-4 bg-background">
+        <button
+          className="md:hidden p-1.5 hover:bg-accent rounded text-muted-foreground hover:text-foreground transition-colors"
+          onClick={() => setCollapsed(false)}
+        >
+          <Menu className="h-5 w-5" />
+        </button>
         <div className="flex items-center gap-2 text-foreground font-semibold">
           <Users className="h-5 w-5" />
           <span>Amis</span>

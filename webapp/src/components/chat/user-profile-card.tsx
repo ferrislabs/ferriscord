@@ -22,14 +22,14 @@ export function UserProfileCard({ user, anchorRect, onClose }: UserProfileCardPr
   // Close on outside click or Escape
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose() }
-    const onPointer = (e: PointerEvent) => {
+    const onPointer = (e: MouseEvent) => {
       if (cardRef.current && !cardRef.current.contains(e.target as Node)) onClose()
     }
     document.addEventListener('keydown', onKey)
-    document.addEventListener('pointerdown', onPointer)
+    document.addEventListener('click', onPointer)
     return () => {
       document.removeEventListener('keydown', onKey)
-      document.removeEventListener('pointerdown', onPointer)
+      document.removeEventListener('click', onPointer)
     }
   }, [onClose])
 

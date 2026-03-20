@@ -10,6 +10,7 @@ use crate::{args::Args, router::router, state::state};
 mod args;
 mod handlers;
 mod openapi;
+mod presence;
 mod router;
 mod state;
 mod ws;

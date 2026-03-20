@@ -4,7 +4,7 @@ import { useUserStore } from '@/stores/user.store'
 import { useJoinGuild } from '@/lib/queries/guild-queries'
 import { Button } from '@/components/ui/button'
 import { PageLoader } from '@/components/ui/page-loader'
-import { toast } from 'sonner'
+import { toast } from '@/lib/toast'
 import { useState, useEffect } from 'react'
 
 export const Route = createFileRoute('/invite/$code')({

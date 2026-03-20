@@ -5,8 +5,8 @@ use ferriscord_config::{AuthConfig, DatabaseConfig, StorageConfig};
 use ferriscord_core::{
     guild::application::{
         ChannelFerrisCordService, GuildFerrisCordService, InviteFerrisCordService,
-        MessageFerrisCordService, RoleFerrisCordService, create_auth_repository,
-        create_guild_services,
+        MemberFerrisCordRepository, MessageFerrisCordService, RoleFerrisCordService,
+        create_auth_repository, create_guild_services,
     },
     user::application::{
         DmFerrisCordService, FriendFerrisCordService, UserFerrisCordService, create_user_services,
@@ -17,6 +17,7 @@ use ferriscord_storage::S3Client;
 use sqlx::PgPool;
 
 use crate::args::Args;
+use crate::presence::PresenceStore;
 use crate::ws::WsHub;
 
 #[derive(Clone)]
@@ -33,8 +34,10 @@ pub struct AppState {
     pub channel_service: ChannelFerrisCordService,
     pub message_service: MessageFerrisCordService,
     pub invite_service: InviteFerrisCordService,
+    pub member_repository: MemberFerrisCordRepository,
     pub storage: S3Client,
     pub hub: WsHub,
+    pub presence: PresenceStore,
 }
 
 impl HasAuthRepository for AppState {
@@ -69,6 +72,8 @@ pub async fn state(args: Arc<Args>) -> Result<AppState, ApiError> {
         create_guild_services(pool.clone(), auth_config.issuer.clone())
             .map_err(|e| ApiError::Unknown { message: e.to_string() })?;
 
+    let member_repository = MemberFerrisCordRepository::new(pool.clone());
+
     let storage = S3Client::new(storage_config).await.map_err(|e| ApiError::Unknown {
         message: e.to_string(),
     })?;
@@ -84,7 +89,9 @@ pub async fn state(args: Arc<Args>) -> Result<AppState, ApiError> {
         channel_service,
         message_service,
         invite_service,
+        member_repository,
         storage,
         hub: WsHub::new(),
+        presence: PresenceStore::new(),
     })
 }

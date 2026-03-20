@@ -1,6 +1,7 @@
 export type WsEventType =
   | 'message.new'
   | 'message.delete'
+  | 'presence.update'
   | 'friend_request.received'
   | 'friend_request.accepted'
   | 'pong'
@@ -24,20 +25,30 @@ class FerrisWsClient {
   private pendingRooms = new Set<string>()
   private reconnectTimer: ReturnType<typeof setTimeout> | null = null
   private pingTimer: ReturnType<typeof setInterval> | null = null
-  private token: string | null = null
-  private url: string | null = null
+  private apiUrl: string | null = null
+  // Token getter called on every (re)connect so we always use the freshest token.
+  private getToken: (() => string | null) | null = null
   private hasConnectedBefore = false
+  // The last presence status set by the user. Sent on every (re)connect so the
+  // server doesn't reset us to Online after a page refresh or reconnect.
+  private desiredPresence: string | null = null
 
-  connect(apiUrl: string, token: string) {
-    if (this.ws?.readyState === WebSocket.OPEN && this.token === token) return
+  connect(apiUrl: string, getToken: () => string | null) {
+    // If already open and the base URL hasn't changed, nothing to do.
+    if (this.ws?.readyState === WebSocket.OPEN && this.apiUrl === apiUrl) return
 
-    this.token = token
-    this.url = apiUrl.replace(/^http/, 'ws') + '/ws?token=' + encodeURIComponent(token)
+    this.apiUrl = apiUrl
+    this.getToken = getToken
     this.open()
   }
 
   private open() {
-    if (!this.url) return
+    const token = this.getToken?.()
+    // No token available yet — abort; useWsEvents will call connect() again
+    // once the auth store has a valid token.
+    if (!this.apiUrl || !token) return
+
+    const url = this.apiUrl.replace(/^http/, 'ws') + '/ws?token=' + encodeURIComponent(token)
 
     this.stopPing()
 
@@ -46,7 +57,7 @@ class FerrisWsClient {
       this.ws.close()
     }
 
-    const ws = new WebSocket(this.url)
+    const ws = new WebSocket(url)
     this.ws = ws
 
     ws.onopen = () => {
@@ -58,6 +69,13 @@ class FerrisWsClient {
       // Re-subscribe to all rooms on every (re)connection
       if (this.pendingRooms.size > 0) {
         this.sendSubscribe([...this.pendingRooms])
+      }
+
+      // Restore the user's chosen presence status. The server marks every new
+      // connection as Online, so we override it immediately if the user had set
+      // a different status before this (re)connect.
+      if (this.desiredPresence && this.desiredPresence !== 'online') {
+        this.ws?.send(JSON.stringify({ type: 'presence.set', status: this.desiredPresence }))
       }
 
       // Notify reconnect listeners so they can refetch stale data
@@ -125,10 +143,11 @@ class FerrisWsClient {
       this.ws.close()
       this.ws = null
     }
-    this.token = null
-    this.url = null
+    this.apiUrl = null
+    this.getToken = null
     this.pendingRooms.clear()
     this.hasConnectedBefore = false
+    this.desiredPresence = null
   }
 
   private startPing() {
@@ -143,6 +162,14 @@ class FerrisWsClient {
     if (this.pingTimer) {
       clearInterval(this.pingTimer)
       this.pingTimer = null
+    }
+  }
+
+  setPresence(status: 'online' | 'idle' | 'dnd' | 'offline') {
+    // Always remember the desired status so it survives reconnects.
+    this.desiredPresence = status
+    if (this.ws?.readyState === WebSocket.OPEN) {
+      this.ws.send(JSON.stringify({ type: 'presence.set', status }))
     }
   }
 

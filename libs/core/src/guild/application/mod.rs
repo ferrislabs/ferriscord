@@ -47,6 +47,8 @@ pub type InviteFerrisCordService = InviteServiceImpl<
     PostgresMemberRepository,
 >;
 
+pub type MemberFerrisCordRepository = PostgresMemberRepository;
+
 pub fn create_guild_services(
     pool: PgPool,
     _issuer: impl Into<String>,

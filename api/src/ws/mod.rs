@@ -12,7 +12,9 @@ use serde::Deserialize;
 use tokio::sync::{RwLock, broadcast, mpsc};
 use tokio::task::JoinHandle;
 use tracing::{error, warn};
+use uuid::Uuid;
 
+use crate::presence::{PresenceStatus, PresenceStore};
 use crate::state::AppState;
 
 const BROADCAST_CAPACITY: usize = 256;
@@ -59,6 +61,7 @@ struct WsClientMsg {
     #[serde(rename = "type")]
     kind: String,
     rooms: Option<Vec<String>>,
+    status: Option<PresenceStatus>,
 }
 
 pub async fn ws_handler(
@@ -81,13 +84,37 @@ pub async fn ws_handler(
             StatusCode::INTERNAL_SERVER_ERROR
         })?;
 
-    let user_room = format!("user:{}", user.id.0);
+    let user_id = user.id.0;
+    let user_room = format!("user:{}", user_id);
     let hub = state.hub.clone();
+    let presence = state.presence.clone();
 
-    Ok(ws.on_upgrade(move |socket| handle_socket(socket, hub, user_room)))
+    Ok(ws.on_upgrade(move |socket| handle_socket(socket, hub, user_room, presence, user_id)))
 }
 
-async fn handle_socket(socket: WebSocket, hub: WsHub, user_room: String) {
+async fn broadcast_presence_to_guilds(
+    hub: &WsHub,
+    user_id: Uuid,
+    status: &PresenceStatus,
+    room_tasks: &HashMap<String, JoinHandle<()>>,
+) {
+    if let Ok(payload) = serde_json::to_string(&serde_json::json!({
+        "type": "presence.update",
+        "room": "",
+        "data": { "user_id": user_id, "status": status },
+    })) {
+        for room in room_tasks.keys() {
+            if room.starts_with("guild:") {
+                hub.publish(room, payload.clone()).await;
+            }
+        }
+    }
+}
+
+async fn handle_socket(socket: WebSocket, hub: WsHub, user_room: String, presence: PresenceStore, user_id: Uuid) {
+    // Mark user as online
+    presence.set(user_id, PresenceStatus::Online).await;
+
     let (mut ws_tx, mut ws_rx) = socket.split();
     let (conn_tx, mut conn_rx) = mpsc::channel::<String>(256);
 
@@ -135,6 +162,17 @@ async fn handle_socket(socket: WebSocket, hub: WsHub, user_room: String) {
                             if room_tasks.contains_key(&room) {
                                 continue;
                             }
+                            // If subscribing to a guild room, announce presence
+                            if room.starts_with("guild:") {
+                                let current_status = presence.get(user_id).await;
+                                if let Ok(payload) = serde_json::to_string(&serde_json::json!({
+                                    "type": "presence.update",
+                                    "room": room,
+                                    "data": { "user_id": user_id, "status": current_status },
+                                })) {
+                                    hub.publish(&room, payload).await;
+                                }
+                            }
                             let mut rx = hub.subscribe(&room).await;
                             let tx = conn_tx.clone();
                             let room_name = room.clone();
@@ -175,6 +213,18 @@ async fn handle_socket(socket: WebSocket, hub: WsHub, user_room: String) {
                     "ping" => {
                         let _ = conn_tx.send(r#"{"type":"pong"}"#.to_string()).await;
                     }
+                    "presence.set" => {
+                        if let Some(new_status) = cmd.status {
+                            // Don't allow setting offline via this message
+                            let status = if new_status == PresenceStatus::Offline {
+                                PresenceStatus::Online
+                            } else {
+                                new_status
+                            };
+                            presence.set(user_id, status.clone()).await;
+                            broadcast_presence_to_guilds(&hub, user_id, &status, &room_tasks).await;
+                        }
+                    }
                     _ => {}
                 }
             }
@@ -182,6 +232,10 @@ async fn handle_socket(socket: WebSocket, hub: WsHub, user_room: String) {
             _ => {}
         }
     }
+
+    // Mark user as offline and notify guild rooms
+    presence.set(user_id, PresenceStatus::Offline).await;
+    broadcast_presence_to_guilds(&hub, user_id, &PresenceStatus::Offline, &room_tasks).await;
 
     // Clean up all room tasks when the connection closes
     for (_, handle) in room_tasks {

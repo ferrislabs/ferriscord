@@ -39,11 +39,11 @@ where
             return Err(CoreError::MaxGuildsReached { max_guilds: 10 });
         }
 
+        let owner_user_id = input.owner_user_id.clone();
         let guild = self.guild_repository.insert(input).await?;
 
         self.role_repository.insert("everyone", 0, 0, &guild.id).await?;
 
-        let owner_user_id = UserId::from(*guild.owner_id.get_uuid());
         self.member_repository.insert(&guild.id, &owner_user_id).await?;
 
         Ok(guild)
@@ -73,5 +73,30 @@ where
         user_id: UserId,
     ) -> Result<Vec<Guild>, CoreError> {
         self.guild_repository.list_by_member(&user_id).await
+    }
+
+    async fn leave_guild(
+        &self,
+        identity: Identity,
+        guild_id: &GuildId,
+        user_id: UserId,
+    ) -> Result<(), CoreError> {
+        let guild = self
+            .guild_repository
+            .find_by_id(guild_id)
+            .await?
+            .ok_or(CoreError::GuildNotFound { guild_id: guild_id.clone() })?;
+
+        let owner_id: OwnerId = identity.id().into();
+
+        if guild.owner_id == owner_id {
+            return Err(CoreError::Unknown {
+                message: "owner cannot leave the guild".to_string(),
+            });
+        }
+
+        self.member_repository.delete_member(guild_id, &user_id).await?;
+
+        Ok(())
     }
 }

@@ -1,6 +1,6 @@
 import { createFileRoute } from '@tanstack/react-router'
-import { useEffect } from 'react'
-import { Hash, Volume2, Users, Pin, Bell, Search } from 'lucide-react'
+import { useEffect, useState } from 'react'
+import { Hash, Volume2, Users, Pin, Bell, Search, Menu } from 'lucide-react'
 import { Skeleton } from '@/components/ui/skeleton'
 import { MessageListSkeleton } from '@/components/layout/message-list-skeleton'
 import { MessageInput } from '@/components/chat'
@@ -10,6 +10,9 @@ import { useGuildChannels } from '@/lib/queries/channel-queries'
 import { useChannelMessages, useSendMessage, useDeleteMessage } from '@/lib/queries/message-queries'
 import { useGetMe } from '@/lib/queries/user-queries'
 import { useWsRoom } from '@/hooks/use-ws-events'
+import { MemberList } from '@/components/guild/member-list'
+import { cn } from '@/lib/utils'
+import { useSidebar } from '@/components/ui/sidebar'
 
 export const Route = createFileRoute('/_app/channels/$serverId/$channelId')({
   component: ChannelPage,
@@ -17,8 +20,19 @@ export const Route = createFileRoute('/_app/channels/$serverId/$channelId')({
 
 function ChannelPage() {
   const { serverId, channelId } = Route.useParams()
+  const { setCollapsed } = useSidebar()
+  const [showMemberList, setShowMemberList] = useState(
+    () => localStorage.getItem('memberListOpen') === 'true'
+  )
+
+  useEffect(() => {
+    localStorage.setItem('memberListOpen', String(showMemberList))
+  }, [showMemberList])
 
   useWsRoom(`channel:${channelId}`)
+  // Always subscribe to the guild room so presence changes are broadcast
+  // to/from this user even when the member list panel is closed.
+  useWsRoom(`guild:${serverId}`)
 
   useEffect(() => {
     saveLastVisited(`/channels/${serverId}/${channelId}`)
@@ -74,6 +88,12 @@ function ChannelPage() {
       ) : selectedChannel && (
         <div className="h-12 border-b border-sidebar-border px-4 flex items-center justify-between bg-background">
           <div className="flex items-center space-x-2">
+            <button
+              className="md:hidden p-1.5 hover:bg-accent rounded text-muted-foreground hover:text-foreground transition-colors"
+              onClick={() => setCollapsed(false)}
+            >
+              <Menu className="h-5 w-5" />
+            </button>
             {selectedChannel.kind === 'Voice' ? (
               <Volume2 className="h-5 w-5 text-muted-foreground" />
             ) : (
@@ -94,7 +114,13 @@ function ChannelPage() {
             <button className="p-2 hover:bg-accent rounded text-muted-foreground hover:text-foreground transition-colors">
               <Pin className="h-5 w-5" />
             </button>
-            <button className="p-2 hover:bg-accent rounded text-muted-foreground hover:text-foreground transition-colors">
+            <button
+              onClick={() => setShowMemberList((v) => !v)}
+              className={cn(
+                "p-2 rounded text-muted-foreground hover:text-foreground transition-colors",
+                showMemberList ? "bg-accent text-foreground" : "hover:bg-accent"
+              )}
+            >
               <Users className="h-5 w-5" />
             </button>
             <button className="p-2 hover:bg-accent rounded text-muted-foreground hover:text-foreground transition-colors">
@@ -105,38 +131,41 @@ function ChannelPage() {
       )}
 
       {/* Channel Content */}
-      <div className="flex-1 overflow-hidden flex flex-col">
-        {isLoading || isLoadingMessages ? (
-          <MessageListSkeleton />
-        ) : selectedChannel ? (
-          <MessageList messages={formattedMessages} className="flex-1" onDeleteMessage={handleDeleteMessage} />
-        ) : (
-          <div className="flex items-center justify-center h-full">
-            <div className="text-center">
-              <Hash className="h-16 w-16 text-muted-foreground mx-auto mb-4" />
-              <h2 className="text-xl font-semibold text-foreground mb-2">No Channel Selected</h2>
-              <p className="text-muted-foreground">
-                Select a channel from the sidebar to start chatting
-              </p>
+      <div className="flex flex-1 overflow-hidden">
+        <div className="flex flex-col flex-1 overflow-hidden">
+          {isLoading || isLoadingMessages ? (
+            <MessageListSkeleton />
+          ) : selectedChannel ? (
+            <MessageList messages={formattedMessages} className="flex-1" onDeleteMessage={handleDeleteMessage} />
+          ) : (
+            <div className="flex items-center justify-center h-full">
+              <div className="text-center">
+                <Hash className="h-16 w-16 text-muted-foreground mx-auto mb-4" />
+                <h2 className="text-xl font-semibold text-foreground mb-2">No Channel Selected</h2>
+                <p className="text-muted-foreground">
+                  Select a channel from the sidebar to start chatting
+                </p>
+              </div>
             </div>
-          </div>
-        )}
-      </div>
+          )}
 
-      {/* Message Input */}
-      {isLoading ? (
-        <div className="p-4 border-t border-sidebar-border">
-          <Skeleton className="h-12 w-full rounded-lg" />
+          {/* Message Input */}
+          {isLoading ? (
+            <div className="p-4 border-t border-sidebar-border">
+              <Skeleton className="h-12 w-full rounded-lg" />
+            </div>
+          ) : selectedChannel && (
+            <MessageInput
+              onSendMessage={handleSendMessage}
+              isLoading={isSending}
+              channelName={selectedChannel.name}
+              channelType="text"
+              className="border-t-0"
+            />
+          )}
         </div>
-      ) : selectedChannel && (
-        <MessageInput
-          onSendMessage={handleSendMessage}
-          isLoading={isSending}
-          channelName={selectedChannel.name}
-          channelType="text"
-          className="border-t-0"
-        />
-      )}
+        {showMemberList && <MemberList guildId={serverId} className="hidden md:flex" />}
+      </div>
     </div>
   )
 }

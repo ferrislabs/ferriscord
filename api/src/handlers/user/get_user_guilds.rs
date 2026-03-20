@@ -5,7 +5,7 @@ use ferriscord_entities::{guild::Guild, user::UserId};
 use ferriscord_error::{ApiError, ApiErrorResponse};
 use ferriscord_server::http::response::Response;
 use ferriscord_core::guild::domain::guild::ports::GuildService;
-use uuid::Uuid;
+use ferriscord_core::user::domain::user::ports::UserService;
 
 use crate::state::AppState;
 
@@ -35,13 +35,16 @@ pub async fn get_user_guilds(
     State(state): State<AppState>,
     Extension(identity): Extension<Identity>,
 ) -> Result<Response<Vec<Guild>>, ApiError> {
-    let user_id: UserId = identity
-        .id()
-        .parse::<Uuid>()
-        .map_err(|e| ApiError::Unknown {
-            message: format!("invalid user id: {e}"),
-        })?
-        .into();
+    // identity.id() is the oauth_sub, not the DB user UUID.
+    // We must look up the real users.id to match against members.user_id.
+    let user = state
+        .user_service
+        .get_me(identity.id())
+        .await
+        .map_err(|e| ApiError::Unknown { message: e.to_string() })?
+        .ok_or_else(|| ApiError::Unknown { message: "user not found".into() })?;
+
+    let user_id = UserId::from(user.id.0);
 
     let guilds = state
         .guild_service

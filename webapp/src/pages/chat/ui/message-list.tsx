@@ -1,12 +1,12 @@
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { cn } from "@/lib/utils";
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect, useRef } from "react";
 import { MoreHorizontal, Reply, Smile, Copy, Trash2 } from "lucide-react";
 import { FormattedMessage } from "@/components/ui/formatted-message";
 import { MessageReactions } from "@/components/ui/message-reactions";
 import type { Schemas } from "@/api/api.client";
-import { UserProfileCard, type UserCardInfo } from "@/components/chat/user-profile-card";
+import { useProfileCardStore } from "@/stores/profile-card.store";
 import { AttachmentList } from "@/components/chat/attachment-list";
 import { InviteEmbed, extractInviteCodes } from "@/components/chat/invite-embed";
 
@@ -62,20 +62,15 @@ function MessageItem({
   onDeleteMessage?: (id: string) => void;
 }) {
   const [isHovered, setIsHovered] = useState(false);
-  const [profileCard, setProfileCard] = useState<{ user: UserCardInfo; anchorRect: DOMRect } | null>(null);
+  const toggleProfile = useProfileCardStore((s) => s.toggle);
 
   const openProfile = useCallback((e: React.MouseEvent) => {
-    e.stopPropagation();
-    const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
-    setProfileCard({
-      user: {
-        id: message.author.id,
-        username: message.author.username,
-        avatarUrl: message.author.avatar ?? null,
-      },
-      anchorRect: rect,
-    });
-  }, [message.author]);
+    toggleProfile({
+      id: message.author.id,
+      username: message.author.username,
+      avatarUrl: message.author.avatar ?? null,
+    }, e);
+  }, [message.author, toggleProfile]);
 
   const initials = message.author.username[0].toUpperCase();
 
@@ -211,13 +206,6 @@ function MessageItem({
         </div>
       </div>
 
-      {profileCard && (
-        <UserProfileCard
-          user={profileCard.user}
-          anchorRect={profileCard.anchorRect}
-          onClose={() => setProfileCard(null)}
-        />
-      )}
     </div>
   );
 }
@@ -235,6 +223,18 @@ function MessageDateSeparator({ date }: { date: string }) {
 }
 
 export function MessageList({ messages, className, onDeleteMessage }: MessageListProps) {
+  const bottomRef = useRef<HTMLDivElement>(null)
+  const isFirstRender = useRef(true)
+
+  useEffect(() => {
+    if (isFirstRender.current) {
+      bottomRef.current?.scrollIntoView({ behavior: 'instant' })
+      isFirstRender.current = false
+    } else {
+      bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
+    }
+  }, [messages.length])
+
   if (messages.length === 0) {
     return (
       <div className="flex-1 flex items-center justify-center">
@@ -304,6 +304,7 @@ export function MessageList({ messages, className, onDeleteMessage }: MessageLis
             </div>
           );
         })}
+        <div ref={bottomRef} />
       </div>
     </ScrollArea>
   );
