@@ -5,6 +5,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { MessageInput } from '@/components/chat'
 import { useDmMessages, useSendDmMessage, useListDms } from '@/lib/queries/dm-queries'
 import { useWsRoom } from '@/hooks/use-ws-events'
+import { AttachmentList } from '@/components/chat/attachment-list'
 import { toast } from 'sonner'
 
 export const Route = createFileRoute('/_app/channels/@me/$channelId')({
@@ -104,21 +105,7 @@ function DMConversationPage() {
                 </span>
               </div>
               <p className="text-foreground mt-1 break-words">{msg.content}</p>
-              {msg.attachments.length > 0 && (
-                <div className="mt-2 space-y-1">
-                  {msg.attachments.map((att) => (
-                    <a
-                      key={att.id}
-                      href={att.url}
-                      target="_blank"
-                      rel="noreferrer"
-                      className="text-sm text-primary hover:underline block"
-                    >
-                      {att.filename}
-                    </a>
-                  ))}
-                </div>
-              )}
+              <AttachmentList attachments={msg.attachments} />
             </div>
           </div>
         ))}
