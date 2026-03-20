@@ -56,7 +56,7 @@ pub async fn create_role_handler(
     Json(req): Json<CreateRoleRequest>,
 ) -> Result<Response<Role>, ApiError> {
     let role = state
-        .guild_service
+        .role_service
         .create_role(
             identity,
             CreateRoleInput {

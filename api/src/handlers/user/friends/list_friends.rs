@@ -30,7 +30,7 @@ pub async fn list_friends_handler(
     Extension(identity): Extension<Identity>,
 ) -> Result<Response<Vec<Friendship>>, ApiError> {
     let friends = state
-        .user_service
+        .friend_service
         .list_friends(identity.id())
         .await
         .map_err(|e| ApiError::Unknown { message: e.to_string() })?;

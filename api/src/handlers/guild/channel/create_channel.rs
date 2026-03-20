@@ -98,7 +98,7 @@ pub async fn create_channel_handler(
     };
 
     let channel = state
-        .guild_service
+        .channel_service
         .create_channel(identity, guild_id, input)
         .await
         .map_err(|e| ApiError::Unknown {

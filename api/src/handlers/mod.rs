@@ -29,8 +29,7 @@ async fn service_auth_middleware(
         .map_err(|_| StatusCode::UNAUTHORIZED)?;
 
     let identity = state
-        .guild_service
-        .auth_repository
+        .auth
         .identify(token.as_str())
         .await
         .map_err(|e| {

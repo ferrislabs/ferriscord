@@ -40,7 +40,7 @@ pub async fn create_or_get_dm_handler(
     Json(body): Json<CreateOrGetDmBody>,
 ) -> Result<Response<DmChannel>, ApiError> {
     let dm = state
-        .user_service
+        .dm_service
         .create_or_get(identity.id(), body.recipient_id)
         .await
         .map_err(|e| ApiError::Unknown { message: e.to_string() })?;

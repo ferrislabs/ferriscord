@@ -52,7 +52,7 @@ pub async fn get_dm_messages_handler(
     let limit = query.limit.unwrap_or(50);
 
     let mut messages = state
-        .user_service
+        .dm_service
         .get_messages(identity.id(), channel_id, query.before, limit)
         .await
         .map_err(|e| ApiError::Unknown { message: e.to_string() })?;

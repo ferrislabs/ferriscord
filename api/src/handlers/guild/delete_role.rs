@@ -49,7 +49,7 @@ pub async fn delete_role_handler(
     Extension(identity): Extension<Identity>,
 ) -> Result<Response<DeleteRoleResponse>, ApiError> {
     state
-        .guild_service
+        .role_service
         .delete_role(
             identity,
             DeleteRoleInput {

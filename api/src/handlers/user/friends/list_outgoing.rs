@@ -30,7 +30,7 @@ pub async fn list_outgoing_handler(
     Extension(identity): Extension<Identity>,
 ) -> Result<Response<Vec<Friendship>>, ApiError> {
     let requests = state
-        .user_service
+        .friend_service
         .list_outgoing(identity.id())
         .await
         .map_err(|e| ApiError::Unknown { message: e.to_string() })?;

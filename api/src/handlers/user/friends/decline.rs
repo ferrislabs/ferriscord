@@ -33,7 +33,7 @@ pub async fn decline_friend_request_handler(
     Extension(identity): Extension<Identity>,
 ) -> Result<StatusCode, ApiError> {
     state
-        .user_service
+        .friend_service
         .decline(identity.id(), request_id)
         .await
         .map_err(|e| ApiError::Unknown { message: e.to_string() })?;

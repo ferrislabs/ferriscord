@@ -35,7 +35,7 @@ pub async fn accept_friend_request_handler(
     Extension(identity): Extension<Identity>,
 ) -> Result<Response<Friendship>, ApiError> {
     let friendship = state
-        .user_service
+        .friend_service
         .accept(identity.id(), request_id)
         .await
         .map_err(|e| ApiError::Unknown { message: e.to_string() })?;

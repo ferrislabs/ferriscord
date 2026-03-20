@@ -5,6 +5,8 @@ use uuid::Uuid;
 pub mod ports;
 mod services;
 
+pub use services::UserServiceImpl;
+
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct UserId(pub Uuid);
 

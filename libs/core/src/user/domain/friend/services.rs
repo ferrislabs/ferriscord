@@ -1,21 +1,17 @@
-use ferriscord_auth::AuthRepository;
 use ferriscord_entities::friendship::Friendship;
 use uuid::Uuid;
 
 use crate::user::domain::{
-    common::{CoreError, Service},
-    dm::ports::DmRepository,
+    common::CoreError,
     friend::ports::{FriendRepository, FriendService},
-    user::ports::UserRepository,
 };
 
-impl<U, A, F, D> FriendService for Service<U, A, F, D>
-where
-    U: UserRepository,
-    A: AuthRepository,
-    F: FriendRepository,
-    D: DmRepository,
-{
+#[derive(Clone)]
+pub struct FriendServiceImpl<F: FriendRepository> {
+    pub(crate) friend_repository: F,
+}
+
+impl<F: FriendRepository> FriendService for FriendServiceImpl<F> {
     async fn send_request(
         &self,
         caller_sub: &str,

@@ -108,7 +108,7 @@ pub async fn send_message_handler(
     }
 
     let mut message = state
-        .guild_service
+        .message_service
         .send_message(identity, guild_id, channel_id, content, attachment_inputs)
         .await
         .map_err(|e| ApiError::Unknown {

@@ -41,7 +41,7 @@ pub async fn send_friend_request_handler(
     Json(body): Json<SendFriendRequestBody>,
 ) -> Result<Response<Friendship>, ApiError> {
     let friendship = state
-        .user_service
+        .friend_service
         .send_request(identity.id(), &body.username)
         .await
         .map_err(|e| ApiError::Unknown { message: e.to_string() })?;

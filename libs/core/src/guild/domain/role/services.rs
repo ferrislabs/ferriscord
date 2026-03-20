@@ -1,28 +1,32 @@
-use ferriscord_auth::{AuthRepository, Identity};
+use ferriscord_auth::Identity;
 use ferriscord_entities::{guild::GuildId, role::Role};
 use ferriscord_pagination::{PaginatedResponse, PaginationBuilder, PaginationParams};
 use ferriscord_permission::{Permissions, require_permission};
 
 use crate::guild::domain::{
-    channel::ports::ChannelPort,
-    common::Service,
+    common::build_permission_context,
     errors::CoreError,
     guild::ports::GuildPort,
-    member::ports::MemberRepository,
     role::{
         entities::{CreateRoleInput, DeleteRoleInput, FindRoleInput, FindRolesInput},
         ports::{RoleRepository, RoleService},
     },
 };
 
-impl<G, A, R, M, C, Msg> RoleService for Service<G, A, R, M, C, Msg>
+#[derive(Clone)]
+pub struct RoleServiceImpl<G, R>
 where
     G: GuildPort,
-    A: AuthRepository,
     R: RoleRepository,
-    M: MemberRepository,
-    C: ChannelPort,
-    Msg: crate::guild::domain::message::ports::MessagePort,
+{
+    pub(crate) guild_repository: G,
+    pub(crate) role_repository: R,
+}
+
+impl<G, R> RoleService for RoleServiceImpl<G, R>
+where
+    G: GuildPort,
+    R: RoleRepository,
 {
     async fn create_role(
         &self,
@@ -30,17 +34,13 @@ where
         input: CreateRoleInput,
         guild_id: GuildId,
     ) -> Result<Role, CoreError> {
-        let mut permission_context = self.build_permission_context(&identity, &guild_id).await?;
+        let mut permission_context =
+            build_permission_context(&self.guild_repository, &identity, &guild_id).await?;
 
         require_permission!(permission_context, Permissions::MANAGE_ROLES);
 
         self.role_repository
-            .insert(
-                &input.name,
-                input.color.unwrap_or_default(),
-                input.permissions,
-                &guild_id,
-            )
+            .insert(&input.name, input.color.unwrap_or_default(), input.permissions, &guild_id)
             .await
     }
 
@@ -68,15 +68,10 @@ where
     ) -> Result<PaginatedResponse<Vec<Role>>, CoreError> {
         let page = input.page.unwrap_or(1);
         let per_page = input.per_page.unwrap_or(50);
-        let params = PaginationParams {
-            page: page as u32,
-            per_page: per_page as u32,
-        };
+        let params = PaginationParams { page: page as u32, per_page: per_page as u32 };
 
-        let (roles, total) = self
-            .role_repository
-            .find_by_guild_id(input.guild_id, params)
-            .await?;
+        let (roles, total) =
+            self.role_repository.find_by_guild_id(input.guild_id, params).await?;
 
         let response = PaginationBuilder::new("test").build(roles, params, total);
 

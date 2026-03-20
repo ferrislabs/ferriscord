@@ -30,7 +30,7 @@ pub async fn list_dms_handler(
     Extension(identity): Extension<Identity>,
 ) -> Result<Response<Vec<DmChannel>>, ApiError> {
     let dms = state
-        .user_service
+        .dm_service
         .list(identity.id())
         .await
         .map_err(|e| ApiError::Unknown { message: e.to_string() })?;

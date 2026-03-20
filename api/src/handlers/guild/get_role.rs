@@ -44,7 +44,7 @@ pub async fn get_role_handler(
     Extension(identity): Extension<Identity>,
 ) -> Result<Response<Role>, ApiError> {
     let role = state
-        .guild_service
+        .role_service
         .find_role(
             identity,
             FindRoleInput {

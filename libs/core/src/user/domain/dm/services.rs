@@ -1,21 +1,17 @@
-use ferriscord_auth::AuthRepository;
 use ferriscord_entities::{friendship::DmChannel, message::Message};
 use uuid::Uuid;
 
 use crate::user::domain::{
-    common::{CoreError, Service},
+    common::CoreError,
     dm::ports::{DmAttachmentInput, DmRepository, DmService},
-    friend::ports::FriendRepository,
-    user::ports::UserRepository,
 };
 
-impl<U, A, F, D> DmService for Service<U, A, F, D>
-where
-    U: UserRepository,
-    A: AuthRepository,
-    F: FriendRepository,
-    D: DmRepository,
-{
+#[derive(Clone)]
+pub struct DmServiceImpl<D: DmRepository> {
+    pub(crate) dm_repository: D,
+}
+
+impl<D: DmRepository> DmService for DmServiceImpl<D> {
     async fn create_or_get(
         &self,
         caller_sub: &str,

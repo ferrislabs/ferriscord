@@ -1,25 +1,4 @@
-use ferriscord_auth::AuthRepository;
 use thiserror::Error;
-
-use crate::user::domain::{
-    dm::ports::DmRepository,
-    friend::ports::FriendRepository,
-    user::ports::UserRepository,
-};
-
-#[derive(Clone)]
-pub struct Service<U, A, F, D>
-where
-    U: UserRepository,
-    A: AuthRepository,
-    F: FriendRepository,
-    D: DmRepository,
-{
-    pub(crate) user_repository: U,
-    pub auth_repository: A,
-    pub(crate) friend_repository: F,
-    pub(crate) dm_repository: D,
-}
 
 #[derive(Debug, Error)]
 pub enum CoreError {

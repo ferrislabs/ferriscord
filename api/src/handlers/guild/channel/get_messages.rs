@@ -69,7 +69,7 @@ pub async fn get_messages_handler(
     let limit = query.limit.unwrap_or(50);
 
     let mut messages = state
-        .guild_service
+        .message_service
         .get_channel_messages(identity, guild_id, channel_id, before, limit)
         .await
         .map_err(|e| ApiError::Unknown {

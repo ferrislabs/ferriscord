@@ -33,7 +33,7 @@ pub async fn remove_friend_handler(
     Extension(identity): Extension<Identity>,
 ) -> Result<StatusCode, ApiError> {
     state
-        .user_service
+        .friend_service
         .remove(identity.id(), user_id)
         .await
         .map_err(|e| ApiError::Unknown { message: e.to_string() })?;

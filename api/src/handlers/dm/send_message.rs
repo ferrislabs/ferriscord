@@ -96,7 +96,7 @@ pub async fn send_dm_message_handler(
     }
 
     let mut message = state
-        .user_service
+        .dm_service
         .send_message(identity.id(), channel_id, content, attachment_inputs)
         .await
         .map_err(|e| ApiError::Unknown { message: e.to_string() })?;

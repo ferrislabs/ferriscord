@@ -43,7 +43,7 @@ pub async fn get_channels_handler(
     let guild_id = GuildId(Id(guild_id));
 
     let channels = state
-        .guild_service
+        .channel_service
         .get_guild_channels(identity, guild_id)
         .await
         .map_err(|e| ApiError::Unknown {
