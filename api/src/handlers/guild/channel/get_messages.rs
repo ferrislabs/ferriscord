@@ -1,3 +1,5 @@
+use std::time::Duration;
+
 use axum::{Extension, extract::State};
 use axum_extra::routing::TypedPath;
 use ferriscord_auth::Identity;
@@ -10,7 +12,9 @@ use ferriscord_entities::{
 use ferriscord_error::ApiError;
 use ferriscord_server::http::response::Response;
 use ferriscord_core::guild::domain::message::ports::MessageService;
+use ferriscord_storage::StoragePort;
 use serde::Deserialize;
+use tracing::error;
 use utoipa::IntoParams;
 use uuid::Uuid;
 
@@ -64,13 +68,33 @@ pub async fn get_messages_handler(
     let before = query.before.map(|id| MessageId(Id(id)));
     let limit = query.limit.unwrap_or(50);
 
-    let messages = state
+    let mut messages = state
         .guild_service
         .get_channel_messages(identity, guild_id, channel_id, before, limit)
         .await
         .map_err(|e| ApiError::Unknown {
             message: e.to_string(),
         })?;
+
+    // Populate presigned URLs for attachments
+    let bucket = &state.args.storage.bucket;
+    for message in &mut messages {
+        for attachment in &mut message.attachments {
+            match state
+                .storage
+                .presigned_get_url(bucket, &attachment.storage_key, Duration::from_secs(3600))
+                .await
+            {
+                Ok(url) => attachment.url = url,
+                Err(e) => {
+                    error!(
+                        "failed to generate presigned URL for '{}': {}",
+                        attachment.storage_key, e
+                    );
+                }
+            }
+        }
+    }
 
     Ok(Response::OK(messages))
 }

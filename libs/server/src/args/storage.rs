@@ -45,6 +45,15 @@ pub struct StorageArgs {
         long_help = "Force path-style URLs (required for Garage, RustFS, MinIO)"
     )]
     pub force_path_style: bool,
+
+    #[arg(
+        long = "storage-bucket",
+        env = "STORAGE_BUCKET",
+        name = "STORAGE_BUCKET",
+        default_value = "ferriscord",
+        long_help = "S3 bucket name"
+    )]
+    pub bucket: String,
 }
 
 impl From<StorageArgs> for StorageConfig {
@@ -55,6 +64,7 @@ impl From<StorageArgs> for StorageConfig {
             access_key_id: args.access_key_id,
             secret_access_key: args.secret_access_key,
             force_path_style: args.force_path_style,
+            bucket: args.bucket,
         }
     }
 }

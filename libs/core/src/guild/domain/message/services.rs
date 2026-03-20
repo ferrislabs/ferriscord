@@ -15,7 +15,7 @@ use crate::guild::domain::{
     role::ports::RoleRepository,
 };
 
-use super::ports::{MessagePort, MessageService};
+use super::ports::{AttachmentInput, MessagePort, MessageService};
 
 impl<G, A, R, M, C, Msg> MessageService for Service<G, A, R, M, C, Msg>
 where
@@ -50,6 +50,7 @@ where
         guild_id: GuildId,
         channel_id: ChannelId,
         content: String,
+        attachments: Vec<AttachmentInput>,
     ) -> Result<Message, CoreError> {
         let mut permission_context =
             self.build_permission_context(&identity, &guild_id).await?;
@@ -58,7 +59,7 @@ where
 
         // Pass the JWT sub directly; the repository resolves it to a user UUID via oauth_sub
         self.message_repository
-            .insert(&channel_id, identity.id(), content)
+            .insert(&channel_id, identity.id(), content, attachments)
             .await
     }
 }

@@ -27,14 +27,15 @@ function ChannelPage() {
   const selectedChannel = channels.find((ch) => ch.id === channelId)
   const isLoading = isLoadingChannels
 
-  const handleSendMessage = (content: string) => {
-    sendMessage({ path: { guild_id: serverId, channel_id: channelId }, body: { content } })
+  const handleSendMessage = (content: string, files?: File[]) => {
+    sendMessage({ content, files })
   }
 
   // Map API messages to MessageList format
   const formattedMessages = messages.map((msg) => ({
     id: msg.id,
     content: msg.content,
+    attachments: msg.attachments,
     author: {
       id: msg.author.id,
       username: msg.author.username,

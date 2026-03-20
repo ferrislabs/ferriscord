@@ -9,6 +9,16 @@ export namespace Schemas {
     message: string
     status: number
   }
+  export type Id = string
+  export type Attachment = {
+    content_type: string
+    created_at: string
+    filename: string
+    id: Id
+    size_bytes: number
+    url: string
+  }
+  export type AttachmentId = Id
   export type AutoArchiveDuration =
     | 'OneHour'
     | 'OneDay'
@@ -28,7 +38,6 @@ export namespace Schemas {
   }>
   export type SortOrder = 'LatestActivity' | 'CreationDate'
   export type ChannelFlags = number
-  export type Id = string
   export type ChannelKind =
     | 'Text'
     | 'Voice'
@@ -123,6 +132,7 @@ export namespace Schemas {
     username: string
   }
   export type Message = {
+    attachments: Array<Attachment>
     author: MessageAuthor
     channel_id: Id
     content: string
@@ -133,7 +143,6 @@ export namespace Schemas {
   export type MessageId = Id
   export type OwnerId = Id
   export type RoleId = Id
-  export type SendMessageRequest = { content: string }
   export type UserId = Id
 
   // </Schemas>
@@ -229,8 +238,6 @@ export namespace Endpoints {
     requestFormat: 'json'
     parameters: {
       path: { guild_id: string; channel_id: string }
-
-      body: Schemas.SendMessageRequest
     }
     responses: {
       201: Schemas.Message

@@ -2,12 +2,22 @@ use std::future::Future;
 
 use ferriscord_auth::Identity;
 use ferriscord_entities::{
+    attachment::AttachmentId,
     channel::ChannelId,
     guild::GuildId,
     message::{Message, MessageId},
 };
 
 use crate::guild::domain::errors::CoreError;
+
+/// Data needed to persist one attachment (files already uploaded to S3 by the handler).
+pub struct AttachmentInput {
+    pub id: AttachmentId,
+    pub filename: String,
+    pub content_type: String,
+    pub size_bytes: i64,
+    pub storage_key: String,
+}
 
 pub trait MessagePort: Send + Sync {
     /// `author_sub` is the JWT `sub` claim (oauth_sub in the users table).
@@ -16,6 +26,7 @@ pub trait MessagePort: Send + Sync {
         channel_id: &ChannelId,
         author_sub: &str,
         content: String,
+        attachments: Vec<AttachmentInput>,
     ) -> impl Future<Output = Result<Message, CoreError>> + Send;
 
     fn list_by_channel(
@@ -42,5 +53,6 @@ pub trait MessageService: Send + Sync {
         guild_id: GuildId,
         channel_id: ChannelId,
         content: String,
+        attachments: Vec<AttachmentInput>,
     ) -> impl Future<Output = Result<Message, CoreError>> + Send;
 }

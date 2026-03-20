@@ -3,7 +3,7 @@ use serde::{Deserialize, Serialize};
 use utoipa::ToSchema;
 use uuid::Uuid;
 
-use crate::{channel::ChannelId, user::UserId, Id};
+use crate::{attachment::Attachment, channel::ChannelId, user::UserId, Id};
 
 // ─── MessageId ───────────────────────────────────────────────────────────────
 
@@ -49,6 +49,7 @@ pub struct Message {
     pub channel_id: ChannelId,
     pub author: MessageAuthor,
     pub content: String,
+    pub attachments: Vec<Attachment>,
     pub edited_at: Option<DateTime<Utc>>,
     pub created_at: DateTime<Utc>,
 }

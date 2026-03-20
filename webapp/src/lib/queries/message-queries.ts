@@ -22,22 +22,31 @@ export function useChannelMessages(
 
 export function useSendMessage(guildId: string, channelId: string) {
   const queryClient = useQueryClient()
-  const { mutationOptions } = window.tanstackApi.mutation(
-    'post',
-    '/guilds/{guild_id}/channels/{channel_id}/messages',
-  )
+  const { mutationOptions, queryKey: messagesQueryKey } = {
+    ...window.tanstackApi.mutation(
+      'post',
+      '/guilds/{guild_id}/channels/{channel_id}/messages',
+    ),
+    queryKey: window.tanstackApi.get(
+      '/guilds/{guild_id}/channels/{channel_id}/messages',
+      { path: { guild_id: guildId, channel_id: channelId } },
+    ).queryKey,
+  }
 
   return useMutation({
     ...mutationOptions,
-    onSuccess: () => {
-      queryClient.invalidateQueries({
-        queryKey: [
-          {
-            _id: '/guilds/{guild_id}/channels/{channel_id}/messages',
-            path: { guild_id: guildId, channel_id: channelId },
-          },
-        ],
+    mutationFn: ({ content, files }: { content: string; files?: File[] }) => {
+      const formData = new FormData()
+      formData.append('content', content)
+      files?.forEach((file) => formData.append('files', file))
+
+      return mutationOptions.mutationFn({
+        path: { guild_id: guildId, channel_id: channelId },
+        overrides: { body: formData },
       })
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: messagesQueryKey })
     },
   })
 }

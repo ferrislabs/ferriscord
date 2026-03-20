@@ -22,7 +22,7 @@ tokio = { version = "1.47.1", features = ["macros", "rt-multi-thread"] }
 tracing = "0.1.41"
 tracing-subscriber = { version = "0.3.20", features = ["env-filter", "json"] }
 url = "2.5.7"
-axum = "0.8.6"
+axum = { version = "0.8.6", features = ["multipart"] }
 tower-http = { version = "0.6.6", features = ["cors", "trace"] }
 axum-extra = { version = "0.10.3", features = ["typed-routing"] }
 serde = "1.0.228"

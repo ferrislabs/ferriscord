@@ -19,4 +19,5 @@ pub struct StorageConfig {
     pub access_key_id: String,
     pub secret_access_key: String,
     pub force_path_style: bool,
+    pub bucket: String,
 }

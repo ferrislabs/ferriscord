@@ -1,14 +1,182 @@
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { cn } from "@/lib/utils";
-import { useState } from "react";
-import { MoreHorizontal, Reply, Smile, Copy } from "lucide-react";
+import { useState, useEffect } from "react";
+import { MoreHorizontal, Reply, Smile, Copy, Download, FileText, ChevronDown, ChevronUp, X, ZoomIn } from "lucide-react";
 import { FormattedMessage } from "@/components/ui/formatted-message";
 import { MessageReactions } from "@/components/ui/message-reactions";
+import type { Schemas } from "@/api/api.client";
+
+// ─── Text attachment preview ──────────────────────────────────────────────────
+
+const TEXT_PREVIEWABLE_TYPES = new Set([
+  "application/json",
+  "application/xml",
+  "application/yaml",
+  "application/x-yaml",
+  "application/toml",
+]);
+
+const TEXT_PREVIEWABLE_EXTS = new Set([
+  "txt", "md", "mdx", "rst", "json", "xml", "yaml", "yml", "toml", "csv",
+  "rs", "py", "js", "ts", "jsx", "tsx", "go", "java", "c", "cpp", "h",
+  "css", "html", "sh", "bash", "zsh", "fish", "env", "ini", "conf", "log",
+]);
+
+function isTextPreviewable(contentType: string, filename: string): boolean {
+  if (contentType.startsWith("text/")) return true;
+  if (TEXT_PREVIEWABLE_TYPES.has(contentType)) return true;
+  const ext = filename.split(".").pop()?.toLowerCase() ?? "";
+  return TEXT_PREVIEWABLE_EXTS.has(ext);
+}
+
+const PREVIEW_CHARS = 600;
+
+function TextAttachmentPreview({ att }: { att: Schemas.Attachment }) {
+  const [text, setText] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [expanded, setExpanded] = useState(false);
+
+  useEffect(() => {
+    let cancelled = false;
+    fetch(att.url)
+      .then((r) => r.text())
+      .then((t) => { if (!cancelled) { setText(t); setLoading(false); } })
+      .catch(() => { if (!cancelled) { setText(null); setLoading(false); } });
+    return () => { cancelled = true; };
+  }, [att.url]);
+
+  const preview = text === null ? null : expanded ? text : text.slice(0, PREVIEW_CHARS);
+  const isTruncated = text !== null && text.length > PREVIEW_CHARS;
+
+  return (
+    <div className="max-w-sm w-full border border-gray-200 rounded-lg overflow-hidden text-sm">
+      {/* Header */}
+      <div className="flex items-center justify-between gap-2 px-3 py-2 bg-gray-100 border-b border-gray-200">
+        <div className="flex items-center gap-2 min-w-0">
+          <FileText className="w-4 h-4 flex-shrink-0 text-gray-500" />
+          <span className="font-medium text-gray-700 truncate">{att.filename}</span>
+        </div>
+        <a
+          href={att.url}
+          download={att.filename}
+          className="flex-shrink-0 text-gray-400 hover:text-gray-600 transition-colors"
+          title="Download"
+        >
+          <Download className="w-4 h-4" />
+        </a>
+      </div>
+
+      {/* Body */}
+      <div className="bg-gray-50 px-3 py-2">
+        {loading && (
+          <span className="text-xs text-gray-400">Loading preview…</span>
+        )}
+        {!loading && text === null && (
+          <span className="text-xs text-gray-400">Preview unavailable</span>
+        )}
+        {preview !== null && (
+          <>
+            <pre className="text-xs text-gray-700 font-mono whitespace-pre-wrap break-all max-h-48 overflow-y-auto leading-relaxed">
+              {preview}
+            </pre>
+            {isTruncated && (
+              <button
+                onClick={() => setExpanded((v) => !v)}
+                className="mt-1.5 flex items-center gap-1 text-xs text-blue-500 hover:text-blue-700 transition-colors"
+              >
+                {expanded ? (
+                  <><ChevronUp className="w-3 h-3" /> Show less</>
+                ) : (
+                  <><ChevronDown className="w-3 h-3" /> Show more ({text.length - PREVIEW_CHARS} more chars)</>
+                )}
+              </button>
+            )}
+          </>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// ─── Image lightbox ───────────────────────────────────────────────────────────
+
+function ImageLightbox({
+  src,
+  alt,
+  onClose,
+}: {
+  src: string;
+  alt: string;
+  onClose: () => void;
+}) {
+  const [visible, setVisible] = useState(false);
+
+  // Trigger enter animation on mount
+  useEffect(() => {
+    const id = requestAnimationFrame(() => setVisible(true));
+    return () => cancelAnimationFrame(id);
+  }, []);
+
+  // Close on Escape
+  useEffect(() => {
+    const handle = (e: KeyboardEvent) => { if (e.key === "Escape") onClose(); };
+    document.addEventListener("keydown", handle);
+    return () => document.removeEventListener("keydown", handle);
+  }, [onClose]);
+
+  // Prevent body scroll
+  useEffect(() => {
+    document.body.style.overflow = "hidden";
+    return () => { document.body.style.overflow = ""; };
+  }, []);
+
+  return (
+    <div
+      className={cn(
+        "fixed inset-0 z-50 flex items-center justify-center transition-all duration-200",
+        visible ? "bg-black/85 backdrop-blur-sm" : "bg-black/0 backdrop-blur-none",
+      )}
+      onClick={onClose}
+    >
+      {/* Image container */}
+      <div
+        className={cn(
+          "relative transition-all duration-200",
+          visible ? "opacity-100 scale-100" : "opacity-0 scale-95",
+        )}
+        onClick={(e) => e.stopPropagation()}
+      >
+        <img
+          src={src}
+          alt={alt}
+          className="max-w-[90vw] max-h-[90vh] rounded-lg shadow-2xl object-contain"
+        />
+
+        {/* Close button */}
+        <button
+          onClick={onClose}
+          className="absolute top-2 right-2 w-8 h-8 bg-black/60 hover:bg-black/80 text-white rounded-full flex items-center justify-center transition-colors"
+          aria-label="Close"
+        >
+          <X className="w-4 h-4" />
+        </button>
+
+        {/* Filename */}
+        {alt && (
+          <div className="absolute bottom-2 left-1/2 -translate-x-1/2 px-3 py-1 bg-black/60 text-white text-xs rounded-full max-w-xs truncate">
+            {alt}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
 
 interface Message {
   id: string;
   content: string;
+  attachments?: Schemas.Attachment[];
   author: {
     id: string;
     username: string;
@@ -53,6 +221,7 @@ function MessageItem({
   showTimestamp: boolean;
 }) {
   const [isHovered, setIsHovered] = useState(false);
+  const [lightboxSrc, setLightboxSrc] = useState<{ src: string; alt: string } | null>(null);
 
   const initials = message.author.username
     .split(" ")
@@ -151,6 +320,67 @@ function MessageItem({
             className="text-gray-800 text-[15px] leading-5"
           />
 
+          {/* Attachments */}
+          {message.attachments && message.attachments.length > 0 && (
+            <div className="mt-2 flex flex-wrap gap-2">
+              {message.attachments.map((att) => {
+                const isImage = att.content_type.startsWith("image/");
+                const isVideo = att.content_type.startsWith("video/");
+                const isText = isTextPreviewable(att.content_type, att.filename);
+
+                if (isImage) {
+                  return (
+                    <button
+                      key={att.id}
+                      type="button"
+                      className="group relative block rounded-lg overflow-hidden border border-gray-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
+                      onClick={() => setLightboxSrc({ src: att.url, alt: att.filename })}
+                    >
+                      <img
+                        src={att.url}
+                        alt={att.filename}
+                        className="max-w-xs max-h-72 object-cover transition-transform duration-200 group-hover:scale-[1.02]"
+                      />
+                      <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors duration-200 flex items-center justify-center">
+                        <ZoomIn className="w-6 h-6 text-white opacity-0 group-hover:opacity-100 drop-shadow transition-opacity duration-200" />
+                      </div>
+                    </button>
+                  );
+                }
+
+                if (isVideo) {
+                  return (
+                    <video
+                      key={att.id}
+                      src={att.url}
+                      controls
+                      className="max-w-xs max-h-72 rounded-lg border border-gray-200"
+                    />
+                  );
+                }
+
+                if (isText) {
+                  return <TextAttachmentPreview key={att.id} att={att} />;
+                }
+
+                return (
+                  <a
+                    key={att.id}
+                    href={att.url}
+                    download={att.filename}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex items-center gap-2 px-3 py-2 bg-gray-100 hover:bg-gray-200 rounded-lg border border-gray-200 text-sm text-gray-700 transition-colors max-w-xs"
+                  >
+                    <FileText className="w-4 h-4 flex-shrink-0 text-gray-500" />
+                    <span className="truncate flex-1">{att.filename}</span>
+                    <Download className="w-4 h-4 flex-shrink-0 text-gray-400" />
+                  </a>
+                );
+              })}
+            </div>
+          )}
+
           {/* Message reactions */}
           {message.reactions && message.reactions.length > 0 && (
             <MessageReactions
@@ -168,6 +398,14 @@ function MessageItem({
           )}
         </div>
       </div>
+
+      {lightboxSrc && (
+        <ImageLightbox
+          src={lightboxSrc.src}
+          alt={lightboxSrc.alt}
+          onClose={() => setLightboxSrc(null)}
+        />
+      )}
     </div>
   );
 }
