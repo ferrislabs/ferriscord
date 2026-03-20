@@ -144,6 +144,14 @@ export namespace Schemas {
   export type OwnerId = Id
   export type RoleId = Id
   export type UserId = Id
+  export type UserProfile = {
+    avatar_url?: (string | null) | undefined
+    created_at: string
+    display_name?: (string | null) | undefined
+    id: string
+    updated_at: string
+    username: string
+  }
 
   // </Schemas>
 }
@@ -309,6 +317,30 @@ export namespace Endpoints {
       500: Schemas.ApiError
     }
   }
+  export type get_Get_me_handler = {
+    method: 'GET'
+    path: '/users/@me'
+    requestFormat: 'json'
+    parameters: never
+    responses: {
+      200: Schemas.UserProfile
+      401: Schemas.ApiError
+      404: Schemas.ApiError
+      500: Schemas.ApiError
+    }
+  }
+  export type patch_Update_profile_handler = {
+    method: 'PATCH'
+    path: '/users/@me'
+    requestFormat: 'json'
+    parameters: never
+    responses: {
+      200: Schemas.UserProfile
+      400: Schemas.ApiError
+      401: Schemas.ApiError
+      500: Schemas.ApiError
+    }
+  }
   export type get_Get_user_guilds = {
     method: 'GET'
     path: '/users/@me/guilds'
@@ -343,7 +375,11 @@ export type EndpointByMethod = {
     '/guilds/{guild_id}/channels/{channel_id}/messages': Endpoints.get_Get_messages_handler
     '/guilds/{guild_id}/roles': Endpoints.get_Get_roles_handler
     '/guilds/{guild_id}/roles/{role_id}': Endpoints.get_Get_role_handler
+    '/users/@me': Endpoints.get_Get_me_handler
     '/users/@me/guilds': Endpoints.get_Get_user_guilds
+  }
+  patch: {
+    '/users/@me': Endpoints.patch_Update_profile_handler
   }
 }
 
@@ -353,6 +389,7 @@ export type EndpointByMethod = {
 export type PostEndpoints = EndpointByMethod['post']
 export type DeleteEndpoints = EndpointByMethod['delete']
 export type GetEndpoints = EndpointByMethod['get']
+export type PatchEndpoints = EndpointByMethod['patch']
 // </EndpointByMethod.Shorthands>
 
 // <ApiClientTypes>
@@ -837,6 +874,72 @@ export class ApiClient {
     return this.request('get', path, ...params)
   }
   // </ApiClient.get>
+
+  // <ApiClient.patch>
+  patch<
+    Path extends keyof PatchEndpoints,
+    TEndpoint extends PatchEndpoints[Path],
+  >(
+    path: Path,
+    ...params: MaybeOptionalArg<
+      TEndpoint extends { parameters: infer UParams }
+        ? NotNever<UParams> extends true
+          ? UParams & {
+              overrides?: RequestInit
+              withResponse?: false
+              throwOnStatusError?: boolean
+            }
+          : {
+              overrides?: RequestInit
+              withResponse?: false
+              throwOnStatusError?: boolean
+            }
+        : {
+            overrides?: RequestInit
+            withResponse?: false
+            throwOnStatusError?: boolean
+          }
+    >
+  ): Promise<
+    Extract<
+      InferResponseByStatus<TEndpoint, SuccessStatusCode>,
+      { data: {} }
+    >['data']
+  >
+
+  patch<
+    Path extends keyof PatchEndpoints,
+    TEndpoint extends PatchEndpoints[Path],
+  >(
+    path: Path,
+    ...params: MaybeOptionalArg<
+      TEndpoint extends { parameters: infer UParams }
+        ? NotNever<UParams> extends true
+          ? UParams & {
+              overrides?: RequestInit
+              withResponse?: true
+              throwOnStatusError?: boolean
+            }
+          : {
+              overrides?: RequestInit
+              withResponse?: true
+              throwOnStatusError?: boolean
+            }
+        : {
+            overrides?: RequestInit
+            withResponse?: true
+            throwOnStatusError?: boolean
+          }
+    >
+  ): Promise<SafeApiResponse<TEndpoint>>
+
+  patch<
+    Path extends keyof PatchEndpoints,
+    _TEndpoint extends PatchEndpoints[Path],
+  >(path: Path, ...params: MaybeOptionalArg<any>): Promise<any> {
+    return this.request('patch', path, ...params)
+  }
+  // </ApiClient.patch>
 
   // <ApiClient.request>
   /**

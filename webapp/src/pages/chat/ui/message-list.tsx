@@ -1,11 +1,12 @@
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { cn } from "@/lib/utils";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { MoreHorizontal, Reply, Smile, Copy, Download, FileText, ChevronDown, ChevronUp, X, ZoomIn } from "lucide-react";
 import { FormattedMessage } from "@/components/ui/formatted-message";
 import { MessageReactions } from "@/components/ui/message-reactions";
 import type { Schemas } from "@/api/api.client";
+import { UserProfileCard, type UserCardInfo } from "@/components/chat/user-profile-card";
 
 // ─── Text attachment preview ──────────────────────────────────────────────────
 
@@ -222,6 +223,20 @@ function MessageItem({
 }) {
   const [isHovered, setIsHovered] = useState(false);
   const [lightboxSrc, setLightboxSrc] = useState<{ src: string; alt: string } | null>(null);
+  const [profileCard, setProfileCard] = useState<{ user: UserCardInfo; anchorRect: DOMRect } | null>(null);
+
+  const openProfile = useCallback((e: React.MouseEvent) => {
+    e.stopPropagation();
+    const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
+    setProfileCard({
+      user: {
+        id: message.author.id,
+        username: message.author.username,
+        avatarUrl: message.author.avatar ?? null,
+      },
+      anchorRect: rect,
+    });
+  }, [message.author]);
 
   const initials = message.author.username
     .split(" ")
@@ -288,12 +303,14 @@ function MessageItem({
         {/* Avatar column */}
         <div className="w-10 flex-shrink-0 mr-4">
           {!isGrouped && (
-            <Avatar className="w-10 h-10 cursor-pointer hover:opacity-80 transition-opacity">
-              <AvatarImage src={message.author.avatar} alt={message.author.username} />
-              <AvatarFallback className="text-xs font-medium bg-indigo-500 text-white">
-                {initials}
-              </AvatarFallback>
-            </Avatar>
+            <button type="button" onClick={openProfile} className="rounded-full focus:outline-none">
+              <Avatar className="w-10 h-10 cursor-pointer hover:opacity-80 transition-opacity">
+                <AvatarImage src={message.author.avatar} alt={message.author.username} />
+                <AvatarFallback className="text-xs font-medium bg-indigo-500 text-white">
+                  {initials}
+                </AvatarFallback>
+              </Avatar>
+            </button>
           )}
           {isGrouped && showTimestamp && (
             <div className="text-xs text-gray-400 text-right opacity-0 group-hover:opacity-100 transition-opacity pt-0.5">
@@ -306,14 +323,19 @@ function MessageItem({
         <div className="flex-1 min-w-0">
           {!isGrouped && (
             <div className="flex items-baseline mb-1">
-              <span className="font-semibold text-gray-900 text-sm hover:underline cursor-pointer">
+              <button
+                type="button"
+                onClick={openProfile}
+                className="font-semibold text-gray-900 text-sm hover:underline cursor-pointer focus:outline-none"
+              >
                 {message.author.username}
-              </span>
+              </button>
               <span className="text-xs text-gray-500 ml-2">
                 {formatDate(message.timestamp)} at {formatTime(message.timestamp)}
               </span>
             </div>
           )}
+
 
           <FormattedMessage
             content={message.content}
@@ -404,6 +426,14 @@ function MessageItem({
           src={lightboxSrc.src}
           alt={lightboxSrc.alt}
           onClose={() => setLightboxSrc(null)}
+        />
+      )}
+
+      {profileCard && (
+        <UserProfileCard
+          user={profileCard.user}
+          anchorRect={profileCard.anchorRect}
+          onClose={() => setProfileCard(null)}
         />
       )}
     </div>

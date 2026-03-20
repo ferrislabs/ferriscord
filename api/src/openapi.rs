@@ -15,7 +15,11 @@ use super::handlers::{
         get_role::__path_get_role_handler,
         get_roles::__path_get_roles_handler,
     },
-    user::get_user_guilds::__path_get_user_guilds,
+    user::{
+        get_me::__path_get_me_handler,
+        get_user_guilds::__path_get_user_guilds,
+        update_profile::__path_update_profile_handler,
+    },
 };
 
 #[derive(OpenApi)]
@@ -33,6 +37,8 @@ use super::handlers::{
         get_messages_handler,
         send_message_handler,
         get_user_guilds,
+        get_me_handler,
+        update_profile_handler,
     )
 )]
 pub struct ApiDoc;

@@ -1,3 +1,4 @@
+use chrono::Utc;
 use sqlx::{PgPool, query_as};
 
 use crate::user::domain::{
@@ -7,7 +8,6 @@ use crate::user::domain::{
 
 #[derive(Clone)]
 pub struct PostgresUserRepository {
-    #[allow(dead_code)]
     pool: PgPool,
 }
 
@@ -22,9 +22,7 @@ impl UserRepository for PostgresUserRepository {
         let user = query_as!(User, "SELECT * FROM users WHERE id=$1", id.0)
             .fetch_optional(&self.pool)
             .await
-            .map_err(|e| CoreError::InternalServerError {
-                message: e.to_string(),
-            })?;
+            .map_err(|e| CoreError::InternalServerError { message: e.to_string() })?;
 
         Ok(user)
     }
@@ -33,9 +31,7 @@ impl UserRepository for PostgresUserRepository {
         let user = query_as!(User, "SELECT * FROM users WHERE oauth_sub=$1", sub)
             .fetch_optional(&self.pool)
             .await
-            .map_err(|e| CoreError::InternalServerError {
-                message: e.to_string(),
-            })?;
+            .map_err(|e| CoreError::InternalServerError { message: e.to_string() })?;
 
         Ok(user)
     }
@@ -55,10 +51,41 @@ impl UserRepository for PostgresUserRepository {
         )
         .execute(&self.pool)
         .await
-        .map_err(|e| CoreError::InternalServerError {
-            message: e.to_string(),
-        })?;
+        .map_err(|e| CoreError::InternalServerError { message: e.to_string() })?;
 
         Ok(())
+    }
+
+    async fn update_profile(
+        &self,
+        sub: &str,
+        display_name: Option<String>,
+        avatar_url: Option<String>,
+    ) -> Result<User, CoreError> {
+        let now = Utc::now();
+
+        // display_name is always updated (None = clear it).
+        // avatar_url uses COALESCE so None keeps the current value.
+        let user = query_as!(
+            User,
+            r#"
+            UPDATE users
+            SET
+                display_name = $1,
+                avatar_url   = COALESCE($2, avatar_url),
+                updated_at   = $3
+            WHERE oauth_sub = $4
+            RETURNING *
+            "#,
+            display_name,
+            avatar_url,
+            now,
+            sub,
+        )
+        .fetch_one(&self.pool)
+        .await
+        .map_err(|e| CoreError::InternalServerError { message: e.to_string() })?;
+
+        Ok(user)
     }
 }

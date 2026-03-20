@@ -38,6 +38,8 @@ import { Skeleton } from '@/components/ui/skeleton'
 import { useState, useEffect } from 'react'
 import { toast } from 'sonner'
 import type { Schemas } from '@/api/api.client'
+import { ProfileDialog } from '@/components/layout/profile-dialog'
+import { useGetMe } from '@/lib/queries/user-queries'
 
 // Mock DM users
 const mockDMUsers = [
@@ -250,9 +252,11 @@ export function AppSidebar() {
   const navigate = useNavigate()
   const matchRoute = useMatchRoute()
   const { user, signOut } = useAuth()
+  const { data: profile } = useGetMe()
 
   const [createDialogOpen, setCreateDialogOpen] = useState(false)
   const [createDialogDefaultKind, setCreateDialogDefaultKind] = useState<ChannelKind>('Text')
+  const [profileDialogOpen, setProfileDialogOpen] = useState(false)
 
   const isDMRoute =
     matchRoute({ to: '/channels/@me' }) ||
@@ -284,6 +288,7 @@ export function AppSidebar() {
   // DM Sidebar
   if (isDMRoute) {
     return (
+      <>
       <Sidebar>
         <SidebarHeader>
           <div className='flex items-center justify-between px-2 h-8'>
@@ -354,9 +359,9 @@ export function AppSidebar() {
           <div className='flex items-center space-x-2'>
             <div className='relative'>
               <Avatar className='h-8 w-8'>
-                <AvatarImage src={user?.avatar} alt={user?.preferred_username} />
+                <AvatarImage src={profile?.avatar_url ?? user?.avatar} alt={profile?.display_name ?? user?.preferred_username} />
                 <AvatarFallback className='bg-primary text-primary-foreground text-xs'>
-                  {user?.preferred_username?.slice(0, 2).toUpperCase() || 'U'}
+                  {(profile?.display_name ?? user?.preferred_username)?.slice(0, 2).toUpperCase() || 'U'}
                 </AvatarFallback>
               </Avatar>
               <div
@@ -368,11 +373,16 @@ export function AppSidebar() {
             </div>
             <div className='flex-1 min-w-0'>
               <div className='text-sm font-medium text-foreground truncate'>
-                {user?.preferred_username || 'Unknown User'}
+                {profile?.display_name ?? user?.preferred_username ?? 'Unknown User'}
               </div>
             </div>
             <div className='flex space-x-1'>
-              <Button variant='ghost' size='icon' className='h-8 w-8 text-muted-foreground hover:text-foreground'>
+              <Button
+                variant='ghost'
+                size='icon'
+                className='h-8 w-8 text-muted-foreground hover:text-foreground'
+                onClick={() => setProfileDialogOpen(true)}
+              >
                 <Settings className='h-4 w-4' />
               </Button>
               <Button
@@ -387,6 +397,8 @@ export function AppSidebar() {
           </div>
         </SidebarFooter>
       </Sidebar>
+      <ProfileDialog open={profileDialogOpen} onOpenChange={setProfileDialogOpen} />
+    </>
     )
   }
 
@@ -525,9 +537,9 @@ export function AppSidebar() {
           <div className='flex items-center space-x-2'>
             <div className='relative'>
               <Avatar className='h-8 w-8'>
-                <AvatarImage src={user?.avatar} alt={user?.preferred_username} />
+                <AvatarImage src={profile?.avatar_url ?? user?.avatar} alt={profile?.display_name ?? user?.preferred_username} />
                 <AvatarFallback className='bg-primary text-primary-foreground text-xs'>
-                  {user?.preferred_username?.slice(0, 2).toUpperCase() || 'U'}
+                  {(profile?.display_name ?? user?.preferred_username)?.slice(0, 2).toUpperCase() || 'U'}
                 </AvatarFallback>
               </Avatar>
               <div
@@ -539,7 +551,7 @@ export function AppSidebar() {
             </div>
             <div className='flex-1 min-w-0'>
               <div className='text-sm font-medium text-foreground truncate'>
-                {user?.preferred_username || 'Unknown User'}
+                {profile?.display_name ?? user?.preferred_username ?? 'Unknown User'}
               </div>
             </div>
             <div className='flex space-x-1'>
@@ -547,6 +559,7 @@ export function AppSidebar() {
                 variant='ghost'
                 size='icon'
                 className='h-8 w-8 text-muted-foreground hover:text-foreground'
+                onClick={() => setProfileDialogOpen(true)}
               >
                 <Settings className='h-4 w-4' />
               </Button>
@@ -571,6 +584,7 @@ export function AppSidebar() {
           defaultKind={createDialogDefaultKind}
         />
       )}
+      <ProfileDialog open={profileDialogOpen} onOpenChange={setProfileDialogOpen} />
     </>
   )
 }

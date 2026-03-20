@@ -29,6 +29,7 @@ serde = "1.0.228"
 uuid = { version = "1.18.1", features = ["serde"] }
 base64 = "0.22.1"
 sqlx = { version = "0.8.6", features = ["postgres", "runtime-tokio"] }
+chrono = "0.4"
 utoipa = { version = "5.4.0", features = ["chrono", "uuid", "yaml"] }
 utoipa-swagger-ui = { version = "9.0.2", features = ["axum"] }
 utoipa-scalar = { version = "0.3.0", features = ["axum"] }
