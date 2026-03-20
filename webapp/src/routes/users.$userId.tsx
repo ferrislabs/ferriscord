@@ -41,7 +41,7 @@ function UserProfile() {
                     <Avatar className="h-24 w-24">
                       <AvatarImage src={profileUser.avatar} alt={profileUser.username} />
                       <AvatarFallback className="bg-indigo-600 text-white text-2xl">
-                        {profileUser.username.slice(0, 2).toUpperCase()}
+                        {profileUser.username[0].toUpperCase()}
                       </AvatarFallback>
                     </Avatar>
                     <div className={cn(

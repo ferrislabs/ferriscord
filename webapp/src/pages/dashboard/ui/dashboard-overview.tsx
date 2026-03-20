@@ -181,7 +181,7 @@ export function DashboardOverview({
                             <Avatar className="h-10 w-10">
                               <AvatarImage src={otherParticipant?.avatar} alt={otherParticipant?.username} />
                               <AvatarFallback className="bg-gray-500 text-white">
-                                {otherParticipant?.username?.slice(0, 2).toUpperCase()}
+                                {otherParticipant?.username?[0].toUpperCase()}
                               </AvatarFallback>
                             </Avatar>
                             <div className={cn(
@@ -230,7 +230,7 @@ export function DashboardOverview({
                       <Avatar className="h-8 w-8">
                         <AvatarImage src={activity.user?.avatar} alt={activity.user?.preferred_username} />
                         <AvatarFallback className="bg-gray-500 text-white text-xs">
-                          {activity.user?.preferred_username?.slice(0, 2).toUpperCase()}
+                          {activity.user?.preferred_username?[0].toUpperCase()}
                         </AvatarFallback>
                       </Avatar>
                       <div className="flex-1 min-w-0">

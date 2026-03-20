@@ -39,7 +39,7 @@ function FriendRow({
     <div className="flex items-center px-4 py-3 hover:bg-accent/50 rounded-lg transition-colors">
       <Avatar className="h-10 w-10 mr-3">
         <AvatarImage src={friendship.user.avatar_url ?? undefined} alt={displayName} />
-        <AvatarFallback>{displayName.slice(0, 2).toUpperCase()}</AvatarFallback>
+        <AvatarFallback>{displayName[0].toUpperCase()}</AvatarFallback>
       </Avatar>
       <div className="flex-1 min-w-0">
         <div className="font-medium text-foreground truncate">{displayName}</div>
@@ -91,7 +91,7 @@ function IncomingRow({
     <div className="flex items-center px-4 py-3 hover:bg-accent/50 rounded-lg transition-colors">
       <Avatar className="h-10 w-10 mr-3">
         <AvatarImage src={friendship.user.avatar_url ?? undefined} alt={displayName} />
-        <AvatarFallback>{displayName.slice(0, 2).toUpperCase()}</AvatarFallback>
+        <AvatarFallback>{displayName[0].toUpperCase()}</AvatarFallback>
       </Avatar>
       <div className="flex-1 min-w-0">
         <div className="font-medium text-foreground truncate">{displayName}</div>
@@ -147,7 +147,7 @@ function OutgoingRow({ friendship }: { friendship: Schemas.Friendship }) {
     <div className="flex items-center px-4 py-3 hover:bg-accent/50 rounded-lg transition-colors">
       <Avatar className="h-10 w-10 mr-3">
         <AvatarImage src={friendship.user.avatar_url ?? undefined} alt={displayName} />
-        <AvatarFallback>{displayName.slice(0, 2).toUpperCase()}</AvatarFallback>
+        <AvatarFallback>{displayName[0].toUpperCase()}</AvatarFallback>
       </Avatar>
       <div className="flex-1 min-w-0">
         <div className="font-medium text-foreground truncate">{displayName}</div>

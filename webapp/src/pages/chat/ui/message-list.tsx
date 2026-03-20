@@ -238,12 +238,7 @@ function MessageItem({
     });
   }, [message.author]);
 
-  const initials = message.author.username
-    .split(" ")
-    .map((name) => name[0])
-    .join("")
-    .toUpperCase()
-    .slice(0, 2);
+  const initials = message.author.username[0].toUpperCase();
 
   const formatTime = (timestamp: string) => {
     const date = new Date(timestamp);

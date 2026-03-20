@@ -313,7 +313,7 @@ export function AppSidebar() {
                       <Avatar className='h-7 w-7'>
                         <AvatarImage src={dm.recipient.avatar_url ?? undefined} alt={displayName} />
                         <AvatarFallback className='text-xs'>
-                          {displayName.slice(0, 2).toUpperCase()}
+                          {displayName[0].toUpperCase()}
                         </AvatarFallback>
                       </Avatar>
                       <span className='text-sm truncate'>{displayName}</span>
@@ -331,7 +331,7 @@ export function AppSidebar() {
               <Avatar className='h-8 w-8'>
                 <AvatarImage src={profile?.avatar_url ?? user?.avatar} alt={profile?.display_name ?? user?.preferred_username} />
                 <AvatarFallback className='bg-primary text-primary-foreground text-xs'>
-                  {(profile?.display_name ?? user?.preferred_username)?.slice(0, 2).toUpperCase() || 'U'}
+                  {(profile?.display_name ?? user?.preferred_username)?.[0].toUpperCase() || 'U'}
                 </AvatarFallback>
               </Avatar>
               <div
@@ -509,7 +509,7 @@ export function AppSidebar() {
               <Avatar className='h-8 w-8'>
                 <AvatarImage src={profile?.avatar_url ?? user?.avatar} alt={profile?.display_name ?? user?.preferred_username} />
                 <AvatarFallback className='bg-primary text-primary-foreground text-xs'>
-                  {(profile?.display_name ?? user?.preferred_username)?.slice(0, 2).toUpperCase() || 'U'}
+                  {(profile?.display_name ?? user?.preferred_username)?.[0].toUpperCase() || 'U'}
                 </AvatarFallback>
               </Avatar>
               <div

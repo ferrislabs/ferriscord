@@ -44,7 +44,7 @@ function DMConversationPage() {
               src={dm?.recipient.avatar_url ?? undefined}
               alt={displayName}
             />
-            <AvatarFallback>{displayName.slice(0, 2).toUpperCase()}</AvatarFallback>
+            <AvatarFallback>{displayName[0].toUpperCase()}</AvatarFallback>
           </Avatar>
           <h2 className="font-semibold text-foreground">{displayName}</h2>
         </div>
@@ -72,7 +72,7 @@ function DMConversationPage() {
             <Avatar className="h-20 w-20 mb-4">
               <AvatarImage src={dm?.recipient.avatar_url ?? undefined} alt={displayName} />
               <AvatarFallback className="text-2xl">
-                {displayName.slice(0, 2).toUpperCase()}
+                {displayName[0].toUpperCase()}
               </AvatarFallback>
             </Avatar>
             <h2 className="text-2xl font-bold text-foreground mb-2">{displayName}</h2>
@@ -90,7 +90,7 @@ function DMConversationPage() {
           >
             <Avatar className="h-10 w-10 shrink-0">
               <AvatarImage src={msg.author.avatar_url ?? undefined} alt={msg.author.username} />
-              <AvatarFallback>{msg.author.username.slice(0, 2).toUpperCase()}</AvatarFallback>
+              <AvatarFallback>{msg.author.username[0].toUpperCase()}</AvatarFallback>
             </Avatar>
             <div className="flex-1 min-w-0">
               <div className="flex items-baseline space-x-2">

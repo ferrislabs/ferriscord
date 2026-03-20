@@ -57,9 +57,7 @@ export function ProfileDialog({ open, onOpenChange }: ProfileDialogProps) {
   }
 
   const displayedAvatar = avatarPreview ?? profile?.avatar_url ?? undefined
-  const initials = (profile?.display_name ?? profile?.username ?? 'U')
-    .slice(0, 2)
-    .toUpperCase()
+  const initials = (profile?.display_name ?? profile?.username ?? 'U')[0].toUpperCase()
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>

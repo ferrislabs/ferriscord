@@ -50,7 +50,7 @@ export function UserProfileCard({ user, anchorRect, onClose }: UserProfileCardPr
   }
 
   const displayName = user.displayName ?? user.username
-  const initials = displayName.slice(0, 2).toUpperCase()
+  const initials = displayName[0].toUpperCase()
 
   return createPortal(
     <div

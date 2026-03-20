@@ -51,7 +51,7 @@ export function MemberList({ members, isLoading = false }: MemberListProps) {
                       <Avatar className="h-8 w-8">
                         <AvatarImage src={member.avatar} alt={member.username} />
                         <AvatarFallback className="bg-gray-500 text-white text-xs">
-                          {member.username.slice(0, 2).toUpperCase()}
+                          {member.username[0].toUpperCase()}
                         </AvatarFallback>
                       </Avatar>
                       <div

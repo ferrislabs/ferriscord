@@ -108,7 +108,7 @@ export function DMFeature() {
                   <Avatar className="h-8 w-8">
                     <AvatarImage src={conversation.participant.avatar} alt={conversation.participant.username} />
                     <AvatarFallback className="bg-gray-500 text-white text-xs">
-                      {conversation.participant.username.slice(0, 2).toUpperCase()}
+                      {conversation.participant.username[0].toUpperCase()}
                     </AvatarFallback>
                   </Avatar>
                   <div className={cn(
@@ -222,7 +222,7 @@ export function DMFeature() {
                         <Avatar className="h-10 w-10">
                           <AvatarImage src={friend.avatar} alt={friend.username} />
                           <AvatarFallback className="bg-gray-500 text-white">
-                            {friend.username.slice(0, 2).toUpperCase()}
+                            {friend.username[0].toUpperCase()}
                           </AvatarFallback>
                         </Avatar>
                         <div className={cn(
