@@ -1,4 +1,4 @@
-import { createFileRoute } from '@tanstack/react-router'
+import { createFileRoute, useNavigate } from '@tanstack/react-router'
 import { useEffect, useState } from 'react'
 import { Hash, Volume2, Users, Pin, Bell, Search, Menu } from 'lucide-react'
 import { Skeleton } from '@/components/ui/skeleton'
@@ -6,6 +6,7 @@ import { MessageListSkeleton } from '@/components/layout/message-list-skeleton'
 import { MessageInput } from '@/components/chat'
 import { MessageList } from '@/pages/chat/ui/message-list'
 import { saveLastVisited } from '@/lib/last-visited'
+import { useUserGuilds } from '@/lib/queries/guild-queries'
 import { useGuildChannels } from '@/lib/queries/channel-queries'
 import { useChannelMessages, useSendMessage, useDeleteMessage } from '@/lib/queries/message-queries'
 import { useGetMe } from '@/lib/queries/user-queries'
@@ -21,9 +22,20 @@ export const Route = createFileRoute('/_app/channels/$serverId/$channelId')({
 function ChannelPage() {
   const { serverId, channelId } = Route.useParams()
   const { setCollapsed } = useSidebar()
+  const navigate = useNavigate()
   const [showMemberList, setShowMemberList] = useState(
     () => localStorage.getItem('memberListOpen') === 'true'
   )
+
+  const { data: guilds = [], isLoading: isLoadingGuilds } = useUserGuilds()
+
+  useEffect(() => {
+    if (isLoadingGuilds) return
+    if (guilds.length === 0 || !guilds.find((g) => g.id === serverId)) {
+      saveLastVisited('/channels/@me')
+      navigate({ to: '/channels/@me', replace: true })
+    }
+  }, [isLoadingGuilds, guilds, serverId, navigate])
 
   useEffect(() => {
     localStorage.setItem('memberListOpen', String(showMemberList))
