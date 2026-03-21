@@ -100,13 +100,13 @@ docker compose --profile ferriskey up -d
 
 Services started:
 
-| Service      | URL                          |
-|--------------|------------------------------|
-| Webapp       | http://localhost:7555        |
-| API          | http://localhost:7001        |
-| OpenAPI Docs | http://localhost:7001/scalar |
-| FerrisKey    | http://localhost:7333        |
-| RustFS       | http://localhost:9000        |
+| Service                 | URL                          |
+|-------------------------|------------------------------|
+| FerrisCord API          | http://localhost:7001        |
+| OpenAPI Docs            | http://localhost:7001/scalar |
+| FerrisKey Console       | http://localhost:7555        |
+| FerrisKey OIDC endpoint | http://localhost:7333        |
+| RustFS Console          | http://localhost:9001        |
 
 Default credentials: `admin` / `admin`
 
