@@ -91,7 +91,11 @@ ferriscord/
 ### Option A — Docker Compose (recommended)
 
 ```bash
+# Start FerrisCord (API, webapp, Postgres, RustFS)
 docker compose up -d
+
+# Start FerrisKey (OIDC identity provider)
+docker compose --profile ferriskey up -d
 ```
 
 Services started:
@@ -113,27 +117,34 @@ Default credentials: `admin` / `admin`
 1. Start infrastructure services:
 
 ```bash
-docker compose up -d postgres ferriskey rustfs
+docker compose up -d postgres rustfs
+docker compose --profile ferriskey up -d
 ```
 
-2. Run database migrations:
+2. Configure environment variables:
 
 ```bash
-DATABASE_URL=postgres://ferriscord:ferriscord@localhost:5433/ferriscord \
-  sqlx migrate run --source migrations
+cp .env.example .env
+# Edit .env with your values (client secret, storage keys…)
 ```
 
-3. Start the API:
+3. Run database migrations:
 
 ```bash
-cd api
-cargo run
+sqlx migrate run --source migrations
 ```
 
-4. Start the frontend:
+4. Start the API:
+
+```bash
+cargo run -p ferriscord-api
+```
+
+5. Configure and start the frontend:
 
 ```bash
 cd webapp
+cp .env.example .env
 pnpm install
 pnpm dev
 ```
@@ -142,21 +153,36 @@ Then visit [http://localhost:5173](http://localhost:5173).
 
 ## ⚙️ Configuration
 
-Key environment variables for the API:
+### API (`.env` at project root)
+
+Copy `.env.example` to `.env` and adjust values:
 
 ```env
-SERVER_PORT=7001
-DATABASE_HOST=localhost
+DATABASE_URL=postgres://ferriscord:ferriscord@127.0.0.1:5433/ferriscord
 DATABASE_PORT=5433
-DATABASE_NAME=ferriscord
 DATABASE_USER=ferriscord
 DATABASE_PASSWORD=ferriscord
 
-AUTH_ISSUER=http://localhost:7333/realms/ferriscord
-AUTH_CLIENT_ID=ferriscord
-AUTH_CLIENT_SECRET=secret
+AUTH_ISSUER=http://localhost:7333/realms/ferrislabs
+AUTH_CLIENT_ID=ferriscord-api
+AUTH_CLIENT_SECRET=your_client_secret
 
 ALLOWED_ORIGINS=http://localhost:5173
+
+STORAGE_ENDPOINT=http://localhost:9000
+STORAGE_ACCESS_KEY_ID=your_access_key_id
+STORAGE_SECRET_ACCESS_KEY=your_secret_access_key
+STORAGE_FORCE_PATH_STYLE=true
+```
+
+### Frontend (`webapp/.env`)
+
+Copy `webapp/.env.example` to `webapp/.env`:
+
+```env
+VITE_OIDC_ISSUER_URL=http://localhost:7333/realms/ferrislabs
+VITE_OIDC_CLIENT_ID=ferriscord-front
+VITE_API_URL=http://localhost:7001
 ```
 
 ## 🤝 Contributing
