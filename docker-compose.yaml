@@ -12,6 +12,7 @@ services:
       - "5433:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
+      - ./docker/postgres-init.sql:/docker-entrypoint-initdb.d/init.sql
     networks:
       - ferriscord-network
     healthcheck:
@@ -35,6 +36,8 @@ services:
       postgres:
         condition: service_healthy
     restart: no
+    profiles:
+      - api
 
   api:
     build:
@@ -59,9 +62,74 @@ services:
     depends_on:
       db-migrations:
         condition: service_completed_successfully
+    profiles:
+      - api
+
+  rustfs:
+    image: rustfs/rustfs:latest
+    container_name: rustfs
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    volumes:
+      - rustfs_data:/data
+    networks:
+      - ferriscord-network
+    command: /data
+
+  ferriskey-db-migrations:
+    image: ghcr.io/ferriskey/ferriskey-api:0.4.2
+    entrypoint:
+      - sqlx
+    command:
+      - migrate
+      - run
+      - --source
+      - /usr/local/src/ferriskey/migrations
+    environment:
+      DATABASE_URL: postgresql://ferriskey:ferriskey@postgres/ferriskey
+    restart: no
+    networks:
+      - ferriscord-network
+    depends_on:
+      postgres:
+        condition: service_healthy
+    profiles:
+      - ferriskey
+
+  ferriskey-api:
+    image: ghcr.io/ferriskey/ferriskey-api:0.4.2
+    environment:
+      ALLOWED_ORIGINS: http://localhost:7555
+      WEBAPP_URL: http://localhost:7555
+      DATABASE_HOST: postgres
+      DATABASE_NAME: ferriskey
+      DATABASE_PASSWORD: ferriskey
+      DATABASE_USER: ferriskey
+    ports:
+      - "7333:3333"
+    networks:
+      - ferriscord-network
+    depends_on:
+      ferriskey-db-migrations:
+        condition: service_completed_successfully
+    profiles:
+      - ferriskey
+
+  ferriskey-webapp:
+    image: ghcr.io/ferriskey/ferriskey-webapp:0.4.2
+    environment:
+      API_URL: http://localhost:7333
+    ports:
+      - "7555:80"
+    networks:
+      - ferriscord-network
+    profiles:
+      - ferriskey
 
 volumes:
   postgres_data:
+  rustfs_data:
 
 networks:
   ferriscord-network:
