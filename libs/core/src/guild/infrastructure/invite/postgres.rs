@@ -1,5 +1,5 @@
 use chrono::{DateTime, Duration, Utc};
-use ferriscord_entities::{Id, guild::{GuildId, OwnerId}, invite::Invite};
+use ferriscord_entities::{guild::GuildId, invite::Invite};
 use rand::distributions::{Alphanumeric, DistString};
 use sqlx::{PgPool, query, query_as};
 use tracing::error;

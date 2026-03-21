@@ -42,7 +42,7 @@ pub mod internal;
 pub mod invite;
 pub mod update_guild;
 
-pub fn guild_routes(state: AppState) -> Router<AppState> {
+pub fn guild_routes(_state: AppState) -> Router<AppState> {
     Router::new()
         .typed_post(create_guild_handler)
         .typed_get(get_roles_handler)

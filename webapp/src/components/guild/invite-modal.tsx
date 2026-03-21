@@ -2,7 +2,6 @@ import { useState } from 'react'
 import { Copy, Check, Trash2, Plus } from 'lucide-react'
 import { toast } from '@/lib/toast'
 import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
 import {
   Dialog,
   DialogContent,

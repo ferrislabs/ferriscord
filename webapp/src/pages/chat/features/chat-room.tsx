@@ -129,7 +129,7 @@ export function ChatRoomFeature({ channelId, currentUserId, channelName, classNa
           </div>
         ) : (
           <>
-            <MessageList messages={messagesWithOwnership} />
+            <MessageList messages={messagesWithOwnership as any} />
             <div ref={messagesEndRef} />
           </>
         )}

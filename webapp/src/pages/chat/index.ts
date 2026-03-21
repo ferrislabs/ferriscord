@@ -1,7 +1,6 @@
 // Chat domain exports
 export { ChatRoomFeature } from "./features/chat-room";
 export { MessageList } from "./ui/message-list";
-export { MessageInput } from "./ui/message-input";
 
 // Types
 export interface Message {

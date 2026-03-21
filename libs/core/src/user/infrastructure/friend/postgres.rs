@@ -1,6 +1,5 @@
 use chrono::{DateTime, Utc};
 use ferriscord_entities::{
-    Id,
     friendship::{FriendUser, Friendship, FriendshipStatus},
     user::UserId,
 };

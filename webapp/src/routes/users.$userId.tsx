@@ -26,7 +26,7 @@ export const Route = createFileRoute('/users/$userId')({
 function UserProfile() {
   const { user: profileUser } = Route.useLoaderData()
   const { user: currentUser } = useAuth()
-  const isCurrentUser = profileUser.id === currentUser?.id
+  const isCurrentUser = profileUser.id === (currentUser as any)?.sub
 
   return (
     <AuthWrapper>

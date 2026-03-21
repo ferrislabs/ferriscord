@@ -279,7 +279,7 @@ export function AppSidebar() {
   const handleLeaveGuild = () => {
     if (!serverId) return
     leaveGuild(
-      { path: { guild_id: serverId } },
+      { path: { guild_id: serverId } } as any,
       {
         onSuccess: () => {
           toast.success('Vous avez quitté le serveur')

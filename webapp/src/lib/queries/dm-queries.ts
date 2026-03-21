@@ -36,7 +36,6 @@ export function useSendDmMessage(channelId: string) {
     '/channels/@me/{channel_id}/messages',
   )
   return useMutation({
-    ...mutationOptions,
     mutationFn: ({
       content,
       files,
@@ -69,16 +68,15 @@ export function useDeleteDmMessage(channelId: string) {
     '/channels/@me/{channel_id}/messages/{message_id}',
   )
   return useMutation({
-    ...mutationOptions,
+    mutationFn: (messageId: string) =>
+      mutationOptions.mutationFn({
+        path: { channel_id: channelId, message_id: messageId },
+      }),
     onSuccess: () => {
       queryClient.invalidateQueries({
         queryKey: [{ _id: '/channels/@me/{channel_id}/messages', path: { channel_id: channelId } }],
       })
     },
-    mutationFn: (messageId: string) =>
-      mutationOptions.mutationFn({
-        path: { channel_id: channelId, message_id: messageId },
-      }),
   })
 }
 

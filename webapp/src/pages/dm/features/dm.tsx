@@ -57,8 +57,8 @@ export function DMFeature() {
     }
   });
 
-  const handleDMClick = (userId: string) => {
-    navigate({ to: '/channels/$userId', params: { userId } });
+  const handleDMClick = (_userId: string) => {
+    navigate({ to: '/channels/@me' });
   };
 
   const handleStartCall = (friendId: string, type: 'voice' | 'video') => {

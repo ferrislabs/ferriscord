@@ -69,8 +69,8 @@ export function DashboardFeature() {
     }
   };
 
-  const handleDmClick = (userId: string) => {
-    navigate({ to: '/channels/$userId', params: { userId } });
+  const handleDmClick = (_userId: string) => {
+    navigate({ to: '/channels/@me' });
   };
 
   const handleCreateServer = () => {

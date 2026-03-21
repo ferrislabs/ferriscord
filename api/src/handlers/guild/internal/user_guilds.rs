@@ -1,3 +1,5 @@
+#![allow(dead_code)]
+
 use axum::extract::{Query, State};
 use axum_extra::routing::TypedPath;
 use ferriscord_entities::{guild::Guild, user::UserId};

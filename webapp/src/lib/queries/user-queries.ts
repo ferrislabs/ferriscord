@@ -17,7 +17,6 @@ export function useUpdateProfile() {
   const { mutationOptions } = window.tanstackApi.mutation('patch', '/users/@me')
 
   return useMutation({
-    ...mutationOptions,
     mutationFn: ({
       displayName,
       avatar,
@@ -29,7 +28,7 @@ export function useUpdateProfile() {
       if (displayName !== undefined) formData.append('display_name', displayName)
       if (avatar) formData.append('avatar', avatar)
 
-      return mutationOptions.mutationFn({
+      return (mutationOptions.mutationFn as any)({
         overrides: { body: formData },
       })
     },

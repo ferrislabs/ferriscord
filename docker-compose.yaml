@@ -9,37 +9,56 @@ services:
       POSTGRES_PASSWORD: ferriscord
       POSTGRES_DB: ferriscord
     ports:
-      - "5432:5432"
+      - "5433:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
     networks:
       - ferriscord-network
-  keycloak:
-    image: quay.io/keycloak/keycloak:26.4.1
-    container_name: ferriscord-keycloak
-    environment:
-      KEYCLOAK_ADMIN: admin
-      KEYCLOAK_ADMIN_PASSWORD: admin
-    ports:
-      - "9090:8080"
-    networks:
-      - ferriscord-network
-    command: start-dev
-  guild-service:
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U ferriscord -d ferriscord" ]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  db-migrations:
     build:
       context: .
-      target: guild
-    container_name: ferriscord-guild-service
+      target: api
+    container_name: ferriscord-migrations
     environment:
-      AUTH_ISSUER: http://keycloak:8080/realms/master
-      DATABASE_HOST: postgres
-      DATABASE_NAME: ferriscord_guild
-      DATABASE_USER: ferriscord
-      DATABASE_PASSWORD: ferriscord
-    ports:
-      - "3333:80"
+      DATABASE_URL: postgres://ferriscord:ferriscord@postgres:5432/ferriscord
+    entrypoint: [ "sqlx" ]
+    command: [ "migrate", "run", "--source", "/usr/local/src/ferriscord/migrations" ]
     networks:
       - ferriscord-network
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: no
+
+  api:
+    build:
+      context: .
+      target: api
+    container_name: ferriscord-api
+    environment:
+      DATABASE_HOST: postgres
+      DATABASE_PORT: 5432
+      DATABASE_NAME: ferriscord
+      DATABASE_USER: ferriscord
+      DATABASE_PASSWORD: ferriscord
+      AUTH_ISSUER: http://localhost:3333/realms/ferrislabs
+      AUTH_CLIENT_ID: ferriscord-api
+      AUTH_CLIENT_SECRET: ItxDyd74thdgXHDF
+      SERVER_PORT: 7001
+      ALLOWED_ORIGINS: http://localhost:5173
+    ports:
+      - "7001:7001"
+    networks:
+      - ferriscord-network
+    depends_on:
+      db-migrations:
+        condition: service_completed_successfully
 
 volumes:
   postgres_data:

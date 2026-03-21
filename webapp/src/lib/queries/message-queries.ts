@@ -13,7 +13,7 @@ export function useChannelMessages(
     ...window.tanstackApi.get(
       '/guilds/{guild_id}/channels/{channel_id}/messages',
       {
-        path: { guild_id: guildId!, channel_id: channelId! },
+        path: { guild_id: guildId!, channel_id: channelId! } as any,
       },
     ).queryOptions,
     enabled: isAuthenticated && !!accessToken && !!guildId && !!channelId,
@@ -27,16 +27,15 @@ export function useDeleteMessage(guildId: string, channelId: string) {
     '/guilds/{guild_id}/channels/{channel_id}/messages/{message_id}',
   )
   return useMutation({
-    ...mutationOptions,
+    mutationFn: (messageId: string) =>
+      mutationOptions.mutationFn({
+        path: { guild_id: guildId, channel_id: channelId, message_id: messageId },
+      }),
     onSuccess: () => {
       queryClient.invalidateQueries({
         queryKey: [{ _id: '/guilds/{guild_id}/channels/{channel_id}/messages' }],
       })
     },
-    mutationFn: (messageId: string) =>
-      mutationOptions.mutationFn({
-        path: { guild_id: guildId, channel_id: channelId, message_id: messageId },
-      }),
   })
 }
 
@@ -49,12 +48,11 @@ export function useSendMessage(guildId: string, channelId: string) {
     ),
     queryKey: window.tanstackApi.get(
       '/guilds/{guild_id}/channels/{channel_id}/messages',
-      { path: { guild_id: guildId, channel_id: channelId } },
+      { path: { guild_id: guildId, channel_id: channelId } as any },
     ).queryKey,
   }
 
   return useMutation({
-    ...mutationOptions,
     mutationFn: ({ content, files }: { content: string; files?: File[] }) => {
       const formData = new FormData()
       formData.append('content', content)

@@ -28,6 +28,11 @@ async function loadConfigFromFile(): Promise<RuntimeConfig | null> {
     }
 
     const config = await response.json()
+    const api_url = config.api_url
+
+    if (api_url.includes('${API_URL}')) {
+      return null
+    }
     return {
       IN_DEVELOPMENT_MODE: false,
       OIDC_ISSUER_URL: config.oidc_issuer_url,
@@ -67,6 +72,8 @@ function loadConfigFromEnv(): RuntimeConfig | null {
 export async function loadAppConfig(): Promise<AppConfig> {
   // Try loading from config.json (production)
   let runtimeConfig = await loadConfigFromFile()
+
+  console.log('Loaded runtime configuration:', runtimeConfig)
 
   // Fall back to environment variables (development)
   if (!runtimeConfig) {

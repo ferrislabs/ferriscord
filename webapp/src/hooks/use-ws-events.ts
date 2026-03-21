@@ -34,7 +34,7 @@ export function useWsEvents() {
         queryKey: [{ _id: '/channels/@me/{channel_id}/messages' }],
       })
     })
-    return remove
+    return () => { remove() }
   }, [queryClient])
 
   // Listen to events and invalidate the right query caches
@@ -85,7 +85,7 @@ export function useWsEvents() {
       }
     })
 
-    return remove
+    return () => { remove() }
   }, [queryClient])
 }
 

@@ -69,7 +69,7 @@ export function useJoinGuild() {
 
 export function useLeaveGuild() {
   const queryClient = useQueryClient()
-  const { mutationOptions } = window.tanstackApi.mutation('delete', '/guilds/{guild_id}/members/@me')
+  const { mutationOptions } = window.tanstackApi.mutation('delete', '/guilds/{guild_id}/members/@me' as any)
 
   return useMutation({
     ...mutationOptions,
