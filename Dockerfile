@@ -119,7 +119,7 @@ COPY webapp/package.json webapp/pnpm-lock.yaml ./
 
 RUN pnpm install --frozen-lockfile
 
-COPY wepapp/ .
+COPY webapp/ .
 RUN pnpm run build
 
 FROM nginx:1.28.0-alpine3.21-slim AS webapp
