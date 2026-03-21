@@ -14,9 +14,10 @@ on:
       - libs/**
   workflow_dispatch:
     inputs:
-      push: boolean
-      default: false
-      description: 'Whether to push the image'
+      push:
+        type: boolean
+        default: false
+        description: "Whether to push the image"
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
