@@ -103,7 +103,7 @@ EXPOSE 80
 
 ENTRYPOINT [ "api" ]
 
-FROM node:20.14.0-alpine AS webapp-build
+FROM node:22.17.1-alpine AS webapp-build
 
 WORKDIR /usr/local/src/ferriscord
 
