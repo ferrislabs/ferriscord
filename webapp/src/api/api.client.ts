@@ -175,6 +175,8 @@ export namespace Schemas {
   export type UserId = Id
   export type UserProfile = {
     avatar_url?: (string | null) | undefined
+    banner_url?: (string | null) | undefined
+    bio?: (string | null) | undefined
     created_at: string
     display_name?: (string | null) | undefined
     id: string
@@ -459,6 +461,20 @@ export namespace Endpoints {
       500: Schemas.ApiError
     }
   }
+  export type get_Get_user_handler = {
+    method: 'GET'
+    path: '/users/{user_id}'
+    requestFormat: 'json'
+    parameters: {
+      path: { user_id: string }
+    }
+    responses: {
+      200: Schemas.UserProfile
+      401: Schemas.ApiError
+      404: Schemas.ApiError
+      500: Schemas.ApiError
+    }
+  }
   export type patch_Update_profile_handler = {
     method: 'PATCH'
     path: '/users/@me'
@@ -675,6 +691,7 @@ export type EndpointByMethod = {
     '/guilds/{guild_id}/roles/{role_id}': Endpoints.get_Get_role_handler
     '/invites/{code}': Endpoints.get_Preview_invite_handler
     '/users/@me': Endpoints.get_Get_me_handler
+    '/users/{user_id}': Endpoints.get_Get_user_handler
     '/users/@me/guilds': Endpoints.get_Get_user_guilds
     '/friends': Endpoints.get_List_friends
     '/friends/requests/incoming': Endpoints.get_List_incoming_requests

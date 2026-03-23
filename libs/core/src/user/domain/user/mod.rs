@@ -23,6 +23,8 @@ pub struct User {
     pub username: String,
     pub display_name: Option<String>,
     pub avatar_url: Option<String>,
+    pub bio: Option<String>,
+    pub banner_url: Option<String>,
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
 }
@@ -37,14 +39,24 @@ impl User {
             username: username.into(),
             display_name: None,
             avatar_url: None,
+            bio: None,
+            banner_url: None,
             created_at: now,
             updated_at: now,
         }
     }
 
-    pub fn update_profile(&mut self, display: Option<String>, avatar: Option<String>) {
+    pub fn update_profile(
+        &mut self,
+        display: Option<String>,
+        avatar: Option<String>,
+        bio: Option<String>,
+        banner: Option<String>,
+    ) {
         self.display_name = display;
         self.avatar_url = avatar;
+        self.bio = bio;
+        self.banner_url = banner;
         self.updated_at = Utc::now();
     }
 }

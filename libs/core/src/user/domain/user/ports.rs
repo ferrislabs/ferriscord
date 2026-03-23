@@ -27,6 +27,8 @@ pub trait UserService: Send + Sync {
         sub: &str,
         display_name: Option<String>,
         avatar_url: Option<String>,
+        bio: Option<String>,
+        banner_url: Option<String>,
     ) -> impl Future<Output = Result<User, CoreError>> + Send;
 }
 
@@ -48,5 +50,7 @@ pub trait UserRepository: Send + Sync {
         sub: &str,
         display_name: Option<String>,
         avatar_url: Option<String>,
+        bio: Option<String>,
+        banner_url: Option<String>,
     ) -> impl Future<Output = Result<User, CoreError>> + Send;
 }

@@ -1,38 +1,29 @@
 use axum::extract::{Extension, State};
 use axum_extra::routing::TypedPath;
-use chrono::{DateTime, Utc};
 use ferriscord_auth::Identity;
 use ferriscord_error::ApiError;
 use ferriscord_server::http::response::Response;
-use ferriscord_core::user::domain::user::ports::UserService;
-use serde::Serialize;
-use utoipa::ToSchema;
+use ferriscord_core::user::domain::user::{UserId, ports::UserService};
+use serde::Deserialize;
 use uuid::Uuid;
 
-use crate::state::AppState;
+use crate::{handlers::user::get_me::UserProfile, state::AppState};
 
-#[derive(TypedPath)]
-#[typed_path("/users/@me")]
-pub struct GetMeRoute;
-
-#[derive(Debug, Serialize, PartialEq, ToSchema)]
-pub struct UserProfile {
-    pub id: Uuid,
-    pub username: String,
-    pub display_name: Option<String>,
-    pub avatar_url: Option<String>,
-    pub bio: Option<String>,
-    pub banner_url: Option<String>,
-    pub created_at: DateTime<Utc>,
-    pub updated_at: DateTime<Utc>,
+#[derive(TypedPath, Deserialize)]
+#[typed_path("/users/{user_id}")]
+pub struct GetUserRoute {
+    pub user_id: Uuid,
 }
 
 #[utoipa::path(
     get,
-    path = "/users/@me",
+    path = "/users/{user_id}",
     tag = "users",
-    summary = "Get current user profile",
+    summary = "Get a user's public profile",
     security(("Authorization" = ["Bearer"])),
+    params(
+        ("user_id" = Uuid, Path, description = "User ID"),
+    ),
     responses(
         (status = 200, body = UserProfile),
         (status = 401, description = "Unauthorized", body = ApiError),
@@ -40,14 +31,14 @@ pub struct UserProfile {
         (status = 500, description = "Internal server error", body = ApiError),
     )
 )]
-pub async fn get_me_handler(
-    _: GetMeRoute,
+pub async fn get_user_handler(
+    GetUserRoute { user_id }: GetUserRoute,
     State(state): State<AppState>,
-    Extension(identity): Extension<Identity>,
+    Extension(_identity): Extension<Identity>,
 ) -> Result<Response<UserProfile>, ApiError> {
     let user = state
         .user_service
-        .get_me(identity.id())
+        .get_profile(UserId(user_id))
         .await
         .map_err(|e| ApiError::Unknown { message: e.to_string() })?
         .ok_or_else(|| ApiError::Unknown { message: "user not found".into() })?;

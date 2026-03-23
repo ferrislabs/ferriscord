@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "\n            UPDATE users\n            SET\n                display_name = $1,\n                avatar_url   = COALESCE($2, avatar_url),\n                updated_at   = $3\n            WHERE oauth_sub = $4\n            RETURNING *\n            ",
+  "query": "\n            UPDATE users\n            SET\n                display_name = $1,\n                avatar_url   = COALESCE($2, avatar_url),\n                bio          = $3,\n                banner_url   = COALESCE($4, banner_url),\n                updated_at   = $5\n            WHERE oauth_sub = $6\n            RETURNING *\n            ",
   "describe": {
     "columns": [
       {
@@ -37,10 +37,22 @@
         "ordinal": 6,
         "name": "updated_at",
         "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 7,
+        "name": "bio",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 8,
+        "name": "banner_url",
+        "type_info": "Text"
       }
     ],
     "parameters": {
       "Left": [
+        "Text",
+        "Text",
         "Text",
         "Text",
         "Timestamptz",
@@ -54,8 +66,10 @@
       true,
       true,
       false,
-      false
+      false,
+      true,
+      true
     ]
   },
-  "hash": "bd6b9ed12785a91b31430758c7ac5df9c59ad3a1678b289145bf455e513030a3"
+  "hash": "25c544e7214d31cf121d4ea20fc93b46580cc4dbe3ae718995844de46c8f572f"
 }

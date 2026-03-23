@@ -39,13 +39,15 @@ impl UserRepository for PostgresUserRepository {
     async fn insert(&self, user: &User) -> Result<(), CoreError> {
         sqlx::query!(
             r#"INSERT INTO users
-            (id, oauth_sub, username, display_name, avatar_url, created_at, updated_at)
-            VALUES ($1, $2, $3, $4, $5, $6, $7)"#,
+            (id, oauth_sub, username, display_name, avatar_url, bio, banner_url, created_at, updated_at)
+            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)"#,
             user.id.0,
             user.oauth_sub,
             user.username,
             user.display_name,
             user.avatar_url,
+            user.bio,
+            user.banner_url,
             user.created_at,
             user.updated_at
         )
@@ -61,11 +63,13 @@ impl UserRepository for PostgresUserRepository {
         sub: &str,
         display_name: Option<String>,
         avatar_url: Option<String>,
+        bio: Option<String>,
+        banner_url: Option<String>,
     ) -> Result<User, CoreError> {
         let now = Utc::now();
 
-        // display_name is always updated (None = clear it).
-        // avatar_url uses COALESCE so None keeps the current value.
+        // display_name and bio are always updated (None = clear).
+        // avatar_url and banner_url use COALESCE so None keeps the current value.
         let user = query_as!(
             User,
             r#"
@@ -73,12 +77,16 @@ impl UserRepository for PostgresUserRepository {
             SET
                 display_name = $1,
                 avatar_url   = COALESCE($2, avatar_url),
-                updated_at   = $3
-            WHERE oauth_sub = $4
+                bio          = $3,
+                banner_url   = COALESCE($4, banner_url),
+                updated_at   = $5
+            WHERE oauth_sub = $6
             RETURNING *
             "#,
             display_name,
             avatar_url,
+            bio,
+            banner_url,
             now,
             sub,
         )

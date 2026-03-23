@@ -25,6 +25,7 @@ use super::handlers::{
     },
     user::{
         get_me::__path_get_me_handler,
+        get_user::__path_get_user_handler,
         get_user_guilds::__path_get_user_guilds,
         update_profile::__path_update_profile_handler,
     },
@@ -51,6 +52,7 @@ use super::handlers::{
         preview_invite_handler,
         get_user_guilds,
         get_me_handler,
+        get_user_handler,
         update_profile_handler,
         update_channel_handler,
     )

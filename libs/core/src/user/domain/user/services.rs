@@ -34,7 +34,9 @@ impl<U: UserRepository> UserService for UserServiceImpl<U> {
         sub: &str,
         display_name: Option<String>,
         avatar_url: Option<String>,
+        bio: Option<String>,
+        banner_url: Option<String>,
     ) -> Result<User, CoreError> {
-        self.user_repository.update_profile(sub, display_name, avatar_url).await
+        self.user_repository.update_profile(sub, display_name, avatar_url, bio, banner_url).await
     }
 }
