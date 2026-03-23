@@ -77,9 +77,13 @@ function ServerButton({ guild }: ServerButtonProps) {
       <TooltipTrigger asChild>
         <button
           onClick={handleServerClick}
-          className='flex h-10 w-10 cursor-pointer items-center justify-center rounded-lg border border-border/50 bg-muted/50 text-sm font-semibold text-foreground transition-all duration-150 hover:border-primary/40 hover:bg-muted/80 active:scale-95'
+          className='flex h-10 w-10 cursor-pointer items-center justify-center rounded-lg border border-border/50 bg-muted/50 text-sm font-semibold text-foreground transition-all duration-150 hover:border-primary/40 hover:bg-muted/80 active:scale-95 overflow-hidden'
         >
-          {guild.name.charAt(0).toUpperCase()}
+          {guild.icon_url ? (
+            <img src={guild.icon_url} alt={guild.name} className='h-full w-full object-cover' />
+          ) : (
+            guild.name.charAt(0).toUpperCase()
+          )}
         </button>
       </TooltipTrigger>
       <TooltipContent side="right">{guild.name}</TooltipContent>

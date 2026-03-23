@@ -403,6 +403,7 @@ export function AppSidebar() {
   const myStatus = usePresenceStore((s) => s.myStatus)
   const setMyStatus = usePresenceStore((s) => s.setMyStatus)
 
+  const [guildMenuOpen, setGuildMenuOpen] = useState(false)
   const [createDialogOpen, setCreateDialogOpen] = useState(false)
   const [createDialogDefaultKind, setCreateDialogDefaultKind] = useState<ChannelKind>('Text')
   const [createDialogDefaultCategoryId, setCreateDialogDefaultCategoryId] = useState<string | null>(null)
@@ -752,11 +753,20 @@ export function AppSidebar() {
     <>
       <Sidebar>
         <SidebarHeader>
-          <DropdownMenu>
+          <DropdownMenu onOpenChange={(open) => setGuildMenuOpen(open)}>
             <DropdownMenuTrigger asChild>
-              <Button variant='ghost' className='w-full justify-between px-2 h-12 hover:bg-accent'>
-                <span className='font-semibold text-foreground truncate'>{guild?.name ?? '—'}</span>
-                <ChevronDown className='h-4 w-4 text-muted-foreground' />
+              <Button variant='ghost' className='w-full justify-between px-2 h-12 hover:bg-accent gap-2'>
+                <div className='flex items-center gap-2 min-w-0'>
+                  {guild?.icon_url ? (
+                    <img src={guild.icon_url} alt={guild.name} className='h-6 w-6 rounded-full object-cover shrink-0' />
+                  ) : (
+                    <div className='h-6 w-6 rounded-full bg-primary/20 flex items-center justify-center shrink-0'>
+                      <span className='text-xs font-bold text-primary'>{guild?.name?.[0]?.toUpperCase()}</span>
+                    </div>
+                  )}
+                  <span className='font-semibold text-foreground truncate'>{guild?.name ?? '—'}</span>
+                </div>
+                <ChevronDown className={cn('h-4 w-4 text-muted-foreground shrink-0 transition-transform duration-200', guildMenuOpen && 'rotate-180')} />
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align='start' className='w-56'>
