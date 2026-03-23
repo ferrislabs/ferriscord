@@ -78,3 +78,15 @@ export function useLeaveGuild() {
     },
   })
 }
+
+export function useUpdateGuild() {
+  const queryClient = useQueryClient()
+  const { mutationOptions } = window.tanstackApi.mutation('patch', '/guilds/{guild_id}')
+
+  return useMutation({
+    ...mutationOptions,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [{ _id: '/users/@me/guilds' }] })
+    },
+  })
+}

@@ -1,0 +1,68 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE guilds\n               SET\n                 name        = COALESCE($2, name),\n                 slug        = COALESCE(LOWER(REPLACE($2, ' ', '-')), slug),\n                 icon_url    = COALESCE($3, icon_url),\n                 banner_url  = COALESCE($4, banner_url),\n                 banner_color = COALESCE($5, banner_color)\n               WHERE id = $1\n               RETURNING id, name, slug, owner_id, icon_url, banner_url, banner_color, created_at",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 1,
+        "name": "name",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 2,
+        "name": "slug",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 3,
+        "name": "owner_id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 4,
+        "name": "icon_url",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 5,
+        "name": "banner_url",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 6,
+        "name": "banner_color",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 7,
+        "name": "created_at",
+        "type_info": "Timestamptz"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Text",
+        "Text",
+        "Text",
+        "Text"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      true,
+      true,
+      true,
+      false
+    ]
+  },
+  "hash": "b08057b78dfff77a6be7ec341c026e8e4b1907177425e1aaab4f733b726261e7"
+}

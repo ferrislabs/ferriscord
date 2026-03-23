@@ -1,6 +1,10 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useAuthStore } from '@/stores/auth.store'
 import { useUserStore } from '@/stores/user.store'
+import type { Friendship } from '@/lib/local-types'
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const api = window.tanstackApi as any
 
 function useAuthEnabled() {
   const isAuthenticated = useUserStore((s) => s.isAuthenticated)
@@ -14,33 +18,33 @@ const OUTGOING_KEY = [{ _id: '/friends/requests/outgoing' }]
 
 export function useListFriends() {
   const enabled = useAuthEnabled()
-  return useQuery({
-    ...window.tanstackApi.get('/friends').queryOptions,
+  return useQuery<Friendship[]>({
+    ...api.get('/friends').queryOptions,
     enabled,
   })
 }
 
 export function useListIncomingRequests() {
   const enabled = useAuthEnabled()
-  return useQuery({
-    ...window.tanstackApi.get('/friends/requests/incoming').queryOptions,
+  return useQuery<Friendship[]>({
+    ...api.get('/friends/requests/incoming').queryOptions,
     enabled,
   })
 }
 
 export function useListOutgoingRequests() {
   const enabled = useAuthEnabled()
-  return useQuery({
-    ...window.tanstackApi.get('/friends/requests/outgoing').queryOptions,
+  return useQuery<Friendship[]>({
+    ...api.get('/friends/requests/outgoing').queryOptions,
     enabled,
   })
 }
 
 export function useSendFriendRequest() {
   const queryClient = useQueryClient()
-  const { mutationOptions } = window.tanstackApi.mutation('post', '/friends/requests')
-  return useMutation({
-    ...mutationOptions,
+  const { mutationOptions } = api.mutation('post', '/friends/requests')
+  return useMutation<Friendship, Error, { body: { username: string } }>({
+    mutationFn: (vars) => mutationOptions.mutationFn(vars),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: OUTGOING_KEY })
     },
@@ -49,12 +53,9 @@ export function useSendFriendRequest() {
 
 export function useAcceptFriendRequest() {
   const queryClient = useQueryClient()
-  const { mutationOptions } = window.tanstackApi.mutation(
-    'patch',
-    '/friends/requests/{request_id}/accept',
-  )
-  return useMutation({
-    ...mutationOptions,
+  const { mutationOptions } = api.mutation('patch', '/friends/requests/{request_id}/accept')
+  return useMutation<Friendship, Error, { path: { request_id: string } }>({
+    mutationFn: (vars) => mutationOptions.mutationFn(vars),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: FRIENDS_KEY })
       queryClient.invalidateQueries({ queryKey: INCOMING_KEY })
@@ -64,12 +65,9 @@ export function useAcceptFriendRequest() {
 
 export function useDeclineFriendRequest() {
   const queryClient = useQueryClient()
-  const { mutationOptions } = window.tanstackApi.mutation(
-    'patch',
-    '/friends/requests/{request_id}/decline',
-  )
-  return useMutation({
-    ...mutationOptions,
+  const { mutationOptions } = api.mutation('patch', '/friends/requests/{request_id}/decline')
+  return useMutation<void, Error, { path: { request_id: string } }>({
+    mutationFn: (vars) => mutationOptions.mutationFn(vars),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: INCOMING_KEY })
     },
@@ -78,9 +76,9 @@ export function useDeclineFriendRequest() {
 
 export function useRemoveFriend() {
   const queryClient = useQueryClient()
-  const { mutationOptions } = window.tanstackApi.mutation('delete', '/friends/{user_id}')
-  return useMutation({
-    ...mutationOptions,
+  const { mutationOptions } = api.mutation('delete', '/friends/{user_id}')
+  return useMutation<void, Error, { path: { user_id: string } }>({
+    mutationFn: (vars) => mutationOptions.mutationFn(vars),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: FRIENDS_KEY })
     },

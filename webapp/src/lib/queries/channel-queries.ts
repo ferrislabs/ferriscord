@@ -40,7 +40,7 @@ export function useUpdateChannel() {
 
   return useMutation({
     ...mutationOptions,
-    onSuccess: (_, variables) => {
+    onSuccess: () => {
       queryClient.invalidateQueries({
         queryKey: [{ _id: '/guilds/{guild_id}/channels' }],
       })

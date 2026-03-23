@@ -1,9 +1,19 @@
 use utoipa::OpenApi;
 
 use super::handlers::{
+    dm::{
+        create_or_get::__path_create_or_get_dm_handler,
+        delete_message::__path_delete_dm_message_handler,
+        get_messages::__path_get_dm_messages_handler,
+        list_dms::__path_list_dms_handler,
+        send_message::__path_send_dm_message_handler,
+    },
     guild::{
+        assign_member_role::__path_assign_member_role_handler,
+        update_guild::__path_update_guild_handler,
         channel::{
             create_channel::__path_create_channel_handler,
+            delete_message::__path_delete_message_handler,
             get_channels::__path_get_channels_handler,
             get_messages::__path_get_messages_handler,
             send_message::__path_send_message_handler,
@@ -13,6 +23,7 @@ use super::handlers::{
         create_role::__path_create_role_handler,
         delete_guild::__path_delete_guild_handler,
         delete_role::__path_delete_role_handler,
+        get_members::__path_get_members_handler,
         get_role::__path_get_role_handler,
         get_roles::__path_get_roles_handler,
         invite::{
@@ -22,8 +33,19 @@ use super::handlers::{
             list_invites::__path_list_invites_handler,
             preview_invite::__path_preview_invite_handler,
         },
+        leave_guild::__path_leave_guild_handler,
+        remove_member_role::__path_remove_member_role_handler,
     },
     user::{
+        friends::{
+            accept::__path_accept_friend_request_handler,
+            decline::__path_decline_friend_request_handler,
+            list_friends::__path_list_friends_handler,
+            list_incoming::__path_list_incoming_handler,
+            list_outgoing::__path_list_outgoing_handler,
+            remove::__path_remove_friend_handler,
+            send_request::__path_send_friend_request_handler,
+        },
         get_me::__path_get_me_handler,
         get_user::__path_get_user_handler,
         get_user_guilds::__path_get_user_guilds,
@@ -55,6 +77,26 @@ use super::handlers::{
         get_user_handler,
         update_profile_handler,
         update_channel_handler,
+        assign_member_role_handler,
+        remove_member_role_handler,
+        update_guild_handler,
+        get_members_handler,
+        delete_message_handler,
+        leave_guild_handler,
+        // DM handlers
+        list_dms_handler,
+        create_or_get_dm_handler,
+        get_dm_messages_handler,
+        send_dm_message_handler,
+        delete_dm_message_handler,
+        // Friends handlers
+        list_friends_handler,
+        list_incoming_handler,
+        list_outgoing_handler,
+        send_friend_request_handler,
+        accept_friend_request_handler,
+        decline_friend_request_handler,
+        remove_friend_handler,
     )
 )]
 pub struct ApiDoc;

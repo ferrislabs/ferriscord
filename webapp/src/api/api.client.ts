@@ -99,10 +99,6 @@ export namespace Schemas {
     topic?: (string | null) | undefined
     user_limit?: (number | null) | undefined
   }
-  export type UpdateChannelRequest = {
-    parent_id?: (string | null) | undefined
-    position: number
-  }
   export type CreateGuildRequest = { name: string }
   export type CreateInviteRequest = Partial<{
     expires_in_hours: number | null
@@ -114,28 +110,41 @@ export namespace Schemas {
     permissions: number
   }
   export type DeleteInviteResponse = { message: string }
+  export type DeleteMessageResponse = { message: string }
   export type DeleteRoleResponse = { message: string }
-  export type Permissions = unknown
-  export type Role = {
+  export type RoleResponse = {
     color: number
-    created_at: string
-    guild_id: Id
     hoist: boolean
-    id: Id
+    id: string
     mentionable: boolean
     name: string
-    permissions: Permissions
+    permissions: number
     position: number
   }
-  export type GetRolesResponse = { data: Array<Role> }
+  export type GetRolesResponse = { data: Array<RoleResponse> }
   export type Guild = {
+    banner_color?: (string | null) | undefined
+    banner_url?: (string | null) | undefined
     created_at: string
+    icon_url?: (string | null) | undefined
     id: Id
     name: string
     owner_id: Id
     slug: string
   }
   export type GuildId = Id
+  export type RoleSummaryResponse = { color: number; id: string; name: string }
+  export type PresenceStatus = 'online' | 'idle' | 'do_not_disturb' | 'offline'
+  export type GuildMemberResponse = {
+    avatar_url?: (string | null) | undefined
+    display_name?: (string | null) | undefined
+    joined_at: string
+    member_id: string
+    roles: Array<RoleSummaryResponse>
+    status: PresenceStatus
+    user_id: string
+    username: string
+  }
   export type Invite = {
     code: string
     created_at: string
@@ -171,7 +180,23 @@ export namespace Schemas {
   }
   export type MessageId = Id
   export type OwnerId = Id
+  export type Permissions = unknown
+  export type Role = {
+    color: number
+    created_at: string
+    guild_id: Id
+    hoist: boolean
+    id: Id
+    mentionable: boolean
+    name: string
+    permissions: Permissions
+    position: number
+  }
   export type RoleId = Id
+  export type UpdateChannelRequest = {
+    parent_id?: (string | null) | undefined
+    position: number
+  }
   export type UserId = Id
   export type UserProfile = {
     avatar_url?: (string | null) | undefined
@@ -182,35 +207,6 @@ export namespace Schemas {
     id: string
     updated_at: string
     username: string
-  }
-  export type FriendUser = {
-    avatar_url?: (string | null) | undefined
-    display_name?: (string | null) | undefined
-    id: Id
-    username: string
-  }
-  export type FriendshipStatus = 'pending' | 'accepted' | 'declined'
-  export type Friendship = {
-    created_at: string
-    id: string
-    status: FriendshipStatus
-    user: FriendUser
-  }
-  export type DmChannel = {
-    created_at: string
-    id: Id
-    recipient: FriendUser
-  }
-  export type DeleteMessageResponse = { message: string }
-  export type PresenceStatus = 'online' | 'idle' | 'do_not_disturb' | 'offline'
-  export type GuildMemberResponse = {
-    member_id: string
-    user_id: string
-    username: string
-    display_name?: (string | null) | undefined
-    avatar_url?: (string | null) | undefined
-    joined_at: string
-    status: PresenceStatus
   }
 
   // </Schemas>
@@ -263,6 +259,22 @@ export namespace Endpoints {
       500: Schemas.ApiError
     }
   }
+  export type patch_Update_guild_handler = {
+    method: 'PATCH'
+    path: '/guilds/{guild_id}'
+    requestFormat: 'json'
+    parameters: {
+      path: { guild_id: string }
+    }
+    responses: {
+      200: Schemas.Guild
+      400: Schemas.ApiError
+      401: Schemas.ApiError
+      403: Schemas.ApiError
+      404: Schemas.ApiError
+      500: Schemas.ApiError
+    }
+  }
   export type get_Get_channels_handler = {
     method: 'GET'
     path: '/guilds/{guild_id}/channels'
@@ -288,6 +300,24 @@ export namespace Endpoints {
     }
     responses: {
       201: Schemas.Channel
+      400: Schemas.ApiError
+      401: Schemas.ApiError
+      403: Schemas.ApiError
+      404: Schemas.ApiError
+      500: Schemas.ApiError
+    }
+  }
+  export type patch_Update_channel_handler = {
+    method: 'PATCH'
+    path: '/guilds/{guild_id}/channels/{channel_id}'
+    requestFormat: 'json'
+    parameters: {
+      path: { guild_id: string; channel_id: string }
+
+      body: Schemas.UpdateChannelRequest
+    }
+    responses: {
+      200: Schemas.Channel
       400: Schemas.ApiError
       401: Schemas.ApiError
       403: Schemas.ApiError
@@ -325,6 +355,20 @@ export namespace Endpoints {
     responses: {
       201: Schemas.Message
       400: Schemas.ApiError
+      401: Schemas.ApiError
+      403: Schemas.ApiError
+      500: Schemas.ApiError
+    }
+  }
+  export type delete_Delete_message_handler = {
+    method: 'DELETE'
+    path: '/guilds/{guild_id}/channels/{channel_id}/messages/{message_id}'
+    requestFormat: 'json'
+    parameters: {
+      path: { guild_id: string; channel_id: string; message_id: string }
+    }
+    responses: {
+      200: Schemas.DeleteMessageResponse
       401: Schemas.ApiError
       403: Schemas.ApiError
       500: Schemas.ApiError
@@ -374,6 +418,57 @@ export namespace Endpoints {
       500: Schemas.ApiError
     }
   }
+  export type get_Get_members_handler = {
+    method: 'GET'
+    path: '/guilds/{guild_id}/members'
+    requestFormat: 'json'
+    parameters: {
+      path: { guild_id: string }
+    }
+    responses: {
+      200: Array<Schemas.GuildMemberResponse>
+      401: Schemas.ApiError
+    }
+  }
+  export type delete_Leave_guild_handler = {
+    method: 'DELETE'
+    path: '/guilds/{guild_id}/members/@me'
+    requestFormat: 'json'
+    parameters: {
+      path: { guild_id: string }
+    }
+    responses: {
+      204: unknown
+      400: Schemas.ApiErrorResponse
+      401: Schemas.ApiErrorResponse
+      403: Schemas.ApiErrorResponse
+      404: Schemas.ApiErrorResponse
+      500: Schemas.ApiErrorResponse
+    }
+  }
+  export type put_Assign_member_role_handler = {
+    method: 'PUT'
+    path: '/guilds/{guild_id}/members/{user_id}/roles/{role_id}'
+    requestFormat: 'json'
+    parameters: {
+      path: { guild_id: string; user_id: string; role_id: string }
+    }
+    responses: {
+      204: unknown
+      401: Schemas.ApiError
+      403: Schemas.ApiError
+      404: Schemas.ApiError
+    }
+  }
+  export type delete_Remove_member_role_handler = {
+    method: 'DELETE'
+    path: '/guilds/{guild_id}/members/{user_id}/roles/{role_id}'
+    requestFormat: 'json'
+    parameters: {
+      path: { guild_id: string; user_id: string; role_id: string }
+    }
+    responses: { 204: unknown; 401: Schemas.ApiError; 403: Schemas.ApiError }
+  }
   export type get_Get_roles_handler = {
     method: 'GET'
     path: '/guilds/{guild_id}/roles'
@@ -383,9 +478,7 @@ export namespace Endpoints {
     }
     responses: {
       200: Schemas.GetRolesResponse
-      400: Schemas.ApiError
       401: Schemas.ApiError
-      403: Schemas.ApiError
       500: Schemas.ApiError
     }
   }
@@ -461,20 +554,6 @@ export namespace Endpoints {
       500: Schemas.ApiError
     }
   }
-  export type get_Get_user_handler = {
-    method: 'GET'
-    path: '/users/{user_id}'
-    requestFormat: 'json'
-    parameters: {
-      path: { user_id: string }
-    }
-    responses: {
-      200: Schemas.UserProfile
-      401: Schemas.ApiError
-      404: Schemas.ApiError
-      500: Schemas.ApiError
-    }
-  }
   export type patch_Update_profile_handler = {
     method: 'PATCH'
     path: '/users/@me'
@@ -484,23 +563,6 @@ export namespace Endpoints {
       200: Schemas.UserProfile
       400: Schemas.ApiError
       401: Schemas.ApiError
-      500: Schemas.ApiError
-    }
-  }
-  export type patch_Update_channel_handler = {
-    method: 'PATCH'
-    path: '/guilds/{guild_id}/channels/{channel_id}'
-    requestFormat: 'json'
-    parameters: {
-      path: { guild_id: string; channel_id: string }
-      body: Schemas.UpdateChannelRequest
-    }
-    responses: {
-      200: Schemas.Channel
-      400: Schemas.ApiError
-      401: Schemas.ApiError
-      403: Schemas.ApiError
-      404: Schemas.ApiError
       500: Schemas.ApiError
     }
   }
@@ -517,145 +579,18 @@ export namespace Endpoints {
       500: Schemas.ApiErrorResponse
     }
   }
-  export type delete_Delete_message_handler = {
-    method: 'DELETE'
-    path: '/guilds/{guild_id}/channels/{channel_id}/messages/{message_id}'
+  export type get_Get_user_handler = {
+    method: 'GET'
+    path: '/users/{user_id}'
     requestFormat: 'json'
     parameters: {
-      path: { guild_id: string; channel_id: string; message_id: string }
+      path: { user_id: string }
     }
     responses: {
-      200: Schemas.DeleteMessageResponse
+      200: Schemas.UserProfile
       401: Schemas.ApiError
-      403: Schemas.ApiError
+      404: Schemas.ApiError
       500: Schemas.ApiError
-    }
-  }
-  export type delete_Delete_dm_message_handler = {
-    method: 'DELETE'
-    path: '/channels/@me/{channel_id}/messages/{message_id}'
-    requestFormat: 'json'
-    parameters: {
-      path: { channel_id: string; message_id: string }
-    }
-    responses: {
-      200: Schemas.DeleteMessageResponse
-      401: Schemas.ApiError
-      403: Schemas.ApiError
-      500: Schemas.ApiError
-    }
-  }
-  export type post_Send_friend_request = {
-    method: 'POST'
-    path: '/friends/requests'
-    requestFormat: 'json'
-    parameters: { body: { username: string } }
-    responses: {
-      201: Schemas.Friendship
-      400: Schemas.ApiError
-      401: Schemas.ApiError
-      404: Schemas.ApiError
-    }
-  }
-  export type get_List_friends = {
-    method: 'GET'
-    path: '/friends'
-    requestFormat: 'json'
-    parameters: never
-    responses: { 200: Array<Schemas.Friendship>; 401: Schemas.ApiError }
-  }
-  export type get_List_incoming_requests = {
-    method: 'GET'
-    path: '/friends/requests/incoming'
-    requestFormat: 'json'
-    parameters: never
-    responses: { 200: Array<Schemas.Friendship>; 401: Schemas.ApiError }
-  }
-  export type get_List_outgoing_requests = {
-    method: 'GET'
-    path: '/friends/requests/outgoing'
-    requestFormat: 'json'
-    parameters: never
-    responses: { 200: Array<Schemas.Friendship>; 401: Schemas.ApiError }
-  }
-  export type patch_Accept_friend_request = {
-    method: 'PATCH'
-    path: '/friends/requests/{request_id}/accept'
-    requestFormat: 'json'
-    parameters: { path: { request_id: string } }
-    responses: {
-      200: Schemas.Friendship
-      401: Schemas.ApiError
-      404: Schemas.ApiError
-    }
-  }
-  export type patch_Decline_friend_request = {
-    method: 'PATCH'
-    path: '/friends/requests/{request_id}/decline'
-    requestFormat: 'json'
-    parameters: { path: { request_id: string } }
-    responses: { 204: unknown; 401: Schemas.ApiError; 404: Schemas.ApiError }
-  }
-  export type delete_Remove_friend = {
-    method: 'DELETE'
-    path: '/friends/{user_id}'
-    requestFormat: 'json'
-    parameters: { path: { user_id: string } }
-    responses: { 204: unknown; 401: Schemas.ApiError; 404: Schemas.ApiError }
-  }
-  export type post_Create_or_get_dm = {
-    method: 'POST'
-    path: '/channels/@me'
-    requestFormat: 'json'
-    parameters: { body: { recipient_id: string } }
-    responses: {
-      200: Schemas.DmChannel
-      401: Schemas.ApiError
-      404: Schemas.ApiError
-    }
-  }
-  export type get_List_dms = {
-    method: 'GET'
-    path: '/channels/@me'
-    requestFormat: 'json'
-    parameters: never
-    responses: { 200: Array<Schemas.DmChannel>; 401: Schemas.ApiError }
-  }
-  export type get_Get_dm_messages = {
-    method: 'GET'
-    path: '/channels/@me/{channel_id}/messages'
-    requestFormat: 'json'
-    parameters: {
-      path: { channel_id: string }
-      query: { before?: string | null; limit?: number | null }
-    }
-    responses: {
-      200: Array<Schemas.Message>
-      401: Schemas.ApiError
-      404: Schemas.ApiError
-    }
-  }
-  export type post_Send_dm_message = {
-    method: 'POST'
-    path: '/channels/@me/{channel_id}/messages'
-    requestFormat: 'json'
-    parameters: { path: { channel_id: string } }
-    responses: {
-      201: Schemas.Message
-      401: Schemas.ApiError
-      404: Schemas.ApiError
-    }
-  }
-  export type get_Get_members_handler = {
-    method: 'GET'
-    path: '/guilds/{guild_id}/members'
-    requestFormat: 'json'
-    parameters: {
-      path: { guild_id: string }
-    }
-    responses: {
-      200: Array<Schemas.GuildMemberResponse>
-      401: Schemas.ApiError
     }
   }
 
@@ -671,40 +606,34 @@ export type EndpointByMethod = {
     '/guilds/{guild_id}/channels/{channel_id}/messages': Endpoints.post_Send_message_handler
     '/guilds/{guild_id}/invites': Endpoints.post_Create_invite_handler
     '/guilds/{guild_id}/roles': Endpoints.post_Create_role_handler
-    '/friends/requests': Endpoints.post_Send_friend_request
-    '/channels/@me': Endpoints.post_Create_or_get_dm
-    '/channels/@me/{channel_id}/messages': Endpoints.post_Send_dm_message
   }
   delete: {
     '/guilds/{guild_id}': Endpoints.delete_Delete_guild_handler
-    '/guilds/{guild_id}/invites/{invite_id}': Endpoints.delete_Delete_invite_handler
-    '/guilds/{guild_id}/roles/{role_id}': Endpoints.delete_Delete_role_handler
     '/guilds/{guild_id}/channels/{channel_id}/messages/{message_id}': Endpoints.delete_Delete_message_handler
-    '/channels/@me/{channel_id}/messages/{message_id}': Endpoints.delete_Delete_dm_message_handler
-    '/friends/{user_id}': Endpoints.delete_Remove_friend
+    '/guilds/{guild_id}/invites/{invite_id}': Endpoints.delete_Delete_invite_handler
+    '/guilds/{guild_id}/members/@me': Endpoints.delete_Leave_guild_handler
+    '/guilds/{guild_id}/members/{user_id}/roles/{role_id}': Endpoints.delete_Remove_member_role_handler
+    '/guilds/{guild_id}/roles/{role_id}': Endpoints.delete_Delete_role_handler
+  }
+  patch: {
+    '/guilds/{guild_id}': Endpoints.patch_Update_guild_handler
+    '/guilds/{guild_id}/channels/{channel_id}': Endpoints.patch_Update_channel_handler
+    '/users/@me': Endpoints.patch_Update_profile_handler
   }
   get: {
     '/guilds/{guild_id}/channels': Endpoints.get_Get_channels_handler
     '/guilds/{guild_id}/channels/{channel_id}/messages': Endpoints.get_Get_messages_handler
     '/guilds/{guild_id}/invites': Endpoints.get_List_invites_handler
+    '/guilds/{guild_id}/members': Endpoints.get_Get_members_handler
     '/guilds/{guild_id}/roles': Endpoints.get_Get_roles_handler
     '/guilds/{guild_id}/roles/{role_id}': Endpoints.get_Get_role_handler
     '/invites/{code}': Endpoints.get_Preview_invite_handler
     '/users/@me': Endpoints.get_Get_me_handler
-    '/users/{user_id}': Endpoints.get_Get_user_handler
     '/users/@me/guilds': Endpoints.get_Get_user_guilds
-    '/friends': Endpoints.get_List_friends
-    '/friends/requests/incoming': Endpoints.get_List_incoming_requests
-    '/friends/requests/outgoing': Endpoints.get_List_outgoing_requests
-    '/channels/@me': Endpoints.get_List_dms
-    '/channels/@me/{channel_id}/messages': Endpoints.get_Get_dm_messages
-    '/guilds/{guild_id}/members': Endpoints.get_Get_members_handler
+    '/users/{user_id}': Endpoints.get_Get_user_handler
   }
-  patch: {
-    '/users/@me': Endpoints.patch_Update_profile_handler
-    '/friends/requests/{request_id}/accept': Endpoints.patch_Accept_friend_request
-    '/friends/requests/{request_id}/decline': Endpoints.patch_Decline_friend_request
-    '/guilds/{guild_id}/channels/{channel_id}': Endpoints.patch_Update_channel_handler
+  put: {
+    '/guilds/{guild_id}/members/{user_id}/roles/{role_id}': Endpoints.put_Assign_member_role_handler
   }
 }
 
@@ -713,8 +642,9 @@ export type EndpointByMethod = {
 // <EndpointByMethod.Shorthands>
 export type PostEndpoints = EndpointByMethod['post']
 export type DeleteEndpoints = EndpointByMethod['delete']
-export type GetEndpoints = EndpointByMethod['get']
 export type PatchEndpoints = EndpointByMethod['patch']
+export type GetEndpoints = EndpointByMethod['get']
+export type PutEndpoints = EndpointByMethod['put']
 // </EndpointByMethod.Shorthands>
 
 // <ApiClientTypes>
@@ -1140,66 +1070,6 @@ export class ApiClient {
   }
   // </ApiClient.delete>
 
-  // <ApiClient.get>
-  get<Path extends keyof GetEndpoints, TEndpoint extends GetEndpoints[Path]>(
-    path: Path,
-    ...params: MaybeOptionalArg<
-      TEndpoint extends { parameters: infer UParams }
-        ? NotNever<UParams> extends true
-          ? UParams & {
-              overrides?: RequestInit
-              withResponse?: false
-              throwOnStatusError?: boolean
-            }
-          : {
-              overrides?: RequestInit
-              withResponse?: false
-              throwOnStatusError?: boolean
-            }
-        : {
-            overrides?: RequestInit
-            withResponse?: false
-            throwOnStatusError?: boolean
-          }
-    >
-  ): Promise<
-    Extract<
-      InferResponseByStatus<TEndpoint, SuccessStatusCode>,
-      { data: {} }
-    >['data']
-  >
-
-  get<Path extends keyof GetEndpoints, TEndpoint extends GetEndpoints[Path]>(
-    path: Path,
-    ...params: MaybeOptionalArg<
-      TEndpoint extends { parameters: infer UParams }
-        ? NotNever<UParams> extends true
-          ? UParams & {
-              overrides?: RequestInit
-              withResponse?: true
-              throwOnStatusError?: boolean
-            }
-          : {
-              overrides?: RequestInit
-              withResponse?: true
-              throwOnStatusError?: boolean
-            }
-        : {
-            overrides?: RequestInit
-            withResponse?: true
-            throwOnStatusError?: boolean
-          }
-    >
-  ): Promise<SafeApiResponse<TEndpoint>>
-
-  get<Path extends keyof GetEndpoints, _TEndpoint extends GetEndpoints[Path]>(
-    path: Path,
-    ...params: MaybeOptionalArg<any>
-  ): Promise<any> {
-    return this.request('get', path, ...params)
-  }
-  // </ApiClient.get>
-
   // <ApiClient.patch>
   patch<
     Path extends keyof PatchEndpoints,
@@ -1265,6 +1135,126 @@ export class ApiClient {
     return this.request('patch', path, ...params)
   }
   // </ApiClient.patch>
+
+  // <ApiClient.get>
+  get<Path extends keyof GetEndpoints, TEndpoint extends GetEndpoints[Path]>(
+    path: Path,
+    ...params: MaybeOptionalArg<
+      TEndpoint extends { parameters: infer UParams }
+        ? NotNever<UParams> extends true
+          ? UParams & {
+              overrides?: RequestInit
+              withResponse?: false
+              throwOnStatusError?: boolean
+            }
+          : {
+              overrides?: RequestInit
+              withResponse?: false
+              throwOnStatusError?: boolean
+            }
+        : {
+            overrides?: RequestInit
+            withResponse?: false
+            throwOnStatusError?: boolean
+          }
+    >
+  ): Promise<
+    Extract<
+      InferResponseByStatus<TEndpoint, SuccessStatusCode>,
+      { data: {} }
+    >['data']
+  >
+
+  get<Path extends keyof GetEndpoints, TEndpoint extends GetEndpoints[Path]>(
+    path: Path,
+    ...params: MaybeOptionalArg<
+      TEndpoint extends { parameters: infer UParams }
+        ? NotNever<UParams> extends true
+          ? UParams & {
+              overrides?: RequestInit
+              withResponse?: true
+              throwOnStatusError?: boolean
+            }
+          : {
+              overrides?: RequestInit
+              withResponse?: true
+              throwOnStatusError?: boolean
+            }
+        : {
+            overrides?: RequestInit
+            withResponse?: true
+            throwOnStatusError?: boolean
+          }
+    >
+  ): Promise<SafeApiResponse<TEndpoint>>
+
+  get<Path extends keyof GetEndpoints, _TEndpoint extends GetEndpoints[Path]>(
+    path: Path,
+    ...params: MaybeOptionalArg<any>
+  ): Promise<any> {
+    return this.request('get', path, ...params)
+  }
+  // </ApiClient.get>
+
+  // <ApiClient.put>
+  put<Path extends keyof PutEndpoints, TEndpoint extends PutEndpoints[Path]>(
+    path: Path,
+    ...params: MaybeOptionalArg<
+      TEndpoint extends { parameters: infer UParams }
+        ? NotNever<UParams> extends true
+          ? UParams & {
+              overrides?: RequestInit
+              withResponse?: false
+              throwOnStatusError?: boolean
+            }
+          : {
+              overrides?: RequestInit
+              withResponse?: false
+              throwOnStatusError?: boolean
+            }
+        : {
+            overrides?: RequestInit
+            withResponse?: false
+            throwOnStatusError?: boolean
+          }
+    >
+  ): Promise<
+    Extract<
+      InferResponseByStatus<TEndpoint, SuccessStatusCode>,
+      { data: {} }
+    >['data']
+  >
+
+  put<Path extends keyof PutEndpoints, TEndpoint extends PutEndpoints[Path]>(
+    path: Path,
+    ...params: MaybeOptionalArg<
+      TEndpoint extends { parameters: infer UParams }
+        ? NotNever<UParams> extends true
+          ? UParams & {
+              overrides?: RequestInit
+              withResponse?: true
+              throwOnStatusError?: boolean
+            }
+          : {
+              overrides?: RequestInit
+              withResponse?: true
+              throwOnStatusError?: boolean
+            }
+        : {
+            overrides?: RequestInit
+            withResponse?: true
+            throwOnStatusError?: boolean
+          }
+    >
+  ): Promise<SafeApiResponse<TEndpoint>>
+
+  put<Path extends keyof PutEndpoints, _TEndpoint extends PutEndpoints[Path]>(
+    path: Path,
+    ...params: MaybeOptionalArg<any>
+  ): Promise<any> {
+    return this.request('put', path, ...params)
+  }
+  // </ApiClient.put>
 
   // <ApiClient.request>
   /**

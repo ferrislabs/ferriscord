@@ -29,6 +29,7 @@ pub type GuildFerrisCordService = GuildServiceImpl<
 pub type RoleFerrisCordService = RoleServiceImpl<
     PostgresGuildRepository,
     PostgresRoleRepository,
+    PostgresMemberRepository,
 >;
 
 pub type ChannelFerrisCordService = ChannelServiceImpl<
@@ -72,6 +73,7 @@ pub fn create_guild_services(
         RoleServiceImpl {
             guild_repository: guild_repo.clone(),
             role_repository: role_repo,
+            member_repository: member_repo.clone(),
         },
         ChannelServiceImpl {
             guild_repository: guild_repo.clone(),

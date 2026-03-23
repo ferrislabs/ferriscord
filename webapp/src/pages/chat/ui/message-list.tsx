@@ -34,6 +34,7 @@ interface MessageListProps {
   messages: Message[];
   className?: string;
   onDeleteMessage?: (messageId: string) => void;
+  guildId?: string;
 }
 
 function shouldGroupMessages(currentMessage: Message, previousMessage: Message | null): boolean {
@@ -55,11 +56,13 @@ function MessageItem({
   isGrouped,
   showTimestamp,
   onDeleteMessage,
+  guildId,
 }: {
   message: Message;
   isGrouped: boolean;
   showTimestamp: boolean;
   onDeleteMessage?: (id: string) => void;
+  guildId?: string;
 }) {
   const [isHovered, setIsHovered] = useState(false);
   const toggleProfile = useProfileCardStore((s) => s.toggle);
@@ -69,8 +72,9 @@ function MessageItem({
       id: message.author.id,
       username: message.author.username,
       avatarUrl: message.author.avatar ?? null,
+      guildId: guildId ?? null,
     }, e);
-  }, [message.author, toggleProfile]);
+  }, [message.author, toggleProfile, guildId]);
 
   const initials = message.author.username[0].toUpperCase();
 
@@ -222,7 +226,7 @@ function MessageDateSeparator({ date }: { date: string }) {
   );
 }
 
-export function MessageList({ messages, className, onDeleteMessage }: MessageListProps) {
+export function MessageList({ messages, className, onDeleteMessage, guildId }: MessageListProps) {
   const bottomRef = useRef<HTMLDivElement>(null)
   const isFirstRender = useRef(true)
 
@@ -300,6 +304,7 @@ export function MessageList({ messages, className, onDeleteMessage }: MessageLis
                 isGrouped={isGrouped}
                 showTimestamp={showTimestamp}
                 onDeleteMessage={onDeleteMessage}
+                guildId={guildId}
               />
             </div>
           );

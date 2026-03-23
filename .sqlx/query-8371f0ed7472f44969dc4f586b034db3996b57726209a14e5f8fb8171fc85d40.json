@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "SELECT g.id, g.name, g.slug, g.owner_id, g.created_at\n               FROM guilds g\n               INNER JOIN members m ON m.guild_id = g.id\n               WHERE m.user_id = $1",
+  "query": "SELECT id, name, slug, owner_id, icon_url, banner_url, banner_color, created_at FROM guilds WHERE owner_id = $1",
   "describe": {
     "columns": [
       {
@@ -25,6 +25,21 @@
       },
       {
         "ordinal": 4,
+        "name": "icon_url",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 5,
+        "name": "banner_url",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 6,
+        "name": "banner_color",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 7,
         "name": "created_at",
         "type_info": "Timestamptz"
       }
@@ -39,8 +54,11 @@
       false,
       false,
       false,
+      true,
+      true,
+      true,
       false
     ]
   },
-  "hash": "8943f154dab4908c8c23746d1d0f244ebc49583365b8697fb818c37ac64e4839"
+  "hash": "8371f0ed7472f44969dc4f586b034db3996b57726209a14e5f8fb8171fc85d40"
 }

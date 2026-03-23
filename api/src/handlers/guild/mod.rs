@@ -3,6 +3,8 @@ use axum_extra::routing::RouterExt;
 
 use crate::{
     handlers::guild::{
+        assign_member_role::assign_member_role_handler,
+        update_guild::update_guild_handler,
         channel::{
             create_channel::create_channel_handler,
             delete_message::delete_message_handler,
@@ -26,10 +28,12 @@ use crate::{
             list_invites::list_invites_handler,
             preview_invite::preview_invite_handler,
         },
+        remove_member_role::remove_member_role_handler,
     },
     state::AppState,
 };
 
+pub mod assign_member_role;
 pub mod channel;
 pub mod create_guild;
 pub mod create_role;
@@ -41,6 +45,7 @@ pub mod get_role;
 pub mod get_roles;
 pub mod internal;
 pub mod invite;
+pub mod remove_member_role;
 pub mod update_guild;
 
 pub fn guild_routes(_state: AppState) -> Router<AppState> {
@@ -64,4 +69,7 @@ pub fn guild_routes(_state: AppState) -> Router<AppState> {
         .typed_get(get_members_handler)
         .typed_delete(leave_guild_handler)
         .typed_patch(update_channel_handler)
+        .typed_put(assign_member_role_handler)
+        .typed_delete(remove_member_role_handler)
+        .typed_patch(update_guild_handler)
 }

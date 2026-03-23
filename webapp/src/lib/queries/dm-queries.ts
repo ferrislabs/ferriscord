@@ -1,6 +1,10 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useAuthStore } from '@/stores/auth.store'
 import { useUserStore } from '@/stores/user.store'
+import type { DmChannel } from '@/lib/local-types'
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const api = window.tanstackApi as any
 
 function useAuthEnabled() {
   const isAuthenticated = useUserStore((s) => s.isAuthenticated)
@@ -12,16 +16,17 @@ const DMS_KEY = [{ _id: '/channels/@me' }]
 
 export function useListDms() {
   const enabled = useAuthEnabled()
-  return useQuery({
-    ...window.tanstackApi.get('/channels/@me').queryOptions,
+  return useQuery<DmChannel[]>({
+    ...api.get('/channels/@me').queryOptions,
     enabled,
   })
 }
 
 export function useDmMessages(channelId: string) {
   const enabled = useAuthEnabled()
-  return useQuery({
-    ...window.tanstackApi.get('/channels/@me/{channel_id}/messages', {
+  // Message type matches the guild message type shape
+  return useQuery<import('@/api/api.client').Schemas.Message[]>({
+    ...api.get('/channels/@me/{channel_id}/messages', {
       path: { channel_id: channelId },
       query: { limit: 50 },
     }).queryOptions,
@@ -31,10 +36,7 @@ export function useDmMessages(channelId: string) {
 
 export function useSendDmMessage(channelId: string) {
   const queryClient = useQueryClient()
-  const { mutationOptions } = window.tanstackApi.mutation(
-    'post',
-    '/channels/@me/{channel_id}/messages',
-  )
+  const { mutationOptions } = api.mutation('post', '/channels/@me/{channel_id}/messages')
   return useMutation({
     mutationFn: ({
       content,
@@ -63,7 +65,7 @@ export function useSendDmMessage(channelId: string) {
 
 export function useDeleteDmMessage(channelId: string) {
   const queryClient = useQueryClient()
-  const { mutationOptions } = window.tanstackApi.mutation(
+  const { mutationOptions } = api.mutation(
     'delete',
     '/channels/@me/{channel_id}/messages/{message_id}',
   )
@@ -82,9 +84,9 @@ export function useDeleteDmMessage(channelId: string) {
 
 export function useCreateOrGetDm() {
   const queryClient = useQueryClient()
-  const { mutationOptions } = window.tanstackApi.mutation('post', '/channels/@me')
-  return useMutation({
-    ...mutationOptions,
+  const { mutationOptions } = api.mutation('post', '/channels/@me')
+  return useMutation<DmChannel, Error, { body: { recipient_id: string } }>({
+    mutationFn: (vars) => mutationOptions.mutationFn(vars),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: DMS_KEY })
     },

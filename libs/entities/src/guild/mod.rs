@@ -50,6 +50,9 @@ pub struct Guild {
     pub name: String,
     pub slug: String,
     pub owner_id: OwnerId,
+    pub icon_url: Option<String>,
+    pub banner_url: Option<String>,
+    pub banner_color: Option<String>,
     pub created_at: DateTime<Utc>,
 }
 
@@ -60,6 +63,9 @@ impl Guild {
             slug: name.to_lowercase().replace(" ", "-"),
             name,
             owner_id,
+            icon_url: None,
+            banner_url: None,
+            banner_color: None,
             created_at: Utc::now(),
         }
     }

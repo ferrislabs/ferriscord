@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "SELECT id, name, slug, owner_id, created_at FROM guilds WHERE owner_id = $1",
+  "query": "SELECT id, name, slug, owner_id, icon_url, banner_url, banner_color, created_at FROM guilds WHERE id = $1",
   "describe": {
     "columns": [
       {
@@ -25,6 +25,21 @@
       },
       {
         "ordinal": 4,
+        "name": "icon_url",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 5,
+        "name": "banner_url",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 6,
+        "name": "banner_color",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 7,
         "name": "created_at",
         "type_info": "Timestamptz"
       }
@@ -39,8 +54,11 @@
       false,
       false,
       false,
+      true,
+      true,
+      true,
       false
     ]
   },
-  "hash": "329b143fd25804338637c555e0a6b624e6d3986e4ba20f1e350496091f87d8c5"
+  "hash": "b20d03dc8ac72eab50de639b4c6a9ce113f3c64c052b8e3c1260f83072b9d69f"
 }

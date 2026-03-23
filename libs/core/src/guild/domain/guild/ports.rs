@@ -4,7 +4,7 @@ use ferriscord_entities::{
     user::UserId,
 };
 
-use crate::guild::domain::{errors::CoreError, guild::entities::CreateGuildInput};
+use crate::guild::domain::{errors::CoreError, guild::entities::{CreateGuildInput, UpdateGuildInput}};
 
 pub trait GuildPort: Send + Sync {
     fn insert(
@@ -24,6 +24,10 @@ pub trait GuildPort: Send + Sync {
         user_id: &UserId,
     ) -> impl Future<Output = Result<Vec<Guild>, CoreError>> + Send;
     fn delete(&self, guild_id: &GuildId) -> impl Future<Output = Result<(), CoreError>> + Send;
+    fn update(
+        &self,
+        input: UpdateGuildInput,
+    ) -> impl Future<Output = Result<Guild, CoreError>> + Send;
 }
 
 pub trait GuildService: Send + Sync {
@@ -48,4 +52,10 @@ pub trait GuildService: Send + Sync {
         guild_id: &GuildId,
         user_id: UserId,
     ) -> impl Future<Output = Result<(), CoreError>> + Send;
+
+    fn update_guild(
+        &self,
+        identity: Identity,
+        input: UpdateGuildInput,
+    ) -> impl Future<Output = Result<Guild, CoreError>> + Send;
 }

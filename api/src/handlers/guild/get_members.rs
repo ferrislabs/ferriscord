@@ -18,6 +18,13 @@ pub struct GetMembersRoute {
 }
 
 #[derive(Serialize, ToSchema, PartialEq)]
+pub struct RoleSummaryResponse {
+    pub id: Uuid,
+    pub name: String,
+    pub color: u32,
+}
+
+#[derive(Serialize, ToSchema, PartialEq)]
 pub struct GuildMemberResponse {
     pub member_id: Uuid,
     pub user_id: Uuid,
@@ -26,6 +33,7 @@ pub struct GuildMemberResponse {
     pub avatar_url: Option<String>,
     pub joined_at: chrono::DateTime<chrono::Utc>,
     pub status: PresenceStatus,
+    pub roles: Vec<RoleSummaryResponse>,
 }
 
 #[utoipa::path(
@@ -51,7 +59,7 @@ pub async fn get_members_handler(
         .await
         .map_err(|e| ApiError::Unknown { message: e.to_string() })?;
 
-    let user_ids: Vec<Uuid> = members.iter().map(|m| m.user_id).collect();
+    let user_ids: Vec<uuid::Uuid> = members.iter().map(|m| m.user_id).collect();
     let presences = state.presence.get_many(&user_ids).await;
 
     let response = members.into_iter().map(|m| {
@@ -64,6 +72,11 @@ pub async fn get_members_handler(
             avatar_url: m.avatar_url,
             joined_at: m.joined_at,
             status,
+            roles: m.roles.into_iter().map(|r| RoleSummaryResponse {
+                id: r.id,
+                name: r.name,
+                color: r.color,
+            }).collect(),
         }
     }).collect();
 

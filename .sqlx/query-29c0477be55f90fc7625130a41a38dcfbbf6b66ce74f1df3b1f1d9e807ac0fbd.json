@@ -1,0 +1,46 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n            SELECT\n                ra.member_id,\n                r.id           AS role_id,\n                r.name         AS role_name,\n                COALESCE(r.color, 0) AS \"color!: i32\",\n                r.position\n            FROM role_assignments ra\n            JOIN roles r ON r.id = ra.role_id\n            WHERE ra.member_id = ANY($1)\n            ORDER BY r.position ASC\n            ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "member_id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 1,
+        "name": "role_id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 2,
+        "name": "role_name",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 3,
+        "name": "color!: i32",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 4,
+        "name": "position",
+        "type_info": "Int4"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "UuidArray"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      null,
+      false
+    ]
+  },
+  "hash": "29c0477be55f90fc7625130a41a38dcfbbf6b66ce74f1df3b1f1d9e807ac0fbd"
+}

@@ -1,0 +1,16 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n            DELETE FROM role_assignments ra\n            USING members m\n            WHERE ra.role_id = $1\n              AND ra.member_id = m.id\n              AND m.guild_id = $2\n              AND m.user_id = $3\n            ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid",
+        "Uuid"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "0155e0900e3566a697bfa596bbf72d5a6c3d88daf809053dcaf65a555553273e"
+}

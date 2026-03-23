@@ -7,26 +7,30 @@ use crate::guild::domain::{
     common::build_permission_context,
     errors::CoreError,
     guild::ports::GuildPort,
+    member::ports::MemberRepository,
     role::{
-        entities::{CreateRoleInput, DeleteRoleInput, FindRoleInput, FindRolesInput},
+        entities::{AssignRoleInput, CreateRoleInput, DeleteRoleInput, FindRoleInput, FindRolesInput, RemoveRoleInput},
         ports::{RoleRepository, RoleService},
     },
 };
 
 #[derive(Clone)]
-pub struct RoleServiceImpl<G, R>
+pub struct RoleServiceImpl<G, R, M>
 where
     G: GuildPort,
     R: RoleRepository,
+    M: MemberRepository,
 {
     pub(crate) guild_repository: G,
     pub(crate) role_repository: R,
+    pub(crate) member_repository: M,
 }
 
-impl<G, R> RoleService for RoleServiceImpl<G, R>
+impl<G, R, M> RoleService for RoleServiceImpl<G, R, M>
 where
     G: GuildPort,
     R: RoleRepository,
+    M: MemberRepository,
 {
     async fn create_role(
         &self,
@@ -76,5 +80,35 @@ where
         let response = PaginationBuilder::new("test").build(roles, params, total);
 
         Ok(response)
+    }
+
+    async fn assign_role(
+        &self,
+        identity: Identity,
+        input: AssignRoleInput,
+    ) -> Result<(), CoreError> {
+        let mut permission_context =
+            build_permission_context(&self.guild_repository, &identity, &input.guild_id).await?;
+
+        require_permission!(permission_context, Permissions::MANAGE_ROLES);
+
+        self.member_repository
+            .assign_role(&input.guild_id, &input.user_id, &input.role_id)
+            .await
+    }
+
+    async fn remove_role(
+        &self,
+        identity: Identity,
+        input: RemoveRoleInput,
+    ) -> Result<(), CoreError> {
+        let mut permission_context =
+            build_permission_context(&self.guild_repository, &identity, &input.guild_id).await?;
+
+        require_permission!(permission_context, Permissions::MANAGE_ROLES);
+
+        self.member_repository
+            .remove_role(&input.guild_id, &input.user_id, &input.role_id)
+            .await
     }
 }

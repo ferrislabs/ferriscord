@@ -149,7 +149,7 @@ function ChannelPage() {
           {isLoading || isLoadingMessages ? (
             <MessageListSkeleton />
           ) : selectedChannel ? (
-            <MessageList messages={formattedMessages} className="flex-1" onDeleteMessage={handleDeleteMessage} />
+            <MessageList messages={formattedMessages} className="flex-1" onDeleteMessage={handleDeleteMessage} guildId={serverId} />
           ) : (
             <div className="flex items-center justify-center h-full">
               <div className="text-center">

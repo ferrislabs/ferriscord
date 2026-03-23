@@ -7,7 +7,7 @@ use ferriscord_entities::{
 use crate::guild::domain::{
     errors::CoreError,
     guild::{
-        entities::CreateGuildInput,
+        entities::{CreateGuildInput, UpdateGuildInput},
         ports::{GuildPort, GuildService},
     },
     member::ports::MemberRepository,
@@ -98,5 +98,25 @@ where
         self.member_repository.delete_member(guild_id, &user_id).await?;
 
         Ok(())
+    }
+
+    async fn update_guild(
+        &self,
+        identity: Identity,
+        input: UpdateGuildInput,
+    ) -> Result<Guild, CoreError> {
+        let guild = self
+            .guild_repository
+            .find_by_id(&input.guild_id)
+            .await?
+            .ok_or(CoreError::GuildNotFound { guild_id: input.guild_id.clone() })?;
+
+        let owner_id: OwnerId = identity.id().into();
+
+        if guild.owner_id != owner_id {
+            return Err(CoreError::Unknown { message: "not guild owner".to_string() });
+        }
+
+        self.guild_repository.update(input).await
     }
 }

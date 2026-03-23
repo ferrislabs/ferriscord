@@ -68,6 +68,8 @@ export function MemberList({ guildId, className }: MemberListProps) {
                         username: member.username,
                         displayName: member.display_name,
                         avatarUrl: member.avatar_url,
+                        guildId,
+                        roles: member.roles,
                       }, e)}
                     >
                       <div className="relative shrink-0">

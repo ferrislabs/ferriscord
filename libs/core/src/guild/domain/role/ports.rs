@@ -7,7 +7,7 @@ use ferriscord_pagination::{PaginatedResponse, PaginationParams};
 
 use crate::guild::domain::{
     errors::CoreError,
-    role::entities::{CreateRoleInput, DeleteRoleInput, FindRoleInput, FindRolesInput},
+    role::entities::{AssignRoleInput, CreateRoleInput, DeleteRoleInput, FindRoleInput, FindRolesInput, RemoveRoleInput},
 };
 
 pub trait RoleService: Send + Sync {
@@ -31,6 +31,18 @@ pub trait RoleService: Send + Sync {
         &self,
         identity: Identity,
         input: DeleteRoleInput,
+    ) -> impl Future<Output = Result<(), CoreError>> + Send;
+
+    fn assign_role(
+        &self,
+        identity: Identity,
+        input: AssignRoleInput,
+    ) -> impl Future<Output = Result<(), CoreError>> + Send;
+
+    fn remove_role(
+        &self,
+        identity: Identity,
+        input: RemoveRoleInput,
     ) -> impl Future<Output = Result<(), CoreError>> + Send;
 }
 

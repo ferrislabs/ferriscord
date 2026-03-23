@@ -17,8 +17,8 @@ import {
 } from '@/lib/queries/friend-queries'
 import { useCreateOrGetDm } from '@/lib/queries/dm-queries'
 import { toast } from '@/lib/toast'
-import type { Schemas } from '@/api/api.client'
 import { useSidebar } from '@/components/ui/sidebar'
+import type { Friendship } from '@/lib/local-types'
 import { useProfileCardStore } from '@/stores/profile-card.store'
 
 export const Route = createFileRoute('/_app/channels/@me')({
@@ -31,7 +31,7 @@ function FriendRow({
   friendship,
   onMessage,
 }: {
-  friendship: Schemas.Friendship
+  friendship: Friendship
   onMessage: (userId: string) => void
 }) {
   const removeFriend = useRemoveFriend()
@@ -88,7 +88,7 @@ function IncomingRow({
   friendship,
   onAccepted,
 }: {
-  friendship: Schemas.Friendship
+  friendship: Friendship
   onAccepted: (userId: string) => void
 }) {
   const accept = useAcceptFriendRequest()
@@ -154,7 +154,7 @@ function IncomingRow({
   )
 }
 
-function OutgoingRow({ friendship }: { friendship: Schemas.Friendship }) {
+function OutgoingRow({ friendship }: { friendship: Friendship }) {
   const toggleProfile = useProfileCardStore((s) => s.toggle)
   const displayName = friendship.user.display_name ?? friendship.user.username
 

@@ -1,0 +1,16 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n            INSERT INTO role_assignments (role_id, member_id)\n            SELECT $1, m.id\n            FROM members m\n            WHERE m.guild_id = $2 AND m.user_id = $3\n            ON CONFLICT DO NOTHING\n            ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid",
+        "Uuid"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "4fac593257470b1007b0a0f1576b8ec00f6c31eaa7a07158e2539128d0684d18"
+}

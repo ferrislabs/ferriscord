@@ -772,6 +772,12 @@ export function AppSidebar() {
                 <Users className='h-4 w-4 mr-2' />
                 Inviter des gens
               </DropdownMenuItem>
+              {isGuildOwner && (
+                <DropdownMenuItem onSelect={() => navigate({ to: '/channels/$serverId/settings', params: { serverId: serverId! } })}>
+                  <Settings className='h-4 w-4 mr-2' />
+                  Paramètres du serveur
+                </DropdownMenuItem>
+              )}
               {!isGuildOwner && (
                 <DropdownMenuItem className='text-destructive' onSelect={handleLeaveGuild} disabled={isLeaving}>
                   Quitter le serveur

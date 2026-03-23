@@ -1,8 +1,15 @@
 use chrono::{DateTime, Utc};
-use ferriscord_entities::{guild::GuildId, user::UserId};
+use ferriscord_entities::{guild::GuildId, role::RoleId, user::UserId};
 use uuid::Uuid;
 
 use crate::guild::domain::errors::CoreError;
+
+pub struct RoleSummary {
+    pub id: Uuid,
+    pub name: String,
+    pub color: u32,
+    pub position: i32,
+}
 
 pub struct MemberWithUser {
     pub member_id: Uuid,
@@ -11,6 +18,7 @@ pub struct MemberWithUser {
     pub display_name: Option<String>,
     pub avatar_url: Option<String>,
     pub joined_at: DateTime<Utc>,
+    pub roles: Vec<RoleSummary>,
 }
 
 pub trait MemberRepository: Send + Sync {
@@ -29,5 +37,19 @@ pub trait MemberRepository: Send + Sync {
         &self,
         guild_id: &GuildId,
         user_id: &UserId,
+    ) -> impl Future<Output = Result<(), CoreError>> + Send;
+
+    fn assign_role(
+        &self,
+        guild_id: &GuildId,
+        user_id: &UserId,
+        role_id: &RoleId,
+    ) -> impl Future<Output = Result<(), CoreError>> + Send;
+
+    fn remove_role(
+        &self,
+        guild_id: &GuildId,
+        user_id: &UserId,
+        role_id: &RoleId,
     ) -> impl Future<Output = Result<(), CoreError>> + Send;
 }
