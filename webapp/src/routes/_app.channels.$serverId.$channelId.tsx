@@ -5,7 +5,7 @@ import { Skeleton } from '@/components/ui/skeleton'
 import { MessageListSkeleton } from '@/components/layout/message-list-skeleton'
 import { MessageInput } from '@/components/chat'
 import { MessageList } from '@/pages/chat/ui/message-list'
-import { saveLastVisited } from '@/lib/last-visited'
+import { saveLastVisited, saveGuildLastChannel } from '@/lib/last-visited'
 import { useUserGuilds } from '@/lib/queries/guild-queries'
 import { useGuildChannels } from '@/lib/queries/channel-queries'
 import { useChannelMessages, useSendMessage, useDeleteMessage } from '@/lib/queries/message-queries'
@@ -27,15 +27,15 @@ function ChannelPage() {
     () => localStorage.getItem('memberListOpen') === 'true'
   )
 
-  const { data: guilds = [], isLoading: isLoadingGuilds } = useUserGuilds()
+  const { data: guilds = [], isPending: isGuildsPending } = useUserGuilds()
 
   useEffect(() => {
-    if (isLoadingGuilds) return
+    if (isGuildsPending) return
     if (guilds.length === 0 || !guilds.find((g) => g.id === serverId)) {
       saveLastVisited('/channels/@me')
       navigate({ to: '/channels/@me', replace: true })
     }
-  }, [isLoadingGuilds, guilds, serverId, navigate])
+  }, [isGuildsPending, guilds, serverId, navigate])
 
   useEffect(() => {
     localStorage.setItem('memberListOpen', String(showMemberList))
@@ -48,6 +48,7 @@ function ChannelPage() {
 
   useEffect(() => {
     saveLastVisited(`/channels/${serverId}/${channelId}`)
+    saveGuildLastChannel(serverId, channelId)
   }, [serverId, channelId])
 
   const { data: channels = [], isLoading: isLoadingChannels } = useGuildChannels(serverId)

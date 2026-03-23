@@ -99,6 +99,10 @@ export namespace Schemas {
     topic?: (string | null) | undefined
     user_limit?: (number | null) | undefined
   }
+  export type UpdateChannelRequest = {
+    parent_id?: (string | null) | undefined
+    position: number
+  }
   export type CreateGuildRequest = { name: string }
   export type CreateInviteRequest = Partial<{
     expires_in_hours: number | null
@@ -467,6 +471,23 @@ export namespace Endpoints {
       500: Schemas.ApiError
     }
   }
+  export type patch_Update_channel_handler = {
+    method: 'PATCH'
+    path: '/guilds/{guild_id}/channels/{channel_id}'
+    requestFormat: 'json'
+    parameters: {
+      path: { guild_id: string; channel_id: string }
+      body: Schemas.UpdateChannelRequest
+    }
+    responses: {
+      200: Schemas.Channel
+      400: Schemas.ApiError
+      401: Schemas.ApiError
+      403: Schemas.ApiError
+      404: Schemas.ApiError
+      500: Schemas.ApiError
+    }
+  }
   export type get_Get_user_guilds = {
     method: 'GET'
     path: '/users/@me/guilds'
@@ -666,6 +687,7 @@ export type EndpointByMethod = {
     '/users/@me': Endpoints.patch_Update_profile_handler
     '/friends/requests/{request_id}/accept': Endpoints.patch_Accept_friend_request
     '/friends/requests/{request_id}/decline': Endpoints.patch_Decline_friend_request
+    '/guilds/{guild_id}/channels/{channel_id}': Endpoints.patch_Update_channel_handler
   }
 }
 

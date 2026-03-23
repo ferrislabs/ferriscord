@@ -25,3 +25,8 @@ pub struct CreateChannelInput {
     pub default_sort_order: Option<SortOrder>,
     pub default_forum_layout: Option<ForumLayout>,
 }
+
+pub struct UpdateChannelInput {
+    pub parent_id: Option<ChannelId>, // None = uncategorized
+    pub position: i32,
+}

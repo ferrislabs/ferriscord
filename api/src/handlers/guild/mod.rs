@@ -9,6 +9,7 @@ use crate::{
             get_channels::get_channels_handler,
             get_messages::get_messages_handler,
             send_message::send_message_handler,
+            update_channel::update_channel_handler,
         },
         create_guild::create_guild_handler,
         create_role::create_role_handler,
@@ -62,4 +63,5 @@ pub fn guild_routes(_state: AppState) -> Router<AppState> {
         .typed_get(preview_invite_handler)
         .typed_get(get_members_handler)
         .typed_delete(leave_guild_handler)
+        .typed_patch(update_channel_handler)
 }

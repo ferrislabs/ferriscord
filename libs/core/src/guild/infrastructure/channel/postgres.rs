@@ -12,7 +12,7 @@ use tracing::error;
 use uuid::Uuid;
 
 use crate::guild::domain::{
-    channel::{entities::CreateChannelInput, ports::ChannelPort},
+    channel::{entities::{CreateChannelInput, UpdateChannelInput}, ports::ChannelPort},
     errors::CoreError,
 };
 
@@ -255,5 +255,32 @@ impl ChannelPort for PostgresChannelRepository {
             })?;
 
         rows.into_iter().map(Channel::try_from).collect()
+    }
+
+    async fn update_channel(
+        &self,
+        channel_id: &ChannelId,
+        input: UpdateChannelInput,
+    ) -> Result<Channel, CoreError> {
+        let parent_id = input.parent_id.as_ref().map(|id| id.get_uuid());
+
+        sqlx::query(
+            "UPDATE channels SET parent_id = $1, position = $2 WHERE id = $3",
+        )
+        .bind(parent_id)
+        .bind(input.position)
+        .bind(channel_id.get_uuid())
+        .execute(&self.pool)
+        .await
+        .map_err(|e| {
+            error!("failed to update channel {}: {}", channel_id, e);
+            CoreError::Unknown { message: e.to_string() }
+        })?;
+
+        self.find_by_id(channel_id)
+            .await?
+            .ok_or_else(|| CoreError::Unknown {
+                message: "channel updated but could not be fetched".to_string(),
+            })
     }
 }

@@ -238,7 +238,7 @@ impl StoragePort for S3Client {
             .uri()
             .to_string();
 
-        Ok(url)
+        Ok(rewrite_url(url, &self.config))
     }
 
     async fn presigned_put_url(
@@ -263,7 +263,7 @@ impl StoragePort for S3Client {
             .uri()
             .to_string();
 
-        Ok(url)
+        Ok(rewrite_url(url, &self.config))
     }
 
     async fn create_bucket(&self, bucket: &str) -> Result<(), StorageError> {
@@ -302,6 +302,25 @@ impl StoragePort for S3Client {
 
         Ok(())
     }
+}
+
+// ─── Helpers ──────────────────────────────────────────────────────────────────
+
+/// If `STORAGE_PUBLIC_URL` is set, replace the internal endpoint origin in the
+/// pre-signed URL with the public-facing one so clients outside the Docker
+/// network can access it.
+fn rewrite_url(url: String, config: &StorageConfig) -> String {
+    let Some(ref public_url) = config.public_url else {
+        return url;
+    };
+    let Some(ref internal) = config.endpoint else {
+        return url;
+    };
+
+    let internal = internal.trim_end_matches('/');
+    let public = public_url.trim_end_matches('/');
+
+    url.replacen(internal, public, 1)
 }
 
 // ─── Error mappers ────────────────────────────────────────────────────────────

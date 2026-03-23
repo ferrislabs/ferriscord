@@ -7,6 +7,7 @@ use super::handlers::{
             get_channels::__path_get_channels_handler,
             get_messages::__path_get_messages_handler,
             send_message::__path_send_message_handler,
+            update_channel::__path_update_channel_handler,
         },
         create_guild::__path_create_guild_handler,
         create_role::__path_create_role_handler,
@@ -51,6 +52,7 @@ use super::handlers::{
         get_user_guilds,
         get_me_handler,
         update_profile_handler,
+        update_channel_handler,
     )
 )]
 pub struct ApiDoc;

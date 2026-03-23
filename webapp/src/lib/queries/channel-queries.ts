@@ -30,3 +30,20 @@ export function useCreateChannel() {
     },
   })
 }
+
+export function useUpdateChannel() {
+  const queryClient = useQueryClient()
+  const { mutationOptions } = window.tanstackApi.mutation(
+    'patch',
+    '/guilds/{guild_id}/channels/{channel_id}',
+  )
+
+  return useMutation({
+    ...mutationOptions,
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({
+        queryKey: [{ _id: '/guilds/{guild_id}/channels' }],
+      })
+    },
+  })
+}

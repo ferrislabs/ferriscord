@@ -38,6 +38,14 @@ pub struct StorageArgs {
     pub secret_access_key: String,
 
     #[arg(
+        long = "storage-public-url",
+        env = "STORAGE_PUBLIC_URL",
+        name = "STORAGE_PUBLIC_URL",
+        long_help = "Public-facing base URL for pre-signed URLs (e.g. https://storage.example.com). Replaces the internal endpoint in generated URLs."
+    )]
+    pub public_url: Option<String>,
+
+    #[arg(
         long = "storage-force-path-style",
         env = "STORAGE_FORCE_PATH_STYLE",
         name = "STORAGE_FORCE_PATH_STYLE",
@@ -60,6 +68,7 @@ impl From<StorageArgs> for StorageConfig {
     fn from(args: StorageArgs) -> Self {
         StorageConfig {
             endpoint: args.endpoint,
+            public_url: args.public_url,
             region: args.region,
             access_key_id: args.access_key_id,
             secret_access_key: args.secret_access_key,

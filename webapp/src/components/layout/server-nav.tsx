@@ -1,6 +1,8 @@
 import { Compass, Ellipsis, Inbox, Menu, Moon, Sun, type LucideIcon } from "lucide-react"
 import { useTranslation } from "@/hooks/use-translation"
 import { Link, useNavigate } from "@tanstack/react-router"
+import { useQueryClient } from "@tanstack/react-query"
+import { getGuildLastChannel } from "@/lib/last-visited"
 import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from "@/components/ui/tooltip"
 import {
   DropdownMenu,
@@ -51,12 +53,23 @@ interface ServerButtonProps {
 
 function ServerButton({ guild }: ServerButtonProps) {
   const navigate = useNavigate()
+  const queryClient = useQueryClient()
 
-  const handleServerClick = () => {
-    navigate({
-      to: '/channels/$serverId/$channelId',
-      params: { serverId: guild.id, channelId: '0' }
-    })
+  const handleServerClick = async () => {
+    const lastChannel = getGuildLastChannel(guild.id)
+    if (lastChannel) {
+      navigate({ to: '/channels/$serverId/$channelId', params: { serverId: guild.id, channelId: lastChannel } })
+      return
+    }
+    try {
+      const channels = await queryClient.fetchQuery(
+        window.tanstackApi.get('/guilds/{guild_id}/channels', { path: { guild_id: guild.id } }).queryOptions
+      )
+      const first = (channels as { id: string; kind: string }[]).find((c) => c.kind === 'Text') ?? channels?.[0]
+      navigate({ to: '/channels/$serverId/$channelId', params: { serverId: guild.id, channelId: first?.id ?? '0' } })
+    } catch {
+      navigate({ to: '/channels/$serverId/$channelId', params: { serverId: guild.id, channelId: '0' } })
+    }
   }
 
   return (
@@ -158,6 +171,7 @@ export default function ServerNav() {
 
   const { setCollapsed } = useSidebar()
   const navigate = useNavigate()
+  const queryClient = useQueryClient()
 
   return (
     <TooltipProvider>
@@ -275,7 +289,22 @@ export default function ServerNav() {
             {guilds?.map((guild) => (
               <button
                 key={guild.id}
-                onClick={() => navigate({ to: '/channels/$serverId/$channelId', params: { serverId: guild.id, channelId: '0' } })}
+                onClick={async () => {
+                  const lastChannel = getGuildLastChannel(guild.id)
+                  if (lastChannel) {
+                    navigate({ to: '/channels/$serverId/$channelId', params: { serverId: guild.id, channelId: lastChannel } })
+                    return
+                  }
+                  try {
+                    const channels = await queryClient.fetchQuery(
+                      window.tanstackApi.get('/guilds/{guild_id}/channels', { path: { guild_id: guild.id } }).queryOptions
+                    )
+                    const first = (channels as { id: string; kind: string }[]).find((c) => c.kind === 'Text') ?? channels?.[0]
+                    navigate({ to: '/channels/$serverId/$channelId', params: { serverId: guild.id, channelId: first?.id ?? '0' } })
+                  } catch {
+                    navigate({ to: '/channels/$serverId/$channelId', params: { serverId: guild.id, channelId: '0' } })
+                  }
+                }}
                 className="shrink-0 h-8 w-8 flex items-center justify-center rounded-lg border border-border/50 bg-muted/50 text-xs font-semibold text-foreground transition-all hover:border-primary/40 hover:bg-muted/80 active:scale-95"
               >
                 {guild.name.charAt(0).toUpperCase()}

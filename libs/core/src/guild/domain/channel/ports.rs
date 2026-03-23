@@ -6,7 +6,7 @@ use ferriscord_entities::{
 
 use crate::guild::domain::errors::CoreError;
 
-use super::entities::CreateChannelInput;
+use super::entities::{CreateChannelInput, UpdateChannelInput};
 
 pub trait ChannelPort: Send + Sync {
     fn insert(
@@ -24,6 +24,12 @@ pub trait ChannelPort: Send + Sync {
         &self,
         guild_id: &GuildId,
     ) -> impl Future<Output = Result<Vec<Channel>, CoreError>> + Send;
+
+    fn update_channel(
+        &self,
+        channel_id: &ChannelId,
+        input: UpdateChannelInput,
+    ) -> impl Future<Output = Result<Channel, CoreError>> + Send;
 }
 
 pub trait ChannelService: Send + Sync {
@@ -39,4 +45,12 @@ pub trait ChannelService: Send + Sync {
         identity: Identity,
         guild_id: GuildId,
     ) -> impl Future<Output = Result<Vec<Channel>, CoreError>> + Send;
+
+    fn update_channel(
+        &self,
+        identity: Identity,
+        guild_id: GuildId,
+        channel_id: ChannelId,
+        input: UpdateChannelInput,
+    ) -> impl Future<Output = Result<Channel, CoreError>> + Send;
 }

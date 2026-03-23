@@ -1,6 +1,6 @@
 use ferriscord_auth::Identity;
 use ferriscord_entities::{
-    channel::{Channel, ChannelKind},
+    channel::{Channel, ChannelId, ChannelKind},
     guild::GuildId,
 };
 use ferriscord_permission::{Permissions, require_permission};
@@ -12,7 +12,7 @@ use crate::guild::domain::{
 };
 
 use super::{
-    entities::CreateChannelInput,
+    entities::{CreateChannelInput, UpdateChannelInput},
     ports::{ChannelPort, ChannelService},
 };
 
@@ -80,5 +80,48 @@ where
             .ok_or_else(|| CoreError::GuildNotFound { guild_id: guild_id.clone() })?;
 
         self.channel_repository.list_by_guild(&guild_id).await
+    }
+
+    async fn update_channel(
+        &self,
+        identity: Identity,
+        guild_id: GuildId,
+        channel_id: ChannelId,
+        input: UpdateChannelInput,
+    ) -> Result<Channel, CoreError> {
+        let mut permission_context =
+            build_permission_context(&self.guild_repository, &identity, &guild_id).await?;
+
+        require_permission!(permission_context, Permissions::MANAGE_CHANNELS);
+
+        // Validate channel belongs to the guild
+        let channel = self
+            .channel_repository
+            .find_by_id(&channel_id)
+            .await?
+            .ok_or_else(|| CoreError::ChannelNotFound { channel_id: channel_id.clone() })?;
+
+        if channel.guild_id.as_ref() != Some(&guild_id) {
+            return Err(CoreError::ChannelNotFound { channel_id: channel_id.clone() });
+        }
+
+        // Validate parent if provided
+        if let Some(ref parent_id) = input.parent_id {
+            let parent = self
+                .channel_repository
+                .find_by_id(parent_id)
+                .await?
+                .ok_or_else(|| CoreError::ChannelNotFound { channel_id: parent_id.clone() })?;
+
+            if parent.kind != ChannelKind::Category {
+                return Err(CoreError::InvalidChannelParent);
+            }
+
+            if parent.guild_id.as_ref() != Some(&guild_id) {
+                return Err(CoreError::InvalidChannelParent);
+            }
+        }
+
+        self.channel_repository.update_channel(&channel_id, input).await
     }
 }
