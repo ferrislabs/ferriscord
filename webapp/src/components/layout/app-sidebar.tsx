@@ -8,8 +8,14 @@ import {
   Users,
   Plus,
   FolderOpen,
+  Copy,
 } from 'lucide-react'
-import { Link, useParams, useNavigate, useMatchRoute } from '@tanstack/react-router'
+import {
+  Link,
+  useParams,
+  useNavigate,
+  useMatchRoute,
+} from '@tanstack/react-router'
 import { cn } from '@/lib/utils'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Button } from '@/components/ui/button'
@@ -20,7 +26,11 @@ import {
   SidebarFooter,
   SidebarHeader,
 } from '@/components/ui/sidebar'
-import { useGuildChannels, useCreateChannel, useUpdateChannel } from '@/lib/queries/channel-queries'
+import {
+  useGuildChannels,
+  useCreateChannel,
+  useUpdateChannel,
+} from '@/lib/queries/channel-queries'
 import { useUserGuilds, useLeaveGuild } from '@/lib/queries/guild-queries'
 import { useOidcUser } from '@axa-fr/react-oidc'
 import { useAuth } from '@/hooks/use-auth'
@@ -30,8 +40,17 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
+import {
+  ContextMenu,
+  ContextMenuContent,
+  ContextMenuItem,
+  ContextMenuLabel,
+  ContextMenuSeparator,
+  ContextMenuTrigger,
+} from '@/components/ui/context-menu'
 import {
   Dialog,
   DialogContent,
@@ -43,11 +62,11 @@ import { Skeleton } from '@/components/ui/skeleton'
 import { useState, useEffect, useMemo } from 'react'
 import { toast } from '@/lib/toast'
 import type { Schemas } from '@/api/api.client'
-import { ProfileDialog } from '@/components/layout/profile-dialog'
+import { UserProfileSummary } from '@/components/chat/user-profile-card'
 import { useGetMe } from '@/lib/queries/user-queries'
 import { useListDms } from '@/lib/queries/dm-queries'
 import { InviteModal } from '@/components/guild/invite-modal'
-import { usePresenceStore, type PresenceStatus } from '@/stores/presence.store'
+import { usePresenceStore } from '@/stores/presence.store'
 import { PresenceIndicator } from '@/components/ui/presence-indicator'
 import {
   DndContext,
@@ -71,13 +90,6 @@ import {
 } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
 import { useDroppable } from '@dnd-kit/core'
-
-const STATUS_OPTIONS: { value: PresenceStatus; label: string }[] = [
-  { value: 'online', label: 'En ligne' },
-  { value: 'idle', label: 'Absent' },
-  { value: 'dnd', label: 'Ne pas déranger' },
-  { value: 'offline', label: 'Invisible' },
-]
 
 type ChannelKind = 'Text' | 'Voice' | 'Category'
 
@@ -126,17 +138,41 @@ function CreateChannelDialog({
           parent_id: kind !== 'Category' && categoryId ? categoryId : undefined,
         },
       })
-      toast.success(kind === 'Category' ? `Catégorie "${name.trim()}" créée` : `#${name.trim()} créé`)
+      toast.success(
+        kind === 'Category'
+          ? `Catégorie "${name.trim()}" créée`
+          : `#${name.trim()} créé`,
+      )
       onOpenChange(false)
     } catch {
       toast.error('Erreur lors de la création')
     }
   }
 
-  const kindOptions: { value: ChannelKind; icon: React.ReactNode; label: string; description: string }[] = [
-    { value: 'Text', icon: <Hash className='h-5 w-5 shrink-0' />, label: 'Texte', description: 'Messages, liens, fichiers' },
-    { value: 'Voice', icon: <Volume2 className='h-5 w-5 shrink-0' />, label: 'Vocal', description: 'Appel vocal' },
-    { value: 'Category', icon: <FolderOpen className='h-5 w-5 shrink-0' />, label: 'Catégorie', description: 'Groupe de channels' },
+  const kindOptions: {
+    value: ChannelKind
+    icon: React.ReactNode
+    label: string
+    description: string
+  }[] = [
+    {
+      value: 'Text',
+      icon: <Hash className='h-5 w-5 shrink-0' />,
+      label: 'Texte',
+      description: 'Messages, liens, fichiers',
+    },
+    {
+      value: 'Voice',
+      icon: <Volume2 className='h-5 w-5 shrink-0' />,
+      label: 'Vocal',
+      description: 'Appel vocal',
+    },
+    {
+      value: 'Category',
+      icon: <FolderOpen className='h-5 w-5 shrink-0' />,
+      label: 'Catégorie',
+      description: 'Groupe de channels',
+    },
   ]
 
   return (
@@ -162,7 +198,9 @@ function CreateChannelDialog({
                 {opt.icon}
                 <div>
                   <div className='text-sm font-medium'>{opt.label}</div>
-                  <div className='text-xs opacity-60 mt-0.5 hidden sm:block'>{opt.description}</div>
+                  <div className='text-xs opacity-60 mt-0.5 hidden sm:block'>
+                    {opt.description}
+                  </div>
                 </div>
               </button>
             ))}
@@ -174,12 +212,20 @@ function CreateChannelDialog({
             </label>
             <div className='relative'>
               <span className='pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground/60'>
-                {kind === 'Text' ? <Hash className='h-4 w-4' /> : kind === 'Voice' ? <Volume2 className='h-4 w-4' /> : <FolderOpen className='h-4 w-4' />}
+                {kind === 'Text' ? (
+                  <Hash className='h-4 w-4' />
+                ) : kind === 'Voice' ? (
+                  <Volume2 className='h-4 w-4' />
+                ) : (
+                  <FolderOpen className='h-4 w-4' />
+                )}
               </span>
               <Input
                 value={name}
                 onChange={(e) => setName(e.target.value)}
-                placeholder={kind === 'Category' ? 'nouvelle-catégorie' : 'nouveau-channel'}
+                placeholder={
+                  kind === 'Category' ? 'nouvelle-catégorie' : 'nouveau-channel'
+                }
                 className='pl-9'
                 disabled={isPending}
                 autoFocus
@@ -210,7 +256,12 @@ function CreateChannelDialog({
           )}
 
           <div className='flex justify-end gap-2 pt-1'>
-            <Button type='button' variant='ghost' onClick={() => onOpenChange(false)} disabled={isPending}>
+            <Button
+              type='button'
+              variant='ghost'
+              onClick={() => onOpenChange(false)}
+              disabled={isPending}
+            >
               Annuler
             </Button>
             <Button type='submit' disabled={isPending || !name.trim()}>
@@ -226,10 +277,14 @@ function CreateChannelDialog({
 // ─── DnD helpers ─────────────────────────────────────────────────────────────
 
 type ContainerMap = Record<string, string[]>
+const EMPTY_CHANNELS: Schemas.Channel[] = []
+const EMPTY_DMS: Schemas.DmChannel[] = []
 
 function buildContainerMap(channels: Schemas.Channel[]): ContainerMap {
   const map: ContainerMap = { uncategorized: [], __categories__: [] }
-  for (const ch of channels.filter((c) => c.kind === 'Category').sort((a, b) => a.position - b.position)) {
+  for (const ch of channels
+    .filter((c) => c.kind === 'Category')
+    .sort((a, b) => a.position - b.position)) {
     map.__categories__.push(ch.id)
     map[ch.id] = []
   }
@@ -252,6 +307,23 @@ function findContainerOf(id: string, order: ContainerMap): string | null {
   return null
 }
 
+function isSameContainerMap(a: ContainerMap, b: ContainerMap): boolean {
+  const aKeys = Object.keys(a)
+  const bKeys = Object.keys(b)
+  if (aKeys.length !== bKeys.length) return false
+
+  for (const key of aKeys) {
+    const aItems = a[key] ?? []
+    const bItems = b[key] ?? []
+    if (aItems.length !== bItems.length) return false
+    for (let i = 0; i < aItems.length; i += 1) {
+      if (aItems[i] !== bItems[i]) return false
+    }
+  }
+
+  return true
+}
+
 // ─── Sortable channel item ────────────────────────────────────────────────────
 
 interface SortableChannelItemProps {
@@ -260,9 +332,29 @@ interface SortableChannelItemProps {
   channelId: string | undefined
   onChannelClick?: () => void
   isDragOverlay?: boolean
+  onCopyChannelId?: (channel: Schemas.Channel) => void
+  onCreateClick?: (categoryId: string | null) => void
+  onInviteClick?: () => void
+  onOpenServerSettings?: () => void
+  canManageServer?: boolean
+  canLeaveGuild?: boolean
+  onLeaveGuild?: () => void
 }
 
-function SortableChannelItem({ channel, serverId, channelId, onChannelClick, isDragOverlay }: SortableChannelItemProps) {
+function SortableChannelItem({
+  channel,
+  serverId,
+  channelId,
+  onChannelClick,
+  isDragOverlay,
+  onCopyChannelId,
+  onCreateClick,
+  onInviteClick,
+  onOpenServerSettings,
+  canManageServer,
+  canLeaveGuild,
+  onLeaveGuild,
+}: SortableChannelItemProps) {
   const navigate = useNavigate()
   const {
     attributes,
@@ -281,11 +373,14 @@ function SortableChannelItem({ channel, serverId, channelId, onChannelClick, isD
   const Icon = channel.kind === 'Voice' ? Volume2 : Hash
 
   const handleClick = () => {
-    navigate({ to: '/channels/$serverId/$channelId', params: { serverId, channelId: channel.id } })
+    navigate({
+      to: '/channels/$serverId/$channelId',
+      params: { serverId, channelId: channel.id },
+    })
     onChannelClick?.()
   }
 
-  return (
+  const item = (
     <div
       ref={isDragOverlay ? undefined : setNodeRef}
       style={isDragOverlay ? undefined : style}
@@ -293,7 +388,9 @@ function SortableChannelItem({ channel, serverId, channelId, onChannelClick, isD
       className={cn(
         'flex items-center space-x-2 py-1.5 px-2 mx-1 rounded transition-colors select-none',
         isDragging && !isDragOverlay && 'opacity-40',
-        isDragOverlay ? 'shadow-lg opacity-95 cursor-grabbing' : 'cursor-pointer',
+        isDragOverlay
+          ? 'shadow-lg opacity-95 cursor-grabbing'
+          : 'cursor-pointer',
         channelId === channel.id
           ? 'bg-accent text-accent-foreground'
           : 'text-muted-foreground hover:bg-accent/50 hover:text-foreground',
@@ -303,6 +400,54 @@ function SortableChannelItem({ channel, serverId, channelId, onChannelClick, isD
       <Icon className='h-4 w-4 shrink-0' />
       <span className='text-sm font-medium truncate'>{channel.name}</span>
     </div>
+  )
+
+  if (isDragOverlay) return item
+
+  return (
+    <ContextMenu>
+      <ContextMenuTrigger asChild>{item}</ContextMenuTrigger>
+      <ContextMenuContent className='w-56'>
+        <ContextMenuLabel className='truncate'>
+          {channel.kind === 'Voice' ? 'Salon vocal' : 'Salon textuel'} •{' '}
+          {channel.name}
+        </ContextMenuLabel>
+        <ContextMenuSeparator />
+        <ContextMenuItem onSelect={handleClick}>
+          Ouvrir le salon
+        </ContextMenuItem>
+        {onCreateClick && (
+          <ContextMenuItem
+            onSelect={() => onCreateClick(channel.parent_id ?? null)}
+          >
+            Créer un salon
+          </ContextMenuItem>
+        )}
+        {onInviteClick && (
+          <ContextMenuItem onSelect={onInviteClick}>
+            Inviter des gens
+          </ContextMenuItem>
+        )}
+        <ContextMenuItem onSelect={() => onCopyChannelId?.(channel)}>
+          <Copy className='mr-2 h-4 w-4' />
+          Copier l&apos;ID du salon
+        </ContextMenuItem>
+        {(canManageServer || canLeaveGuild) && <ContextMenuSeparator />}
+        {canManageServer && onOpenServerSettings && (
+          <ContextMenuItem onSelect={onOpenServerSettings}>
+            Paramètres du serveur
+          </ContextMenuItem>
+        )}
+        {canLeaveGuild && onLeaveGuild && (
+          <ContextMenuItem
+            className='text-destructive focus:text-destructive'
+            onSelect={onLeaveGuild}
+          >
+            Quitter le serveur
+          </ContextMenuItem>
+        )}
+      </ContextMenuContent>
+    </ContextMenu>
   )
 }
 
@@ -319,6 +464,8 @@ interface SortableCategoryProps {
   onCreateClick: () => void
   onChannelClick?: () => void
   isChannelOver?: boolean
+  onCopyCategoryId?: (category: Schemas.Channel) => void
+  onCopyChannelId?: (channel: Schemas.Channel) => void
 }
 
 function SortableCategory({
@@ -332,41 +479,77 @@ function SortableCategory({
   onCreateClick,
   onChannelClick,
   isChannelOver,
+  onCopyCategoryId,
+  onCopyChannelId,
 }: SortableCategoryProps) {
-  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: category.id })
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({ id: category.id })
 
   const style = { transform: CSS.Transform.toString(transform), transition }
 
   return (
-    <div ref={setNodeRef} style={style} className={cn('mb-1', isDragging && 'opacity-40')}>
-      <div
-        {...attributes}
-        {...listeners}
-        className={cn(
-          'group/cat flex items-center px-1 py-1 rounded transition-colors select-none',
-          isDragging ? 'cursor-grabbing' : 'cursor-pointer',
-          isChannelOver && 'bg-accent/20',
-        )}
-        onClick={onToggle}
-      >
-        <div className='flex items-center gap-1 min-w-0 flex-1'>
-          {collapsed ? (
-            <ChevronRight className='h-3 w-3 shrink-0 text-muted-foreground' />
-          ) : (
-            <ChevronDown className='h-3 w-3 shrink-0 text-muted-foreground' />
-          )}
-          <span className='text-xs font-semibold text-muted-foreground uppercase truncate'>
-            {category.name}
-          </span>
-        </div>
-        <button
-          onClick={(e) => { e.stopPropagation(); onCreateClick() }}
-          className='opacity-0 group-hover/cat:opacity-100 transition-opacity rounded p-0.5 text-muted-foreground hover:text-foreground hover:bg-accent/50 shrink-0'
-          title='Créer un channel dans cette catégorie'
-        >
-          <Plus className='h-3.5 w-3.5' />
-        </button>
-      </div>
+    <div
+      ref={setNodeRef}
+      style={style}
+      className={cn('mb-1', isDragging && 'opacity-40')}
+    >
+      <ContextMenu>
+        <ContextMenuTrigger asChild>
+          <div
+            {...attributes}
+            {...listeners}
+            className={cn(
+              'group/cat flex items-center px-1 py-1 rounded transition-colors select-none',
+              isDragging ? 'cursor-grabbing' : 'cursor-pointer',
+              isChannelOver && 'bg-accent/20',
+            )}
+            onClick={onToggle}
+          >
+            <div className='flex items-center gap-1 min-w-0 flex-1'>
+              {collapsed ? (
+                <ChevronRight className='h-3 w-3 shrink-0 text-muted-foreground' />
+              ) : (
+                <ChevronDown className='h-3 w-3 shrink-0 text-muted-foreground' />
+              )}
+              <span className='text-xs font-semibold text-muted-foreground uppercase truncate'>
+                {category.name}
+              </span>
+            </div>
+            <button
+              onClick={(e) => {
+                e.stopPropagation()
+                onCreateClick()
+              }}
+              className='opacity-0 group-hover/cat:opacity-100 transition-opacity rounded p-0.5 text-muted-foreground hover:text-foreground hover:bg-accent/50 shrink-0'
+              title='Créer un channel dans cette catégorie'
+            >
+              <Plus className='h-3.5 w-3.5' />
+            </button>
+          </div>
+        </ContextMenuTrigger>
+        <ContextMenuContent className='w-56'>
+          <ContextMenuLabel className='truncate'>
+            Catégorie • {category.name}
+          </ContextMenuLabel>
+          <ContextMenuSeparator />
+          <ContextMenuItem onSelect={onToggle}>
+            {collapsed ? 'Déplier la catégorie' : 'Replier la catégorie'}
+          </ContextMenuItem>
+          <ContextMenuItem onSelect={onCreateClick}>
+            Créer un salon dans la catégorie
+          </ContextMenuItem>
+          <ContextMenuItem onSelect={() => onCopyCategoryId?.(category)}>
+            <Copy className='mr-2 h-4 w-4' />
+            Copier l&apos;ID de la catégorie
+          </ContextMenuItem>
+        </ContextMenuContent>
+      </ContextMenu>
       {!collapsed && (
         <SortableContext items={items} strategy={verticalListSortingStrategy}>
           {items.map((id) => {
@@ -379,6 +562,8 @@ function SortableCategory({
                 serverId={serverId}
                 channelId={channelId}
                 onChannelClick={onChannelClick}
+                onCopyChannelId={onCopyChannelId}
+                onCreateClick={() => onCreateClick()}
               />
             )
           })}
@@ -399,30 +584,43 @@ export function AppSidebar() {
   const { data: profile } = useGetMe()
   const isMobile = useMobile()
   const { setCollapsed } = useSidebar()
-  const closeSidebarOnMobile = () => { if (isMobile) setCollapsed(true) }
+  const closeSidebarOnMobile = () => {
+    if (isMobile) setCollapsed(true)
+  }
   const myStatus = usePresenceStore((s) => s.myStatus)
-  const setMyStatus = usePresenceStore((s) => s.setMyStatus)
 
   const [guildMenuOpen, setGuildMenuOpen] = useState(false)
+  const [userMenuOpen, setUserMenuOpen] = useState(false)
   const [createDialogOpen, setCreateDialogOpen] = useState(false)
-  const [createDialogDefaultKind, setCreateDialogDefaultKind] = useState<ChannelKind>('Text')
-  const [createDialogDefaultCategoryId, setCreateDialogDefaultCategoryId] = useState<string | null>(null)
-  const [profileDialogOpen, setProfileDialogOpen] = useState(false)
+  const [createDialogDefaultKind, setCreateDialogDefaultKind] =
+    useState<ChannelKind>('Text')
+  const [createDialogDefaultCategoryId, setCreateDialogDefaultCategoryId] =
+    useState<string | null>(null)
   const [inviteModalOpen, setInviteModalOpen] = useState(false)
-  const [collapsedCategories, setCollapsedCategories] = useState<Record<string, boolean>>(() => {
+  const [collapsedCategories, setCollapsedCategories] = useState<
+    Record<string, boolean>
+  >(() => {
     try {
-      return JSON.parse(localStorage.getItem('ferriscord:collapsed_categories') ?? '{}')
+      return JSON.parse(
+        localStorage.getItem('ferriscord:collapsed_categories') ?? '{}',
+      )
     } catch {
       return {}
     }
   })
 
   useEffect(() => {
-    localStorage.setItem('ferriscord:collapsed_categories', JSON.stringify(collapsedCategories))
+    localStorage.setItem(
+      'ferriscord:collapsed_categories',
+      JSON.stringify(collapsedCategories),
+    )
   }, [collapsedCategories])
 
   const toggleCategory = (categoryId: string) => {
-    setCollapsedCategories((prev) => ({ ...prev, [categoryId]: !prev[categoryId] }))
+    setCollapsedCategories((prev) => ({
+      ...prev,
+      [categoryId]: !prev[categoryId],
+    }))
   }
 
   // ─── DnD state ───────────────────────────────────────────────────────────
@@ -438,33 +636,44 @@ export function AppSidebar() {
   const channelId = params.channelId
   const dmChannelId = isDMRoute ? channelId : undefined
 
-  const { data: dms = [] } = useListDms()
+  const { data: dmsData } = useListDms()
   const { data: guilds } = useUserGuilds()
   const guild = guilds?.find((g) => g.id === serverId)
 
-  const { data: channels = [], isLoading: isLoadingChannels } = useGuildChannels(serverId)
+  const { data: channelsData, isLoading: isLoadingChannels } =
+    useGuildChannels(serverId)
   const { mutate: updateChannel } = useUpdateChannel()
+  const dms = dmsData ?? EMPTY_DMS
+  const channels = channelsData ?? EMPTY_CHANNELS
 
   const categories = useMemo(
-    () => channels.filter((ch) => ch.kind === 'Category').sort((a, b) => a.position - b.position),
-    [channels]
+    () =>
+      channels
+        .filter((ch) => ch.kind === 'Category')
+        .sort((a, b) => a.position - b.position),
+    [channels],
   )
 
   const channelMap = useMemo(
     () => Object.fromEntries(channels.map((ch) => [ch.id, ch])),
-    [channels]
+    [channels],
   )
 
   // Sync localOrder from server data when not dragging
   useEffect(() => {
     if (!activeId) {
-      setLocalOrder(buildContainerMap(channels))
+      const nextOrder = buildContainerMap(channels)
+      setLocalOrder((prev) =>
+        isSameContainerMap(prev, nextOrder) ? prev : nextOrder,
+      )
     }
   }, [channels, activeId])
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
-    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }),
+    useSensor(KeyboardSensor, {
+      coordinateGetter: sortableKeyboardCoordinates,
+    }),
   )
 
   const handleDragStart = ({ active }: DragStartEvent) => {
@@ -475,14 +684,19 @@ export function AppSidebar() {
     if (!over || active.id === over.id) return
 
     // ── Category reordering ──────────────────────────────────────────────────
-    const isCategoryDrag = (localOrder['__categories__'] ?? []).includes(active.id as string)
+    const isCategoryDrag = (localOrder['__categories__'] ?? []).includes(
+      active.id as string,
+    )
     if (isCategoryDrag) {
       const cats = [...(localOrder['__categories__'] ?? [])]
       if (!cats.includes(over.id as string)) return
       const oldIdx = cats.indexOf(active.id as string)
       const newIdx = cats.indexOf(over.id as string)
       if (oldIdx >= 0 && newIdx >= 0 && oldIdx !== newIdx) {
-        setLocalOrder((prev) => ({ ...prev, __categories__: arrayMove(cats, oldIdx, newIdx) }))
+        setLocalOrder((prev) => ({
+          ...prev,
+          __categories__: arrayMove(cats, oldIdx, newIdx),
+        }))
       }
       return
     }
@@ -491,10 +705,15 @@ export function AppSidebar() {
     const activeContainer = findContainerOf(active.id as string, localOrder)
     const overContainer = findContainerOf(over.id as string, localOrder)
 
-    if (!activeContainer || !overContainer || activeContainer === overContainer) return
+    if (!activeContainer || !overContainer || activeContainer === overContainer)
+      return
 
     // Auto-expand collapsed category on hover
-    if (overContainer !== 'uncategorized' && overContainer !== '__categories__' && collapsedCategories[overContainer]) {
+    if (
+      overContainer !== 'uncategorized' &&
+      overContainer !== '__categories__' &&
+      collapsedCategories[overContainer]
+    ) {
       setCollapsedCategories((prev) => ({ ...prev, [overContainer]: false }))
     }
 
@@ -502,7 +721,9 @@ export function AppSidebar() {
       const next: ContainerMap = {}
       for (const [k, v] of Object.entries(prev)) next[k] = [...v]
 
-      next[activeContainer] = next[activeContainer].filter((id) => id !== active.id)
+      next[activeContainer] = next[activeContainer].filter(
+        (id) => id !== active.id,
+      )
 
       const overIndex = next[overContainer].indexOf(over.id as string)
       if (overIndex >= 0) {
@@ -525,7 +746,9 @@ export function AppSidebar() {
     if (!serverId) return
 
     // ── Category reordering ──────────────────────────────────────────────────
-    const isCategoryDrag = (localOrder['__categories__'] ?? []).includes(active.id as string)
+    const isCategoryDrag = (localOrder['__categories__'] ?? []).includes(
+      active.id as string,
+    )
     if (isCategoryDrag) {
       const originalOrder = buildContainerMap(channels)
       const origCats = originalOrder['__categories__'] ?? []
@@ -562,14 +785,16 @@ export function AppSidebar() {
 
     for (const [containerId, ids] of Object.entries(finalOrder)) {
       if (containerId === '__categories__') continue
-      if (!(containerId in originalOrder) && containerId !== 'uncategorized') continue
+      if (!(containerId in originalOrder) && containerId !== 'uncategorized')
+        continue
       const newParentId = containerId === 'uncategorized' ? null : containerId
 
       ids.forEach((id, index) => {
         const origContainerId = findContainerOf(id, originalOrder)
         if (!origContainerId) return
         const origIndex = originalOrder[origContainerId].indexOf(id)
-        const origParentId = origContainerId === 'uncategorized' ? null : origContainerId
+        const origParentId =
+          origContainerId === 'uncategorized' ? null : origContainerId
 
         if (origParentId !== newParentId || origIndex !== index) {
           updateChannel({
@@ -590,7 +815,10 @@ export function AppSidebar() {
 
   const { mutate: leaveGuild, isPending: isLeaving } = useLeaveGuild()
 
-  const openCreateDialog = (kind: ChannelKind, categoryId: string | null = null) => {
+  const openCreateDialog = (
+    kind: ChannelKind,
+    categoryId: string | null = null,
+  ) => {
     setCreateDialogDefaultKind(kind)
     setCreateDialogDefaultCategoryId(categoryId)
     setCreateDialogOpen(true)
@@ -599,7 +827,7 @@ export function AppSidebar() {
   const handleLeaveGuild = () => {
     if (!serverId) return
     leaveGuild(
-      { path: { guild_id: serverId } } as any,
+      { path: { guild_id: serverId } },
       {
         onSuccess: () => {
           toast.success('Vous avez quitté le serveur')
@@ -608,13 +836,133 @@ export function AppSidebar() {
         onError: () => {
           toast.error('Impossible de quitter le serveur')
         },
-      }
+      },
     )
   }
 
-  const isGuildOwner = !!guild && !!oidcUser && guild.owner_id === (oidcUser as any).sub
+  const handleCopyToClipboard = async (value: string, label: string) => {
+    try {
+      await navigator.clipboard.writeText(value)
+      toast.success(`${label} copié`)
+    } catch {
+      toast.error(`Impossible de copier ${label.toLowerCase()}`)
+    }
+  }
 
-  const { setNodeRef: uncategorizedRef, isOver: uncategorizedIsOver } = useDroppable({ id: 'uncategorized' })
+  const openServerSettings = () => {
+    if (!serverId) return
+    navigate({ to: '/channels/$serverId/settings', params: { serverId } })
+  }
+
+  const handleCopyUserId = () => {
+    if (!profile?.id) return
+    void handleCopyToClipboard(profile.id, 'ID utilisateur')
+  }
+
+  const handleUpdateActivity = () => {
+    toast('Update Activity arrive bientôt')
+  }
+
+  const openUserSettings = () => {
+    setUserMenuOpen(false)
+    requestAnimationFrame(() => {
+      navigate({ to: '/settings' })
+    })
+  }
+
+  const oidcSub =
+    typeof oidcUser === 'object' &&
+    oidcUser !== null &&
+    'sub' in oidcUser &&
+    typeof oidcUser.sub === 'string'
+      ? oidcUser.sub
+      : null
+
+  const isGuildOwner = !!guild && guild.owner_id === oidcSub
+
+  const { setNodeRef: uncategorizedRef, isOver: uncategorizedIsOver } =
+    useDroppable({ id: 'uncategorized' })
+
+  const userFooterMenu = (
+    <DropdownMenu open={userMenuOpen} onOpenChange={setUserMenuOpen}>
+      <DropdownMenuTrigger asChild>
+        <button className='flex min-w-0 flex-1 items-center space-x-2 rounded-md px-1.5 py-1.5 text-left transition-colors hover:bg-accent/50'>
+          <div className='relative shrink-0'>
+            <Avatar className='h-8 w-8'>
+              <AvatarImage
+                src={profile?.avatar_url ?? user?.avatar}
+                alt={profile?.display_name ?? user?.preferred_username}
+              />
+              <AvatarFallback className='bg-primary text-primary-foreground text-xs'>
+                {(profile?.display_name ??
+                  user?.preferred_username)?.[0].toUpperCase() || 'U'}
+              </AvatarFallback>
+            </Avatar>
+            <PresenceIndicator
+              status={myStatus}
+              className='absolute -bottom-0.5 -right-0.5'
+            />
+          </div>
+          <div className='min-w-0 flex-1'>
+            <div className='truncate text-sm font-medium text-foreground'>
+              {profile?.display_name ??
+                user?.preferred_username ??
+                'Unknown User'}
+            </div>
+          </div>
+        </button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent
+        align='start'
+        side='top'
+        className='w-[300px] overflow-hidden p-0'
+      >
+        <div>
+          <UserProfileSummary
+            displayName={
+              profile?.display_name ??
+              profile?.username ??
+              user?.preferred_username ??
+              'Unknown User'
+            }
+            username={
+              profile?.username ?? user?.preferred_username ?? 'unknown'
+            }
+            avatarUrl={profile?.avatar_url ?? user?.avatar}
+            bio={profile?.bio}
+            bannerUrl={profile?.banner_url}
+            className='rounded-none border-0 bg-transparent shadow-none'
+          />
+        </div>
+        <div className='px-1 pb-1'>
+          <DropdownMenuItem
+            onSelect={(event) => {
+              event.preventDefault()
+              openUserSettings()
+            }}
+          >
+            <Settings className='mr-2 h-4 w-4' />
+            Settings
+          </DropdownMenuItem>
+          <DropdownMenuItem onSelect={handleUpdateActivity}>
+            Update Activity
+          </DropdownMenuItem>
+          <DropdownMenuItem onSelect={handleCopyUserId}>
+            <Copy className='mr-2 h-4 w-4' />
+            Copy ID
+          </DropdownMenuItem>
+          <DropdownMenuSeparator />
+          <DropdownMenuItem
+            className='text-destructive focus:text-destructive'
+            onSelect={handleLogout}
+          >
+            <LogOut className='mr-2 h-4 w-4' />
+            Déconnexion
+          </DropdownMenuItem>
+        </div>
+      </DropdownMenuContent>
+    </DropdownMenu>
+  )
 
   // ─── DM Sidebar ──────────────────────────────────────────────────────────
 
@@ -624,11 +972,13 @@ export function AppSidebar() {
         <Sidebar>
           <SidebarHeader>
             <div className='flex items-center justify-between px-2 h-8'>
-              <span className='font-semibold text-foreground'>Direct Messages</span>
+              <span className='font-semibold text-foreground'>
+                Direct Messages
+              </span>
             </div>
           </SidebarHeader>
           <SidebarContent>
-            <ScrollArea className='flex-1'>
+            <ScrollArea className='flex-1 h-full'>
               <div className='space-y-0.5 p-2'>
                 <Link to='/channels/@me'>
                   <div
@@ -644,12 +994,20 @@ export function AppSidebar() {
                   </div>
                 </Link>
                 <div className='pt-4 pb-2'>
-                  <div className='px-2 text-xs font-semibold text-muted-foreground uppercase'>Direct Messages</div>
+                  <div className='px-2 text-xs font-semibold text-muted-foreground uppercase'>
+                    Direct Messages
+                  </div>
                 </div>
                 {dms.map((dm) => {
-                  const displayName = dm.recipient.display_name ?? dm.recipient.username
+                  const displayName =
+                    dm.recipient.display_name ?? dm.recipient.username
                   return (
-                    <Link key={dm.id} to='/channels/@me/$channelId' params={{ channelId: dm.id }} onClick={closeSidebarOnMobile}>
+                    <Link
+                      key={dm.id}
+                      to='/channels/@me/$channelId'
+                      params={{ channelId: dm.id }}
+                      onClick={closeSidebarOnMobile}
+                    >
                       <div
                         className={cn(
                           'flex items-center space-x-2 px-2 py-1.5 rounded cursor-pointer transition-colors',
@@ -659,8 +1017,13 @@ export function AppSidebar() {
                         )}
                       >
                         <Avatar className='h-7 w-7'>
-                          <AvatarImage src={dm.recipient.avatar_url ?? undefined} alt={displayName} />
-                          <AvatarFallback className='text-xs'>{displayName[0].toUpperCase()}</AvatarFallback>
+                          <AvatarImage
+                            src={dm.recipient.avatar_url ?? undefined}
+                            alt={displayName}
+                          />
+                          <AvatarFallback className='text-xs'>
+                            {displayName[0].toUpperCase()}
+                          </AvatarFallback>
                         </Avatar>
                         <span className='text-sm truncate'>{displayName}</span>
                       </div>
@@ -671,45 +1034,9 @@ export function AppSidebar() {
             </ScrollArea>
           </SidebarContent>
           <SidebarFooter>
-            <div className='flex items-center space-x-2'>
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <button className='relative shrink-0'>
-                    <Avatar className='h-8 w-8'>
-                      <AvatarImage src={profile?.avatar_url ?? user?.avatar} alt={profile?.display_name ?? user?.preferred_username} />
-                      <AvatarFallback className='bg-primary text-primary-foreground text-xs'>
-                        {(profile?.display_name ?? user?.preferred_username)?.[0].toUpperCase() || 'U'}
-                      </AvatarFallback>
-                    </Avatar>
-                    <PresenceIndicator status={myStatus} className='absolute -bottom-0.5 -right-0.5' />
-                  </button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align='start' side='top' className='w-44'>
-                  {STATUS_OPTIONS.map((opt) => (
-                    <DropdownMenuItem key={opt.value} onSelect={() => setMyStatus(opt.value)} className='flex items-center gap-2'>
-                      <PresenceIndicator status={opt.value} />
-                      <span>{opt.label}</span>
-                    </DropdownMenuItem>
-                  ))}
-                </DropdownMenuContent>
-              </DropdownMenu>
-              <div className='flex-1 min-w-0'>
-                <div className='text-sm font-medium text-foreground truncate'>
-                  {profile?.display_name ?? user?.preferred_username ?? 'Unknown User'}
-                </div>
-              </div>
-              <div className='flex space-x-1'>
-                <Button variant='ghost' size='icon' className='h-8 w-8 text-muted-foreground hover:text-foreground' onClick={() => setProfileDialogOpen(true)}>
-                  <Settings className='h-4 w-4' />
-                </Button>
-                <Button variant='ghost' size='icon' className='h-8 w-8 text-muted-foreground hover:text-foreground' onClick={handleLogout}>
-                  <LogOut className='h-4 w-4' />
-                </Button>
-              </div>
-            </div>
+            <div className='flex items-center space-x-2'>{userFooterMenu}</div>
           </SidebarFooter>
         </Sidebar>
-        <ProfileDialog open={profileDialogOpen} onOpenChange={setProfileDialogOpen} />
       </>
     )
   }
@@ -726,9 +1053,14 @@ export function AppSidebar() {
         </SidebarHeader>
         <SidebarContent>
           <div className='space-y-0.5 p-2'>
-            <div className='px-2 py-1.5'><Skeleton className='h-3 w-24' /></div>
+            <div className='px-2 py-1.5'>
+              <Skeleton className='h-3 w-24' />
+            </div>
             {[...Array(5)].map((_, i) => (
-              <div key={i} className='flex items-center space-x-2 px-2 py-1.5 mx-1'>
+              <div
+                key={i}
+                className='flex items-center space-x-2 px-2 py-1.5 mx-1'
+              >
                 <Skeleton className='h-4 w-4 shrink-0' />
                 <Skeleton className='h-4 flex-1' />
               </div>
@@ -741,9 +1073,13 @@ export function AppSidebar() {
 
   // ─── Server Sidebar ───────────────────────────────────────────────────────
 
-  const isCategoryDragging = activeId ? (localOrder['__categories__'] ?? []).includes(activeId as string) : false
-  const activeChannel = activeId && !isCategoryDragging ? channelMap[activeId as string] : null
-  const activeCategoryItem = activeId && isCategoryDragging ? channelMap[activeId as string] : null
+  const isCategoryDragging = activeId
+    ? (localOrder['__categories__'] ?? []).includes(activeId as string)
+    : false
+  const activeChannel =
+    activeId && !isCategoryDragging ? channelMap[activeId as string] : null
+  const activeCategoryItem =
+    activeId && isCategoryDragging ? channelMap[activeId as string] : null
   // Display categories in localOrder order (updates during drag)
   const sortedCategories = (localOrder['__categories__'] ?? [])
     .map((id) => channelMap[id])
@@ -755,18 +1091,54 @@ export function AppSidebar() {
         <SidebarHeader>
           <DropdownMenu onOpenChange={(open) => setGuildMenuOpen(open)}>
             <DropdownMenuTrigger asChild>
-              <Button variant='ghost' className='w-full justify-between px-2 h-12 hover:bg-accent gap-2'>
-                <div className='flex items-center gap-2 min-w-0'>
+              <Button
+                variant='ghost'
+                className='relative h-16 w-full justify-between overflow-hidden px-2 hover:bg-accent gap-2'
+              >
+                {guild?.banner_url ? (
+                  <>
+                    <img
+                      src={guild.banner_url}
+                      alt={`${guild.name} banner`}
+                      className='absolute inset-0 h-full w-full object-cover'
+                    />
+                    <div className='absolute inset-0 bg-black/45' />
+                  </>
+                ) : (
+                  <div className='absolute inset-0 bg-gradient-to-r from-primary/12 to-transparent' />
+                )}
+                <div className='relative z-10 flex items-center gap-2 min-w-0'>
                   {guild?.icon_url ? (
-                    <img src={guild.icon_url} alt={guild.name} className='h-6 w-6 rounded-full object-cover shrink-0' />
+                    <img
+                      src={guild.icon_url}
+                      alt={guild.name}
+                      className='h-6 w-6 rounded-full object-cover shrink-0 ring-2 ring-black/25 bg-black/30'
+                    />
                   ) : (
-                    <div className='h-6 w-6 rounded-full bg-primary/20 flex items-center justify-center shrink-0'>
-                      <span className='text-xs font-bold text-primary'>{guild?.name?.[0]?.toUpperCase()}</span>
+                    <div className='h-6 w-6 rounded-full bg-black/35 flex items-center justify-center shrink-0 ring-2 ring-black/20'>
+                      <span className='text-xs font-bold text-primary'>
+                        {guild?.name?.[0]?.toUpperCase()}
+                      </span>
                     </div>
                   )}
-                  <span className='font-semibold text-foreground truncate'>{guild?.name ?? '—'}</span>
+                  <span
+                    className={cn(
+                      'font-semibold truncate',
+                      guild?.banner_url ? 'text-white' : 'text-foreground',
+                    )}
+                  >
+                    {guild?.name ?? '—'}
+                  </span>
                 </div>
-                <ChevronDown className={cn('h-4 w-4 text-muted-foreground shrink-0 transition-transform duration-200', guildMenuOpen && 'rotate-180')} />
+                <ChevronDown
+                  className={cn(
+                    'relative z-10 h-4 w-4 shrink-0 transition-transform duration-200',
+                    guild?.banner_url
+                      ? 'text-white/85'
+                      : 'text-muted-foreground',
+                    guildMenuOpen && 'rotate-180',
+                  )}
+                />
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align='start' className='w-56'>
@@ -783,13 +1155,24 @@ export function AppSidebar() {
                 Inviter des gens
               </DropdownMenuItem>
               {isGuildOwner && (
-                <DropdownMenuItem onSelect={() => navigate({ to: '/channels/$serverId/settings', params: { serverId: serverId! } })}>
+                <DropdownMenuItem
+                  onSelect={() =>
+                    navigate({
+                      to: '/channels/$serverId/settings',
+                      params: { serverId: serverId! },
+                    })
+                  }
+                >
                   <Settings className='h-4 w-4 mr-2' />
                   Paramètres du serveur
                 </DropdownMenuItem>
               )}
               {!isGuildOwner && (
-                <DropdownMenuItem className='text-destructive' onSelect={handleLeaveGuild} disabled={isLeaving}>
+                <DropdownMenuItem
+                  className='text-destructive'
+                  onSelect={handleLeaveGuild}
+                  disabled={isLeaving}
+                >
                   Quitter le serveur
                 </DropdownMenuItem>
               )}
@@ -798,126 +1181,191 @@ export function AppSidebar() {
         </SidebarHeader>
 
         <SidebarContent>
-          <ScrollArea className='flex-1'>
-            <div className='pt-2 pb-2'>
-              {channels.length === 0 ? (
-                <div className='px-4 py-6 text-center'>
-                  <p className='text-sm text-muted-foreground mb-3'>Pas encore de channels</p>
-                  <Button size='sm' variant='outline' onClick={() => openCreateDialog('Text')}>
-                    <Plus className='h-4 w-4 mr-1.5' />
-                    Créer un channel
-                  </Button>
-                </div>
-              ) : (
-                <DndContext
-                  sensors={sensors}
-                  collisionDetection={closestCenter}
-                  onDragStart={handleDragStart}
-                  onDragOver={handleDragOver}
-                  onDragEnd={handleDragEnd}
-                >
-                  {/* Uncategorized */}
-                  <div ref={uncategorizedRef} className={cn('transition-colors', uncategorizedIsOver && 'bg-accent/10 rounded')}>
-                    <SortableContext items={localOrder['uncategorized'] ?? []} strategy={verticalListSortingStrategy}>
-                      {(localOrder['uncategorized'] ?? []).map((id) => {
-                        const ch = channelMap[id]
-                        if (!ch) return null
-                        return (
-                          <SortableChannelItem
-                            key={id}
-                            channel={ch}
+          <ScrollArea className='flex-1 h-full'>
+            <ContextMenu>
+              <ContextMenuTrigger asChild>
+                <div className='min-h-full pt-2 pb-2'>
+                  {channels.length === 0 ? (
+                    <div className='px-4 py-6 text-center'>
+                      <p className='text-sm text-muted-foreground mb-3'>
+                        Pas encore de channels
+                      </p>
+                      <Button
+                        size='sm'
+                        variant='outline'
+                        onClick={() => openCreateDialog('Text')}
+                      >
+                        <Plus className='h-4 w-4 mr-1.5' />
+                        Créer un channel
+                      </Button>
+                    </div>
+                  ) : (
+                    <DndContext
+                      sensors={sensors}
+                      collisionDetection={closestCenter}
+                      onDragStart={handleDragStart}
+                      onDragOver={handleDragOver}
+                      onDragEnd={handleDragEnd}
+                    >
+                      <div
+                        ref={uncategorizedRef}
+                        className={cn(
+                          'transition-colors',
+                          uncategorizedIsOver && 'bg-accent/10 rounded',
+                        )}
+                      >
+                        <SortableContext
+                          items={localOrder['uncategorized'] ?? []}
+                          strategy={verticalListSortingStrategy}
+                        >
+                          {(localOrder['uncategorized'] ?? []).map((id) => {
+                            const ch = channelMap[id]
+                            if (!ch) return null
+                            return (
+                              <SortableChannelItem
+                                key={id}
+                                channel={ch}
+                                serverId={serverId!}
+                                channelId={channelId}
+                                onChannelClick={closeSidebarOnMobile}
+                                onCopyChannelId={(channel) =>
+                                  void handleCopyToClipboard(
+                                    channel.id,
+                                    'ID du salon',
+                                  )
+                                }
+                                onCreateClick={(categoryId) =>
+                                  openCreateDialog('Text', categoryId)
+                                }
+                                onInviteClick={() => setInviteModalOpen(true)}
+                                onOpenServerSettings={
+                                  isGuildOwner ? openServerSettings : undefined
+                                }
+                                canManageServer={isGuildOwner}
+                                canLeaveGuild={!isGuildOwner}
+                                onLeaveGuild={
+                                  !isGuildOwner ? handleLeaveGuild : undefined
+                                }
+                              />
+                            )
+                          })}
+                        </SortableContext>
+                      </div>
+
+                      <SortableContext
+                        items={localOrder['__categories__'] ?? []}
+                        strategy={verticalListSortingStrategy}
+                      >
+                        {sortedCategories.map((cat) => (
+                          <SortableCategory
+                            key={cat.id}
+                            category={cat}
+                            items={localOrder[cat.id] ?? []}
+                            channelMap={channelMap}
                             serverId={serverId!}
                             channelId={channelId}
+                            collapsed={!!collapsedCategories[cat.id]}
+                            onToggle={() => toggleCategory(cat.id)}
+                            onCreateClick={() =>
+                              openCreateDialog('Text', cat.id)
+                            }
                             onChannelClick={closeSidebarOnMobile}
+                            onCopyCategoryId={(category) =>
+                              void handleCopyToClipboard(
+                                category.id,
+                                'ID de la catégorie',
+                              )
+                            }
+                            onCopyChannelId={(channel) =>
+                              void handleCopyToClipboard(
+                                channel.id,
+                                'ID du salon',
+                              )
+                            }
+                            isChannelOver={
+                              !isCategoryDragging &&
+                              !!activeId &&
+                              findContainerOf(
+                                activeId as string,
+                                localOrder,
+                              ) !== cat.id &&
+                              (localOrder[cat.id] ?? []).includes(
+                                activeId as string,
+                              ) === false &&
+                              false
+                            }
                           />
-                        )
-                      })}
-                    </SortableContext>
-                  </div>
+                        ))}
+                      </SortableContext>
 
-                  {/* Categories */}
-                  <SortableContext items={localOrder['__categories__'] ?? []} strategy={verticalListSortingStrategy}>
-                    {sortedCategories.map((cat) => (
-                      <SortableCategory
-                        key={cat.id}
-                        category={cat}
-                        items={localOrder[cat.id] ?? []}
-                        channelMap={channelMap}
-                        serverId={serverId!}
-                        channelId={channelId}
-                        collapsed={!!collapsedCategories[cat.id]}
-                        onToggle={() => toggleCategory(cat.id)}
-                        onCreateClick={() => openCreateDialog('Text', cat.id)}
-                        onChannelClick={closeSidebarOnMobile}
-                        isChannelOver={
-                          !isCategoryDragging &&
-                          !!activeId &&
-                          findContainerOf(activeId as string, localOrder) !== cat.id &&
-                          (localOrder[cat.id] ?? []).includes(activeId as string) === false &&
-                          false /* highlight handled by useSortable isOver */
-                        }
-                      />
-                    ))}
-                  </SortableContext>
-
-                  <DragOverlay>
-                    {activeChannel ? (
-                      <SortableChannelItem
-                        channel={activeChannel}
-                        serverId={serverId!}
-                        channelId={channelId}
-                        isDragOverlay
-                      />
-                    ) : activeCategoryItem ? (
-                      <div className='flex items-center gap-1 px-1 py-1 bg-sidebar border border-border/40 rounded shadow-lg opacity-95'>
-                        <ChevronDown className='h-3 w-3 text-muted-foreground' />
-                        <span className='text-xs font-semibold text-muted-foreground uppercase'>{activeCategoryItem.name}</span>
-                      </div>
-                    ) : null}
-                  </DragOverlay>
-                </DndContext>
-              )}
-            </div>
+                      <DragOverlay>
+                        {activeChannel ? (
+                          <SortableChannelItem
+                            channel={activeChannel}
+                            serverId={serverId!}
+                            channelId={channelId}
+                            isDragOverlay
+                          />
+                        ) : activeCategoryItem ? (
+                          <div className='flex items-center gap-1 px-1 py-1 bg-sidebar border border-border/40 rounded shadow-lg opacity-95'>
+                            <ChevronDown className='h-3 w-3 text-muted-foreground' />
+                            <span className='text-xs font-semibold text-muted-foreground uppercase'>
+                              {activeCategoryItem.name}
+                            </span>
+                          </div>
+                        ) : null}
+                      </DragOverlay>
+                    </DndContext>
+                  )}
+                </div>
+              </ContextMenuTrigger>
+              <ContextMenuContent className='w-60'>
+                <ContextMenuLabel>Liste des salons</ContextMenuLabel>
+                <ContextMenuSeparator />
+                <ContextMenuItem onSelect={() => openCreateDialog('Text')}>
+                  <Plus className='mr-2 h-4 w-4' />
+                  Créer un salon
+                </ContextMenuItem>
+                <ContextMenuItem onSelect={() => openCreateDialog('Category')}>
+                  <FolderOpen className='mr-2 h-4 w-4' />
+                  Créer une catégorie
+                </ContextMenuItem>
+                <ContextMenuItem onSelect={() => setInviteModalOpen(true)}>
+                  <Users className='mr-2 h-4 w-4' />
+                  Inviter des gens
+                </ContextMenuItem>
+                {serverId && (
+                  <ContextMenuItem
+                    onSelect={() =>
+                      void handleCopyToClipboard(serverId, 'ID du serveur')
+                    }
+                  >
+                    <Copy className='mr-2 h-4 w-4' />
+                    Copier l&apos;ID du serveur
+                  </ContextMenuItem>
+                )}
+                <ContextMenuSeparator />
+                {isGuildOwner ? (
+                  <ContextMenuItem onSelect={openServerSettings}>
+                    <Settings className='mr-2 h-4 w-4' />
+                    Paramètres du serveur
+                  </ContextMenuItem>
+                ) : (
+                  <ContextMenuItem
+                    className='text-destructive focus:text-destructive'
+                    onSelect={handleLeaveGuild}
+                    disabled={isLeaving}
+                  >
+                    Quitter le serveur
+                  </ContextMenuItem>
+                )}
+              </ContextMenuContent>
+            </ContextMenu>
           </ScrollArea>
         </SidebarContent>
 
         <SidebarFooter>
-          <div className='flex items-center space-x-2'>
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <button className='relative shrink-0'>
-                  <Avatar className='h-8 w-8'>
-                    <AvatarImage src={profile?.avatar_url ?? user?.avatar} alt={profile?.display_name ?? user?.preferred_username} />
-                    <AvatarFallback className='bg-primary text-primary-foreground text-xs'>
-                      {(profile?.display_name ?? user?.preferred_username)?.[0].toUpperCase() || 'U'}
-                    </AvatarFallback>
-                  </Avatar>
-                  <PresenceIndicator status={myStatus} className='absolute -bottom-0.5 -right-0.5' />
-                </button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align='start' side='top' className='w-44'>
-                {STATUS_OPTIONS.map((opt) => (
-                  <DropdownMenuItem key={opt.value} onSelect={() => setMyStatus(opt.value)} className='flex items-center gap-2'>
-                    <PresenceIndicator status={opt.value} />
-                    <span>{opt.label}</span>
-                  </DropdownMenuItem>
-                ))}
-              </DropdownMenuContent>
-            </DropdownMenu>
-            <div className='flex-1 min-w-0'>
-              <div className='text-sm font-medium text-foreground truncate'>
-                {profile?.display_name ?? user?.preferred_username ?? 'Unknown User'}
-              </div>
-            </div>
-            <div className='flex space-x-1'>
-              <Button variant='ghost' size='icon' className='h-8 w-8 text-muted-foreground hover:text-foreground' onClick={() => setProfileDialogOpen(true)}>
-                <Settings className='h-4 w-4' />
-              </Button>
-              <Button variant='ghost' size='icon' className='h-8 w-8 text-muted-foreground hover:text-foreground' onClick={handleLogout}>
-                <LogOut className='h-4 w-4' />
-              </Button>
-            </div>
-          </div>
+          <div className='flex items-center space-x-2'>{userFooterMenu}</div>
         </SidebarFooter>
       </Sidebar>
 
@@ -932,9 +1380,12 @@ export function AppSidebar() {
         />
       )}
       {serverId && (
-        <InviteModal open={inviteModalOpen} onOpenChange={setInviteModalOpen} guildId={serverId} />
+        <InviteModal
+          open={inviteModalOpen}
+          onOpenChange={setInviteModalOpen}
+          guildId={serverId}
+        />
       )}
-      <ProfileDialog open={profileDialogOpen} onOpenChange={setProfileDialogOpen} />
     </>
   )
 }

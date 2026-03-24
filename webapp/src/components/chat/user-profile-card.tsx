@@ -1,12 +1,18 @@
-import { useEffect, useLayoutEffect, useRef, useState } from 'react'
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { cn } from '@/lib/utils'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { useGetUser } from '@/lib/queries/user-queries'
-import { useGuildRoles, useAssignRole, useRemoveRole, useGuildMembers } from '@/lib/queries/member-queries'
+import {
+  useGuildRoles,
+  useAssignRole,
+  useRemoveRole,
+  useGuildMembers,
+} from '@/lib/queries/member-queries'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Plus, X, Search } from 'lucide-react'
 import { toast } from '@/lib/toast'
+import type { Schemas } from '@/api/api.client'
 
 export type RoleBadge = { id: string; name: string; color: number }
 
@@ -20,6 +26,15 @@ export interface UserCardInfo {
   /** Set when opened from a guild context to show/manage roles */
   guildId?: string | null
   roles?: Array<RoleBadge>
+}
+
+interface UserProfileSummaryProps {
+  displayName: string
+  username: string
+  avatarUrl?: string | null
+  bio?: string | null
+  bannerUrl?: string | null
+  className?: string
 }
 
 interface UserProfileCardProps {
@@ -50,7 +65,69 @@ function computePos(anchorRect: DOMRect, cardH: number) {
   return { left, top }
 }
 
-export function UserProfileCard({ user, anchorRect, onClose }: UserProfileCardProps) {
+export function UserProfileSummary({
+  displayName,
+  username,
+  avatarUrl,
+  bio,
+  bannerUrl,
+  className,
+}: UserProfileSummaryProps) {
+  const initials = displayName[0].toUpperCase()
+
+  return (
+    <div
+      className={cn(
+        'overflow-hidden rounded-lg border border-border bg-popover text-popover-foreground',
+        className,
+      )}
+    >
+      {bannerUrl ? (
+        <img
+          src={bannerUrl}
+          alt='banner'
+          className='h-20 w-full object-cover'
+        />
+      ) : (
+        <div className='h-20 bg-gradient-to-br from-indigo-500 to-purple-600' />
+      )}
+
+      <div className='px-4 -mt-8'>
+        <div className='w-fit rounded-full ring-4 ring-popover'>
+          <Avatar className='h-16 w-16'>
+            <AvatarImage src={avatarUrl ?? undefined} alt={displayName} />
+            <AvatarFallback className='bg-indigo-500 text-lg font-semibold text-white'>
+              {initials}
+            </AvatarFallback>
+          </Avatar>
+        </div>
+      </div>
+
+      <div className='space-y-2 px-4 pb-4 pt-2'>
+        <div>
+          <div className='leading-tight text-sm font-semibold text-foreground'>
+            {displayName}
+          </div>
+          <div className='text-xs text-muted-foreground'>@{username}</div>
+        </div>
+
+        {bio && (
+          <div className='border-t border-border pt-2'>
+            <p className='line-clamp-3 text-xs leading-relaxed text-muted-foreground'>
+              {bio}
+            </p>
+          </div>
+        )}
+      </div>
+    </div>
+  )
+}
+
+export function UserProfileCard({
+  user,
+  anchorRect,
+  onClose,
+}: UserProfileCardProps) {
   const cardRef = useRef<HTMLDivElement>(null)
   const searchRef = useRef<HTMLInputElement>(null)
   const [pickerOpen, setPickerOpen] = useState(false)
@@ -59,21 +136,28 @@ export function UserProfileCard({ user, anchorRect, onClose }: UserProfileCardPr
   const [pos, setPos] = useState(() => computePos(anchorRect, 300))
 
   const { data: fullProfile, isLoading } = useGetUser(user.id)
-  const { data: guildRoles = { data: [] } } = useGuildRoles(user.guildId ?? null)
+  const { data: guildRoles = { data: [] } } = useGuildRoles(
+    user.guildId ?? null,
+  )
   const { data: guildMembers = [] } = useGuildMembers(user.guildId ?? null)
   const { mutate: assignRole } = useAssignRole(user.guildId ?? '')
   const { mutate: removeRole } = useRemoveRole(user.guildId ?? '')
 
-  const displayName = fullProfile?.display_name ?? user.displayName ?? user.username
+  const displayName =
+    fullProfile?.display_name ?? user.displayName ?? user.username
   const avatarUrl = fullProfile?.avatar_url ?? user.avatarUrl
   const bio = fullProfile?.bio ?? user.bio
   const bannerUrl = fullProfile?.banner_url ?? user.bannerUrl
-  const initials = displayName[0].toUpperCase()
-
   // Resolve member roles: prefer explicitly passed roles, fall back to guild members cache
-  const memberRoles: Array<RoleBadge> = user.roles
-    ?? (guildMembers as any[]).find((m) => String(m.user_id) === user.id)?.roles
-    ?? []
+  const memberRoles = useMemo<Array<RoleBadge>>(
+    () =>
+      user.roles ??
+      (guildMembers as Schemas.GuildMemberResponse[]).find(
+        (member) => String(member.user_id) === user.id,
+      )?.roles ??
+      [],
+    [guildMembers, user.id, user.roles],
+  )
 
   // Local role state for optimistic UI — keeps card in sync without waiting for cache invalidation
   const [localRoles, setLocalRoles] = useState<Array<RoleBadge>>(memberRoles)
@@ -96,18 +180,21 @@ export function UserProfileCard({ user, anchorRect, onClose }: UserProfileCardPr
     setPos((prev) =>
       prev.left === next.left && prev.top === next.top ? prev : next,
     )
-  }, [isLoading, bio, pickerOpen, localRoles.length])
+  }, [anchorRect, isLoading, bio, pickerOpen, localRoles.length])
 
   // ── Close on Escape / outside click ────────────────────────────────────────
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
-        if (pickerOpen) { setPickerOpen(false); setSearch('') }
-        else onClose()
+        if (pickerOpen) {
+          setPickerOpen(false)
+          setSearch('')
+        } else onClose()
       }
     }
     const onPointer = (e: MouseEvent) => {
-      if (cardRef.current && !cardRef.current.contains(e.target as Node)) onClose()
+      if (cardRef.current && !cardRef.current.contains(e.target as Node))
+        onClose()
     }
     document.addEventListener('keydown', onKey)
     document.addEventListener('mousedown', onPointer)
@@ -131,7 +218,9 @@ export function UserProfileCard({ user, anchorRect, onClose }: UserProfileCardPr
     if (!role) return
     setLocalRoles((prev) => prev.filter((r) => r.id !== roleId))
     removeRole(
-      { path: { guild_id: user.guildId, user_id: user.id, role_id: roleId } } as any,
+      {
+        path: { guild_id: user.guildId, user_id: user.id, role_id: roleId },
+      },
       {
         onError: () => {
           setLocalRoles((prev) => [...prev, role])
@@ -151,7 +240,9 @@ export function UserProfileCard({ user, anchorRect, onClose }: UserProfileCardPr
       const role = localRoles.find((r) => r.id === roleId)!
       setLocalRoles((prev) => prev.filter((r) => r.id !== roleId))
       removeRole(
-        { path: { guild_id: user.guildId, user_id: user.id, role_id: roleId } } as any,
+        {
+          path: { guild_id: user.guildId, user_id: user.id, role_id: roleId },
+        },
         {
           onError: () => {
             setLocalRoles((prev) => [...prev, role])
@@ -167,11 +258,15 @@ export function UserProfileCard({ user, anchorRect, onClose }: UserProfileCardPr
       }
       setLocalRoles((prev) => [...prev, newRole])
       assignRole(
-        { path: { guild_id: user.guildId, user_id: user.id, role_id: roleId } } as any,
+        {
+          path: { guild_id: user.guildId, user_id: user.id, role_id: roleId },
+        },
         {
           onError: () => {
             setLocalRoles((prev) => prev.filter((r) => r.id !== roleId))
-            toast.error('Impossible d\'ajouter le rôle')
+            toast.error(
+              'Impossible d' + String.fromCharCode(39) + 'ajouter le rôle',
+            )
           },
         },
       )
@@ -192,50 +287,28 @@ export function UserProfileCard({ user, anchorRect, onClose }: UserProfileCardPr
       )}
       style={{ left: pos.left, top: pos.top, width: 270 }}
     >
-      {/* Banner */}
       {isLoading ? (
-        <Skeleton className='h-20 w-full rounded-none' />
-      ) : bannerUrl ? (
-        <img src={bannerUrl} alt='banner' className='h-20 w-full object-cover' />
-      ) : (
-        <div className='h-20 bg-gradient-to-br from-indigo-500 to-purple-600' />
-      )}
-
-      {/* Avatar */}
-      <div className='px-4 -mt-8'>
-        <div className='ring-4 ring-popover rounded-full w-fit'>
-          <Avatar className='h-16 w-16'>
-            <AvatarImage src={avatarUrl ?? undefined} alt={displayName} />
-            <AvatarFallback className='bg-indigo-500 text-white text-lg font-semibold'>
-              {initials}
-            </AvatarFallback>
-          </Avatar>
-        </div>
-      </div>
-
-      {/* Info */}
-      <div className='px-4 pt-2 pb-4 space-y-2'>
-        {isLoading ? (
-          <div className='space-y-1.5'>
+        <div className='px-4 py-4'>
+          <Skeleton className='h-20 w-full rounded-md' />
+          <div className='mt-3 space-y-1.5'>
             <Skeleton className='h-4 w-32' />
             <Skeleton className='h-3 w-24' />
           </div>
-        ) : (
-          <>
-            <div>
-              <div className='font-semibold text-sm text-foreground leading-tight'>{displayName}</div>
-              <div className='text-xs text-muted-foreground'>@{fullProfile?.username ?? user.username}</div>
-            </div>
+        </div>
+      ) : (
+        <>
+          <UserProfileSummary
+            displayName={displayName}
+            username={fullProfile?.username ?? user.username}
+            avatarUrl={avatarUrl}
+            bio={bio}
+            bannerUrl={bannerUrl}
+            className='rounded-none border-0'
+          />
 
-            {bio && (
+          {user.guildId && (
+            <div className='space-y-1.5 px-4 pb-4 pt-0'>
               <div className='border-t border-border pt-2'>
-                <p className='text-xs text-muted-foreground leading-relaxed line-clamp-3'>{bio}</p>
-              </div>
-            )}
-
-            {/* ── Roles — only in guild context ── */}
-            {user.guildId && (
-              <div className='border-t border-border pt-2 space-y-1.5'>
                 <p className='text-xs font-semibold uppercase tracking-wide text-muted-foreground'>
                   Rôles
                 </p>
@@ -249,7 +322,10 @@ export function UserProfileCard({ user, anchorRect, onClose }: UserProfileCardPr
                       style={{
                         borderColor: colorToCss(role.color),
                         color: colorToCss(role.color),
-                        backgroundColor: role.color !== 0 ? `${colorToCss(role.color)}18` : undefined,
+                        backgroundColor:
+                          role.color !== 0
+                            ? `${colorToCss(role.color)}18`
+                            : undefined,
                       }}
                     >
                       <span
@@ -270,10 +346,14 @@ export function UserProfileCard({ user, anchorRect, onClose }: UserProfileCardPr
                   {/* + button */}
                   {guildRoles.data.length > 0 && (
                     <button
-                      onMouseDown={(e) => { e.stopPropagation(); setPickerOpen((v) => !v) }}
+                      onMouseDown={(e) => {
+                        e.stopPropagation()
+                        setPickerOpen((v) => !v)
+                      }}
                       className={cn(
                         'inline-flex items-center justify-center h-5 w-5 rounded-full border border-dashed border-border text-muted-foreground transition-colors hover:border-foreground hover:text-foreground',
-                        pickerOpen && 'border-foreground text-foreground bg-accent',
+                        pickerOpen &&
+                          'border-foreground text-foreground bg-accent',
                       )}
                       title='Ajouter un rôle'
                     >
@@ -282,7 +362,9 @@ export function UserProfileCard({ user, anchorRect, onClose }: UserProfileCardPr
                   )}
 
                   {localRoles.length === 0 && guildRoles.data.length === 0 && (
-                    <p className='text-xs text-muted-foreground italic'>Aucun rôle</p>
+                    <p className='text-xs text-muted-foreground italic'>
+                      Aucun rôle
+                    </p>
                   )}
                 </div>
 
@@ -305,25 +387,46 @@ export function UserProfileCard({ user, anchorRect, onClose }: UserProfileCardPr
 
                     <div className='max-h-36 overflow-y-auto'>
                       {filteredRoles.length === 0 ? (
-                        <p className='px-3 py-2 text-xs text-muted-foreground italic'>Aucun rôle trouvé</p>
+                        <p className='px-3 py-2 text-xs text-muted-foreground italic'>
+                          Aucun rôle trouvé
+                        </p>
                       ) : (
                         filteredRoles.map((role) => {
-                          const assigned = localRoles.some((r) => r.id === (role.id as string))
+                          const assigned = localRoles.some(
+                            (r) => r.id === (role.id as string),
+                          )
                           const css = colorToCss(role.color as number)
                           return (
                             <button
                               key={role.id as string}
-                              onMouseDown={(e) => handleTogglePicker(e, role.id as string)}
+                              onMouseDown={(e) =>
+                                handleTogglePicker(e, role.id as string)
+                              }
                               className={cn(
                                 'flex items-center gap-2 w-full px-3 py-1.5 text-xs hover:bg-accent transition-colors text-left',
                                 assigned && 'bg-accent/40',
                               )}
                             >
-                              <span className='h-2 w-2 rounded-full shrink-0' style={{ backgroundColor: css }} />
-                              <span className='flex-1 truncate' style={{ color: (role.color as number) !== 0 ? css : undefined }}>
+                              <span
+                                className='h-2 w-2 rounded-full shrink-0'
+                                style={{ backgroundColor: css }}
+                              />
+                              <span
+                                className='flex-1 truncate'
+                                style={{
+                                  color:
+                                    (role.color as number) !== 0
+                                      ? css
+                                      : undefined,
+                                }}
+                              >
                                 {role.name as string}
                               </span>
-                              {assigned && <span className='text-muted-foreground shrink-0'>✓</span>}
+                              {assigned && (
+                                <span className='text-muted-foreground shrink-0'>
+                                  ✓
+                                </span>
+                              )}
                             </button>
                           )
                         })
@@ -332,10 +435,10 @@ export function UserProfileCard({ user, anchorRect, onClose }: UserProfileCardPr
                   </div>
                 )}
               </div>
-            )}
-          </>
-        )}
-      </div>
+            </div>
+          )}
+        </>
+      )}
     </div>,
     document.body,
   )

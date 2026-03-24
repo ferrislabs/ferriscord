@@ -19,74 +19,113 @@ export function useCreateGuild() {
   return useMutation({
     ...mutationOptions,
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: [{ _id: '/users/@me/guilds' }] })
+      queryClient.invalidateQueries({
+        queryKey: [{ _id: '/users/@me/guilds' }],
+      })
     },
   })
 }
 
 export function useListInvites(guildId: string | null | undefined) {
   return useQuery({
-    ...window.tanstackApi.get('/guilds/{guild_id}/invites', { path: { guild_id: guildId! } }).queryOptions,
+    ...window.tanstackApi.get('/guilds/{guild_id}/invites', {
+      path: { guild_id: guildId! },
+    }).queryOptions,
     enabled: !!guildId,
   })
 }
 
 export function useCreateInvite() {
   const queryClient = useQueryClient()
-  const { mutationOptions } = window.tanstackApi.mutation('post', '/guilds/{guild_id}/invites')
+  const { mutationOptions } = window.tanstackApi.mutation(
+    'post',
+    '/guilds/{guild_id}/invites',
+  )
 
   return useMutation({
     ...mutationOptions,
     onSuccess: (_data, vars) => {
-      queryClient.invalidateQueries({ queryKey: [{ _id: '/guilds/{guild_id}/invites', path: { guild_id: (vars as any).path.guild_id } }] })
+      queryClient.invalidateQueries({
+        queryKey: [
+          {
+            _id: '/guilds/{guild_id}/invites',
+            path: { guild_id: vars.path.guild_id },
+          },
+        ],
+      })
     },
   })
 }
 
 export function useDeleteInvite() {
   const queryClient = useQueryClient()
-  const { mutationOptions } = window.tanstackApi.mutation('delete', '/guilds/{guild_id}/invites/{invite_id}')
+  const { mutationOptions } = window.tanstackApi.mutation(
+    'delete',
+    '/guilds/{guild_id}/invites/{invite_id}',
+  )
 
   return useMutation({
     ...mutationOptions,
     onSuccess: (_data, vars) => {
-      queryClient.invalidateQueries({ queryKey: [{ _id: '/guilds/{guild_id}/invites', path: { guild_id: (vars as any).path.guild_id } }] })
+      queryClient.invalidateQueries({
+        queryKey: [
+          {
+            _id: '/guilds/{guild_id}/invites',
+            path: { guild_id: vars.path.guild_id },
+          },
+        ],
+      })
     },
   })
 }
 
 export function useJoinGuild() {
   const queryClient = useQueryClient()
-  const { mutationOptions } = window.tanstackApi.mutation('post', '/guilds/join')
+  const { mutationOptions } = window.tanstackApi.mutation(
+    'post',
+    '/guilds/join',
+  )
 
   return useMutation({
     ...mutationOptions,
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: [{ _id: '/users/@me/guilds' }] })
+      queryClient.invalidateQueries({
+        queryKey: [{ _id: '/users/@me/guilds' }],
+      })
     },
   })
 }
 
 export function useLeaveGuild() {
   const queryClient = useQueryClient()
-  const { mutationOptions } = window.tanstackApi.mutation('delete', '/guilds/{guild_id}/members/@me' as any)
+  const { mutationOptions } = window.tanstackApi.mutation(
+    'delete',
+    '/guilds/{guild_id}/members/@me',
+  )
 
   return useMutation({
     ...mutationOptions,
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: [{ _id: '/users/@me/guilds' }] })
+      queryClient.invalidateQueries({
+        queryKey: [{ _id: '/users/@me/guilds' }],
+      })
     },
   })
 }
 
 export function useUpdateGuild() {
   const queryClient = useQueryClient()
-  const { mutationOptions } = window.tanstackApi.mutation('patch', '/guilds/{guild_id}')
+  const { mutationOptions } = window.tanstackApi.mutation(
+    'patch',
+    '/guilds/{guild_id}',
+  )
 
   return useMutation({
     ...mutationOptions,
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: [{ _id: '/users/@me/guilds' }] })
+      queryClient.invalidateQueries({
+        queryKey: [{ _id: '/users/@me/guilds' }],
+      })
     },
   })
 }

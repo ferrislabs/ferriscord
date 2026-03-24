@@ -2,7 +2,12 @@ import { createFileRoute } from '@tanstack/react-router'
 import { useState, useRef, useEffect } from 'react'
 import { X, Upload, Trash2, Plus } from 'lucide-react'
 import { useUserGuilds, useUpdateGuild } from '@/lib/queries/guild-queries'
-import { useGuildMembers, useGuildRoles, useCreateRole, useDeleteRole } from '@/lib/queries/member-queries'
+import {
+  useGuildMembers,
+  useGuildRoles,
+  useCreateRole,
+  useDeleteRole,
+} from '@/lib/queries/member-queries'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -18,7 +23,12 @@ export const Route = createFileRoute('/_app/channels/$serverId/settings')({
 
 // ─── Banner presets ────────────────────────────────────────────────────────────
 const BANNER_PRESETS = [
-  '#5865F2', '#ED4245', '#3BA55C', '#FAA61A', '#9B59B6', '#1ABC9C',
+  '#5865F2',
+  '#ED4245',
+  '#3BA55C',
+  '#FAA61A',
+  '#9B59B6',
+  '#1ABC9C',
 ]
 
 // ─── Helpers ───────────────────────────────────────────────────────────────────
@@ -31,14 +41,23 @@ function colorToCss(color: number): string {
 interface PreviewCardProps {
   name: string
   iconPreview: string | null
-  bannerPreview: string | null  // image data URL
-  bannerColor: string | null    // hex color
+  bannerPreview: string | null // image data URL
+  bannerColor: string | null // hex color
   iconUrl: string | null | undefined
+  bannerUrl: string | null | undefined
 }
 
-function PreviewCard({ name, iconPreview, bannerPreview, bannerColor, iconUrl }: PreviewCardProps) {
+function PreviewCard({
+  name,
+  iconPreview,
+  bannerPreview,
+  bannerColor,
+  iconUrl,
+  bannerUrl,
+}: PreviewCardProps) {
   const displayIcon = iconPreview ?? iconUrl
-  const hasBannerImage = !!bannerPreview
+  const displayBanner = bannerPreview ?? bannerUrl
+  const hasBannerImage = !!displayBanner
   const hasBannerColor = !hasBannerImage && !!bannerColor
   const initial = name ? name[0].toUpperCase() : '?'
 
@@ -46,9 +65,16 @@ function PreviewCard({ name, iconPreview, bannerPreview, bannerColor, iconUrl }:
     <div className='w-64 rounded-lg overflow-hidden border border-border bg-card shadow-xl'>
       {/* Banner */}
       {hasBannerImage ? (
-        <img src={bannerPreview!} alt='banner' className='h-24 w-full object-cover' />
+        <img
+          src={displayBanner!}
+          alt='banner'
+          className='h-24 w-full object-cover'
+        />
       ) : hasBannerColor ? (
-        <div className='h-24 w-full' style={{ backgroundColor: bannerColor! }} />
+        <div
+          className='h-24 w-full'
+          style={{ backgroundColor: bannerColor! }}
+        />
       ) : (
         <div className='h-24 w-full bg-gradient-to-br from-indigo-500 to-purple-600' />
       )}
@@ -56,9 +82,7 @@ function PreviewCard({ name, iconPreview, bannerPreview, bannerColor, iconUrl }:
       <div className='px-4 -mt-8 pb-4'>
         <div className='ring-4 ring-card rounded-full w-fit mb-2'>
           <Avatar className='h-16 w-16'>
-            {displayIcon ? (
-              <AvatarImage src={displayIcon} alt={name} />
-            ) : null}
+            {displayIcon ? <AvatarImage src={displayIcon} alt={name} /> : null}
             <AvatarFallback className='bg-indigo-500 text-white text-xl font-bold'>
               {initial}
             </AvatarFallback>
@@ -102,7 +126,10 @@ function GuildSettingsPage() {
           <p className='px-3 py-1.5 text-xs font-semibold text-muted-foreground uppercase tracking-wide'>
             {guild?.name ?? 'Serveur'}
           </p>
-          <NavItem active={tab === 'overview'} onClick={() => setTab('overview')}>
+          <NavItem
+            active={tab === 'overview'}
+            onClick={() => setTab('overview')}
+          >
             Aperçu
           </NavItem>
           <div className='pt-2'>
@@ -130,7 +157,12 @@ function GuildSettingsPage() {
 
       {/* ── Close button ── */}
       <div className='absolute top-4 right-4'>
-        <Button variant='ghost' size='icon' className='h-9 w-9 rounded-full' onClick={handleClose}>
+        <Button
+          variant='ghost'
+          size='icon'
+          className='h-9 w-9 rounded-full'
+          onClick={handleClose}
+        >
           <X className='h-5 w-5' />
         </Button>
       </div>
@@ -138,7 +170,15 @@ function GuildSettingsPage() {
   )
 }
 
-function NavItem({ active, onClick, children }: { active: boolean; onClick: () => void; children: React.ReactNode }) {
+function NavItem({
+  active,
+  onClick,
+  children,
+}: {
+  active: boolean
+  onClick: () => void
+  children: React.ReactNode
+}) {
   return (
     <button
       onClick={onClick}
@@ -159,7 +199,9 @@ function OverviewTab({ guild }: { guild: Schemas.Guild | null }) {
   const { mutate: updateGuild, isPending } = useUpdateGuild()
 
   const [name, setName] = useState(guild?.name ?? '')
-  const [bannerColor, setBannerColor] = useState<string>(guild?.banner_color ?? '')
+  const [bannerColor, setBannerColor] = useState<string>(
+    guild?.banner_color ?? '',
+  )
   const [iconFile, setIconFile] = useState<File | null>(null)
   const [iconPreview, setIconPreview] = useState<string | null>(null)
   const [bannerFile, setBannerFile] = useState<File | null>(null)
@@ -214,13 +256,10 @@ function OverviewTab({ guild }: { guild: Schemas.Guild | null }) {
     if (bannerMode === 'color' && bannerColor !== (guild.banner_color ?? ''))
       fd.append('banner_color', bannerColor)
 
-    updateGuild(
-      { path: { guild_id: guild.id }, body: fd } as any,
-      {
-        onSuccess: () => toast.success('Serveur mis à jour'),
-        onError: () => toast.error('Erreur lors de la mise à jour'),
-      },
-    )
+    updateGuild({ path: { guild_id: guild.id }, body: fd } as any, {
+      onSuccess: () => toast.success('Serveur mis à jour'),
+      onError: () => toast.error('Erreur lors de la mise à jour'),
+    })
   }
 
   function handleReset() {
@@ -236,8 +275,12 @@ function OverviewTab({ guild }: { guild: Schemas.Guild | null }) {
   return (
     <div className='space-y-8'>
       <div>
-        <h1 className='text-xl font-bold text-foreground mb-1'>Aperçu du serveur</h1>
-        <p className='text-sm text-muted-foreground'>Personnalisez l'apparence de votre serveur.</p>
+        <h1 className='text-xl font-bold text-foreground mb-1'>
+          Aperçu du serveur
+        </h1>
+        <p className='text-sm text-muted-foreground'>
+          Personnalisez l'apparence de votre serveur.
+        </p>
       </div>
 
       <div className='grid grid-cols-2 gap-8'>
@@ -248,7 +291,11 @@ function OverviewTab({ guild }: { guild: Schemas.Guild | null }) {
             <label className='text-xs font-semibold uppercase tracking-wide text-muted-foreground'>
               Nom du serveur
             </label>
-            <Input value={name} onChange={(e) => setName(e.target.value)} maxLength={100} />
+            <Input
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              maxLength={100}
+            />
           </div>
 
           {/* Icon */}
@@ -262,7 +309,10 @@ function OverviewTab({ guild }: { guild: Schemas.Guild | null }) {
             >
               <Avatar className='w-20 h-20'>
                 {(iconPreview ?? guild?.icon_url) ? (
-                  <AvatarImage src={iconPreview ?? guild?.icon_url ?? undefined} alt={name} />
+                  <AvatarImage
+                    src={iconPreview ?? guild?.icon_url ?? undefined}
+                    alt={name}
+                  />
                 ) : null}
                 <AvatarFallback className='bg-indigo-500 text-white text-2xl font-bold'>
                   {name[0]?.toUpperCase() ?? '?'}
@@ -272,7 +322,13 @@ function OverviewTab({ guild }: { guild: Schemas.Guild | null }) {
                 <Upload className='h-5 w-5 text-white' />
               </div>
             </div>
-            <input ref={iconInputRef} type='file' accept='image/*' className='hidden' onChange={handleIconChange} />
+            <input
+              ref={iconInputRef}
+              type='file'
+              accept='image/*'
+              className='hidden'
+              onChange={handleIconChange}
+            />
           </div>
 
           {/* Banner */}
@@ -283,13 +339,23 @@ function OverviewTab({ guild }: { guild: Schemas.Guild | null }) {
             <div className='flex gap-2 mb-3'>
               <button
                 onClick={() => setBannerMode('color')}
-                className={cn('px-3 py-1 text-xs rounded-md border transition-colors', bannerMode === 'color' ? 'border-primary bg-primary/10 text-primary' : 'border-border text-muted-foreground hover:border-foreground')}
+                className={cn(
+                  'px-3 py-1 text-xs rounded-md border transition-colors',
+                  bannerMode === 'color'
+                    ? 'border-primary bg-primary/10 text-primary'
+                    : 'border-border text-muted-foreground hover:border-foreground',
+                )}
               >
                 Couleur
               </button>
               <button
                 onClick={() => setBannerMode('image')}
-                className={cn('px-3 py-1 text-xs rounded-md border transition-colors', bannerMode === 'image' ? 'border-primary bg-primary/10 text-primary' : 'border-border text-muted-foreground hover:border-foreground')}
+                className={cn(
+                  'px-3 py-1 text-xs rounded-md border transition-colors',
+                  bannerMode === 'image'
+                    ? 'border-primary bg-primary/10 text-primary'
+                    : 'border-border text-muted-foreground hover:border-foreground',
+                )}
               >
                 Image
               </button>
@@ -301,7 +367,12 @@ function OverviewTab({ guild }: { guild: Schemas.Guild | null }) {
                   <button
                     key={color}
                     onClick={() => setBannerColor(color)}
-                    className={cn('h-8 w-8 rounded-full border-2 transition-all', bannerColor === color ? 'border-white scale-110' : 'border-transparent')}
+                    className={cn(
+                      'h-8 w-8 rounded-full border-2 transition-all',
+                      bannerColor === color
+                        ? 'border-white scale-110'
+                        : 'border-transparent',
+                    )}
                     style={{ backgroundColor: color }}
                   />
                 ))}
@@ -317,11 +388,21 @@ function OverviewTab({ guild }: { guild: Schemas.Guild | null }) {
 
             {bannerMode === 'image' && (
               <div>
-                <Button variant='outline' size='sm' onClick={() => bannerInputRef.current?.click()}>
+                <Button
+                  variant='outline'
+                  size='sm'
+                  onClick={() => bannerInputRef.current?.click()}
+                >
                   <Upload className='h-4 w-4 mr-2' />
                   {bannerFile ? bannerFile.name : 'Choisir une image'}
                 </Button>
-                <input ref={bannerInputRef} type='file' accept='image/*' className='hidden' onChange={handleBannerChange} />
+                <input
+                  ref={bannerInputRef}
+                  type='file'
+                  accept='image/*'
+                  className='hidden'
+                  onChange={handleBannerChange}
+                />
               </div>
             )}
           </div>
@@ -336,8 +417,9 @@ function OverviewTab({ guild }: { guild: Schemas.Guild | null }) {
             name={name}
             iconPreview={iconPreview}
             bannerPreview={bannerMode === 'image' ? bannerPreview : null}
-            bannerColor={bannerMode === 'color' ? (bannerColor || null) : null}
+            bannerColor={bannerMode === 'color' ? bannerColor || null : null}
             iconUrl={guild?.icon_url}
+            bannerUrl={guild?.banner_url}
           />
         </div>
       </div>
@@ -345,7 +427,9 @@ function OverviewTab({ guild }: { guild: Schemas.Guild | null }) {
       {/* ── Save bar ── */}
       {isDirty && (
         <div className='fixed bottom-0 left-0 right-0 z-10 flex items-center justify-between px-8 py-3 bg-zinc-900 border-t border-border shadow-lg'>
-          <p className='text-sm text-muted-foreground'>Modifications non sauvegardées</p>
+          <p className='text-sm text-muted-foreground'>
+            Modifications non sauvegardées
+          </p>
           <div className='flex gap-2'>
             <Button variant='ghost' size='sm' onClick={handleReset}>
               Réinitialiser
@@ -369,27 +453,43 @@ function MembersTab({ guildId }: { guildId: string }) {
     <div className='space-y-6'>
       <div>
         <h1 className='text-xl font-bold text-foreground mb-1'>Membres</h1>
-        <p className='text-sm text-muted-foreground'>{members.length} membre{members.length !== 1 ? 's' : ''}</p>
+        <p className='text-sm text-muted-foreground'>
+          {members.length} membre{members.length !== 1 ? 's' : ''}
+        </p>
       </div>
 
       <div className='space-y-1'>
         {members.map((member) => {
-          const presenceStatus = (userPresences[member.user_id] ?? (member.status === 'do_not_disturb' ? 'dnd' : member.status)) as PresenceStatus
+          const presenceStatus = (userPresences[member.user_id] ??
+            (member.status === 'do_not_disturb'
+              ? 'dnd'
+              : member.status)) as PresenceStatus
           const displayName = member.display_name ?? member.username
           return (
-            <div key={member.member_id} className='flex items-center gap-3 px-3 py-2 rounded-md hover:bg-accent'>
+            <div
+              key={member.member_id}
+              className='flex items-center gap-3 px-3 py-2 rounded-md hover:bg-accent'
+            >
               <div className='relative shrink-0'>
                 <Avatar className='w-9 h-9'>
-                  <AvatarImage src={member.avatar_url ?? undefined} alt={member.username} />
+                  <AvatarImage
+                    src={member.avatar_url ?? undefined}
+                    alt={member.username}
+                  />
                   <AvatarFallback className='bg-indigo-500 text-white text-sm'>
                     {displayName[0].toUpperCase()}
                   </AvatarFallback>
                 </Avatar>
-                <PresenceIndicator status={presenceStatus} className='absolute -bottom-0.5 -right-0.5' />
+                <PresenceIndicator
+                  status={presenceStatus}
+                  className='absolute -bottom-0.5 -right-0.5'
+                />
               </div>
               <div className='flex-1 min-w-0'>
                 <p className='text-sm font-medium truncate'>{displayName}</p>
-                <p className='text-xs text-muted-foreground truncate'>@{member.username}</p>
+                <p className='text-xs text-muted-foreground truncate'>
+                  @{member.username}
+                </p>
               </div>
               {member.roles && member.roles.length > 0 && (
                 <div className='flex flex-wrap gap-1 justify-end'>
@@ -400,14 +500,19 @@ function MembersTab({ guildId }: { guildId: string }) {
                       style={{
                         borderColor: colorToCss(role.color),
                         color: colorToCss(role.color),
-                        backgroundColor: role.color !== 0 ? `${colorToCss(role.color)}18` : undefined,
+                        backgroundColor:
+                          role.color !== 0
+                            ? `${colorToCss(role.color)}18`
+                            : undefined,
                       }}
                     >
                       {role.name}
                     </span>
                   ))}
                   {member.roles.length > 3 && (
-                    <span className='text-xs text-muted-foreground'>+{member.roles.length - 3}</span>
+                    <span className='text-xs text-muted-foreground'>
+                      +{member.roles.length - 3}
+                    </span>
                   )}
                 </div>
               )}
@@ -433,7 +538,10 @@ function RolesTab({ guildId }: { guildId: string }) {
     if (!newName.trim()) return
     const colorInt = parseInt(newColor.replace('#', ''), 16)
     createRole(
-      { path: { guild_id: guildId }, body: { name: newName.trim(), color: colorInt, permissions: 0 } } as any,
+      {
+        path: { guild_id: guildId },
+        body: { name: newName.trim(), color: colorInt, permissions: 0 },
+      } as any,
       {
         onSuccess: () => {
           setNewName('')
@@ -447,13 +555,10 @@ function RolesTab({ guildId }: { guildId: string }) {
   }
 
   function handleDelete(roleId: string) {
-    deleteRole(
-      { path: { guild_id: guildId, role_id: roleId } } as any,
-      {
-        onSuccess: () => toast.success('Rôle supprimé'),
-        onError: () => toast.error('Erreur lors de la suppression'),
-      },
-    )
+    deleteRole({ path: { guild_id: guildId, role_id: roleId } } as any, {
+      onSuccess: () => toast.success('Rôle supprimé'),
+      onError: () => toast.error('Erreur lors de la suppression'),
+    })
   }
 
   const roles = rolesData.data
@@ -463,7 +568,9 @@ function RolesTab({ guildId }: { guildId: string }) {
       <div className='flex items-center justify-between'>
         <div>
           <h1 className='text-xl font-bold text-foreground mb-1'>Rôles</h1>
-          <p className='text-sm text-muted-foreground'>{roles.length} rôle{roles.length !== 1 ? 's' : ''}</p>
+          <p className='text-sm text-muted-foreground'>
+            {roles.length} rôle{roles.length !== 1 ? 's' : ''}
+          </p>
         </div>
         <Button size='sm' onClick={() => setShowCreate((v) => !v)}>
           <Plus className='h-4 w-4 mr-1' />
@@ -492,10 +599,18 @@ function RolesTab({ guildId }: { guildId: string }) {
                 className='h-9 w-9 cursor-pointer rounded border border-border bg-transparent p-0.5'
               />
             </div>
-            <Button size='sm' onClick={handleCreate} disabled={isCreating || !newName.trim()}>
+            <Button
+              size='sm'
+              onClick={handleCreate}
+              disabled={isCreating || !newName.trim()}
+            >
               Créer
             </Button>
-            <Button size='sm' variant='ghost' onClick={() => setShowCreate(false)}>
+            <Button
+              size='sm'
+              variant='ghost'
+              onClick={() => setShowCreate(false)}
+            >
               Annuler
             </Button>
           </div>
@@ -508,7 +623,10 @@ function RolesTab({ guildId }: { guildId: string }) {
           const colorInt = typeof role.color === 'number' ? role.color : 0
           const css = colorToCss(colorInt)
           return (
-            <div key={role.id} className='flex items-center gap-3 px-3 py-2.5 rounded-md hover:bg-accent group'>
+            <div
+              key={role.id}
+              className='flex items-center gap-3 px-3 py-2.5 rounded-md hover:bg-accent group'
+            >
               <span
                 className='h-3 w-3 rounded-full shrink-0'
                 style={{ backgroundColor: css }}
@@ -529,7 +647,9 @@ function RolesTab({ guildId }: { guildId: string }) {
           )
         })}
         {roles.length === 0 && (
-          <p className='text-sm text-muted-foreground italic px-3'>Aucun rôle pour l'instant.</p>
+          <p className='text-sm text-muted-foreground italic px-3'>
+            Aucun rôle pour l'instant.
+          </p>
         )}
       </div>
     </div>
