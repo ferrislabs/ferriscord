@@ -127,8 +127,8 @@ function MessageItem({
       className={cn(
         'group relative px-4 py-0.5 transition-colors duration-75',
         mentionsCurrentUser
-          ? 'bg-amber-50/80 hover:bg-amber-100/70 border-l-2 border-amber-400'
-          : 'hover:bg-gray-50/80',
+          ? 'border-l-2 border-amber-400 bg-amber-100/60 hover:bg-amber-100/80 dark:border-amber-500 dark:bg-amber-500/10 dark:hover:bg-amber-500/15'
+          : 'hover:bg-accent/40',
         isGrouped ? 'mt-0.5' : 'mt-4',
       )}
       onMouseEnter={() => setIsHovered(true)}
@@ -136,26 +136,26 @@ function MessageItem({
     >
       {/* Message Actions */}
       {isHovered && (
-        <div className='absolute right-6 -top-2 bg-white border border-gray-200 rounded-md shadow-md flex items-center z-10'>
-          <button className='p-1.5 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-l-md transition-colors'>
+        <div className='absolute right-6 -top-2 z-10 flex items-center rounded-md border border-border bg-popover text-popover-foreground shadow-md'>
+          <button className='rounded-l-md p-1.5 text-muted-foreground transition-colors hover:bg-accent hover:text-foreground'>
             <Smile className='w-4 h-4' />
           </button>
-          <button className='p-1.5 text-gray-500 hover:text-gray-700 hover:bg-gray-100 transition-colors'>
+          <button className='p-1.5 text-muted-foreground transition-colors hover:bg-accent hover:text-foreground'>
             <Reply className='w-4 h-4' />
           </button>
-          <button className='p-1.5 text-gray-500 hover:text-gray-700 hover:bg-gray-100 transition-colors'>
+          <button className='p-1.5 text-muted-foreground transition-colors hover:bg-accent hover:text-foreground'>
             <Copy className='w-4 h-4' />
           </button>
           {message.isOwn && onDeleteMessage && (
             <button
               onClick={() => onDeleteMessage(message.id)}
-              className='p-1.5 text-gray-500 hover:text-red-600 hover:bg-red-50 transition-colors'
+              className='p-1.5 text-muted-foreground transition-colors hover:bg-destructive/10 hover:text-destructive'
               title='Supprimer le message'
             >
               <Trash2 className='w-4 h-4' />
             </button>
           )}
-          <button className='p-1.5 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-r-md transition-colors'>
+          <button className='rounded-r-md p-1.5 text-muted-foreground transition-colors hover:bg-accent hover:text-foreground'>
             <MoreHorizontal className='w-4 h-4' />
           </button>
         </div>
@@ -182,7 +182,7 @@ function MessageItem({
             </button>
           )}
           {isGrouped && showTimestamp && (
-            <div className='text-xs text-gray-400 text-right opacity-0 group-hover:opacity-100 transition-opacity pt-0.5'>
+            <div className='pt-0.5 text-right text-xs text-muted-foreground opacity-0 transition-opacity group-hover:opacity-100'>
               {formatTime(message.timestamp)}
             </div>
           )}
@@ -195,11 +195,11 @@ function MessageItem({
               <button
                 type='button'
                 onClick={openProfile}
-                className='font-semibold text-gray-900 text-sm hover:underline cursor-pointer focus:outline-none'
+                className='cursor-pointer text-sm font-semibold text-foreground hover:underline focus:outline-none'
               >
                 {message.author.username}
               </button>
-              <span className='text-xs text-gray-500 ml-2'>
+              <span className='ml-2 text-xs text-muted-foreground'>
                 {formatDate(message.timestamp)} at{' '}
                 {formatTime(message.timestamp)}
               </span>
@@ -208,7 +208,7 @@ function MessageItem({
 
           <FormattedMessage
             content={message.content}
-            className='text-gray-800 text-[15px] leading-5'
+            className='text-[15px] leading-5 text-foreground'
             mentionCandidates={mentionCandidates}
             guildId={guildId}
             currentUsername={currentUsername}
@@ -251,11 +251,11 @@ function MessageItem({
 function MessageDateSeparator({ date }: { date: string }) {
   return (
     <div className='flex items-center my-6 px-4'>
-      <div className='flex-1 h-px bg-gray-300'></div>
-      <div className='px-4 text-xs font-semibold text-gray-600 bg-gray-50 rounded-lg py-1'>
+      <div className='h-px flex-1 bg-border'></div>
+      <div className='rounded-lg bg-muted px-4 py-1 text-xs font-semibold text-muted-foreground'>
         {date}
       </div>
-      <div className='flex-1 h-px bg-gray-300'></div>
+      <div className='h-px flex-1 bg-border'></div>
     </div>
   )
 }
@@ -283,9 +283,11 @@ export function MessageList({
   if (messages.length === 0) {
     return (
       <div className='flex-1 flex items-center justify-center'>
-        <div className='text-center text-gray-500'>
+        <div className='text-center text-muted-foreground'>
           <div className='text-4xl mb-4'>💬</div>
-          <h3 className='text-lg font-semibold mb-2'>No messages yet</h3>
+          <h3 className='mb-2 text-lg font-semibold text-foreground'>
+            No messages yet
+          </h3>
           <p className='text-sm'>
             Start the conversation by sending a message!
           </p>
@@ -302,14 +304,14 @@ export function MessageList({
         {/* Welcome message */}
         <div className='px-4 pt-4 pb-2'>
           <div className='flex items-center space-x-3 mb-2'>
-            <div className='w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center text-2xl'>
+            <div className='flex h-16 w-16 items-center justify-center rounded-full bg-muted text-2xl text-muted-foreground'>
               #
             </div>
             <div>
-              <h2 className='text-2xl font-bold text-gray-900'>
+              <h2 className='text-2xl font-bold text-foreground'>
                 Welcome to the channel!
               </h2>
-              <p className='text-gray-600'>
+              <p className='text-muted-foreground'>
                 This is the beginning of your conversation.
               </p>
             </div>

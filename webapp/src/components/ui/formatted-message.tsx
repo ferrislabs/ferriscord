@@ -154,7 +154,7 @@ function renderSegment(
       return (
         <code
           key={key}
-          className='px-1 py-0.5 bg-gray-200 text-gray-800 rounded text-sm font-mono'
+          className='rounded bg-muted px-1 py-0.5 text-sm font-mono text-foreground'
         >
           {segment.content}
         </code>
@@ -163,9 +163,9 @@ function renderSegment(
     case 'codeblock':
       return (
         <div key={key} className='my-2'>
-          <pre className='bg-gray-900 text-gray-100 p-3 rounded-md overflow-x-auto text-sm'>
+          <pre className='overflow-x-auto rounded-md border border-border bg-muted/80 p-3 text-sm text-foreground'>
             {segment.language && (
-              <div className='text-xs text-gray-400 mb-2 font-medium'>
+              <div className='mb-2 text-xs font-medium text-muted-foreground'>
                 {segment.language}
               </div>
             )}
@@ -191,8 +191,8 @@ function renderSegment(
             className={cn(
               'inline rounded px-1 py-0.5 text-sm font-medium',
               isCurrentUser
-                ? 'bg-amber-200 text-amber-950'
-                : 'bg-indigo-100 text-indigo-700',
+                ? 'bg-amber-200/80 text-amber-950 dark:bg-amber-500/25 dark:text-amber-100'
+                : 'bg-primary/15 text-primary',
             )}
           >
             @{label}
@@ -207,8 +207,8 @@ function renderSegment(
           className={cn(
             'inline rounded px-1 py-0.5 text-sm font-medium transition-colors',
             isCurrentUser
-              ? 'bg-amber-200 text-amber-950 hover:bg-amber-300'
-              : 'bg-indigo-100 text-indigo-700 hover:bg-indigo-200',
+              ? 'bg-amber-200/80 text-amber-950 hover:bg-amber-300/80 dark:bg-amber-500/25 dark:text-amber-100 dark:hover:bg-amber-500/35'
+              : 'bg-primary/15 text-primary hover:bg-primary/25',
           )}
           onClick={(e) => {
             onMentionClick(
@@ -231,7 +231,7 @@ function renderSegment(
       return (
         <span
           key={key}
-          className='px-1 py-0.5 bg-blue-100 text-blue-700 rounded text-sm font-medium hover:bg-blue-200 cursor-pointer transition-colors'
+          className='cursor-pointer rounded bg-accent px-1 py-0.5 text-sm font-medium text-accent-foreground transition-colors hover:bg-accent/80'
         >
           #{segment.content}
         </span>
@@ -244,7 +244,7 @@ function renderSegment(
           href={segment.content}
           target='_blank'
           rel='noopener noreferrer'
-          className='text-blue-600 hover:text-blue-800 underline hover:no-underline transition-colors'
+          className='text-primary underline transition-colors hover:text-primary/80 hover:no-underline'
         >
           {segment.content}
         </a>
