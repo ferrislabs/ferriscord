@@ -1,4 +1,9 @@
-import { createFileRoute, useNavigate, Outlet, useMatchRoute } from '@tanstack/react-router'
+import {
+  createFileRoute,
+  useNavigate,
+  Outlet,
+  useMatchRoute,
+} from '@tanstack/react-router'
 import { useEffect, useState } from 'react'
 import { UserPlus, Users, Clock, Check, X, Trash2, Menu } from 'lucide-react'
 import { saveLastVisited } from '@/lib/last-visited'
@@ -35,49 +40,47 @@ function FriendRow({
   onMessage: (userId: string) => void
 }) {
   const removeFriend = useRemoveFriend()
-  const toggleProfile = useProfileCardStore((s) => s.toggle)
   const displayName = friendship.user.display_name ?? friendship.user.username
 
   return (
-    <div className="flex items-center px-4 py-3 hover:bg-accent/50 rounded-lg transition-colors">
+    <div className='flex items-center px-4 py-3 hover:bg-accent/50 rounded-lg transition-colors'>
       <button
-        className="flex items-center gap-3 flex-1 min-w-0 text-left"
-        onClick={(e) => toggleProfile({ id: friendship.user.id, username: friendship.user.username, displayName: friendship.user.display_name, avatarUrl: friendship.user.avatar_url }, e)}
+        className='flex items-center gap-3 flex-1 min-w-0 text-left'
+        onClick={() => onMessage(friendship.user.id)}
       >
-        <Avatar className="h-10 w-10 shrink-0">
-          <AvatarImage src={friendship.user.avatar_url ?? undefined} alt={displayName} />
+        <Avatar className='h-10 w-10 shrink-0'>
+          <AvatarImage
+            src={friendship.user.avatar_url ?? undefined}
+            alt={displayName}
+          />
           <AvatarFallback>{displayName[0].toUpperCase()}</AvatarFallback>
         </Avatar>
-        <div className="min-w-0">
-          <div className="font-medium text-foreground truncate">{displayName}</div>
-          <div className="text-sm text-muted-foreground truncate">
+        <div className='min-w-0'>
+          <div className='font-medium text-foreground truncate'>
+            {displayName}
+          </div>
+          <div className='text-sm text-muted-foreground truncate'>
             @{friendship.user.username}
           </div>
         </div>
       </button>
-      <div className="flex items-center gap-2">
+      <div className='flex items-center gap-2'>
         <Button
-          size="sm"
-          variant="secondary"
-          onClick={() => onMessage(friendship.user.id)}
-        >
-          Message
-        </Button>
-        <Button
-          size="icon"
-          variant="ghost"
-          className="h-8 w-8 text-muted-foreground hover:text-destructive"
+          size='icon'
+          variant='ghost'
+          className='h-8 w-8 text-muted-foreground hover:text-destructive'
           onClick={() =>
             removeFriend.mutate(
               { path: { user_id: friendship.user.id } },
               {
-                onSuccess: () => toast.success(`${displayName} retiré de vos amis`),
+                onSuccess: () =>
+                  toast.success(`${displayName} retiré de vos amis`),
                 onError: () => toast.error('Erreur'),
               },
             )
           }
         >
-          <Trash2 className="h-4 w-4" />
+          <Trash2 className='h-4 w-4' />
         </Button>
       </div>
     </div>
@@ -97,25 +100,40 @@ function IncomingRow({
   const displayName = friendship.user.display_name ?? friendship.user.username
 
   return (
-    <div className="flex items-center px-4 py-3 hover:bg-accent/50 rounded-lg transition-colors">
+    <div className='flex items-center px-4 py-3 hover:bg-accent/50 rounded-lg transition-colors'>
       <button
-        className="flex items-center gap-3 flex-1 min-w-0 text-left"
-        onClick={(e) => toggleProfile({ id: friendship.user.id, username: friendship.user.username, displayName: friendship.user.display_name, avatarUrl: friendship.user.avatar_url }, e)}
+        className='flex items-center gap-3 flex-1 min-w-0 text-left'
+        onClick={(e) =>
+          toggleProfile(
+            {
+              id: friendship.user.id,
+              username: friendship.user.username,
+              displayName: friendship.user.display_name,
+              avatarUrl: friendship.user.avatar_url,
+            },
+            e,
+          )
+        }
       >
-        <Avatar className="h-10 w-10 shrink-0">
-          <AvatarImage src={friendship.user.avatar_url ?? undefined} alt={displayName} />
+        <Avatar className='h-10 w-10 shrink-0'>
+          <AvatarImage
+            src={friendship.user.avatar_url ?? undefined}
+            alt={displayName}
+          />
           <AvatarFallback>{displayName[0].toUpperCase()}</AvatarFallback>
         </Avatar>
-        <div className="min-w-0">
-          <div className="font-medium text-foreground truncate">{displayName}</div>
-          <div className="text-sm text-muted-foreground">Demande reçue</div>
+        <div className='min-w-0'>
+          <div className='font-medium text-foreground truncate'>
+            {displayName}
+          </div>
+          <div className='text-sm text-muted-foreground'>Demande reçue</div>
         </div>
       </button>
-      <div className="flex items-center gap-2">
+      <div className='flex items-center gap-2'>
         <Button
-          size="icon"
-          variant="secondary"
-          className="h-8 w-8"
+          size='icon'
+          variant='secondary'
+          className='h-8 w-8'
           onClick={() =>
             accept.mutate(
               { path: { request_id: friendship.id } },
@@ -130,12 +148,12 @@ function IncomingRow({
           }
           disabled={accept.isPending}
         >
-          <Check className="h-4 w-4" />
+          <Check className='h-4 w-4' />
         </Button>
         <Button
-          size="icon"
-          variant="ghost"
-          className="h-8 w-8 text-muted-foreground hover:text-destructive"
+          size='icon'
+          variant='ghost'
+          className='h-8 w-8 text-muted-foreground hover:text-destructive'
           onClick={() =>
             decline.mutate(
               { path: { request_id: friendship.id } },
@@ -147,7 +165,7 @@ function IncomingRow({
           }
           disabled={decline.isPending}
         >
-          <X className="h-4 w-4" />
+          <X className='h-4 w-4' />
         </Button>
       </div>
     </div>
@@ -159,21 +177,36 @@ function OutgoingRow({ friendship }: { friendship: Friendship }) {
   const displayName = friendship.user.display_name ?? friendship.user.username
 
   return (
-    <div className="flex items-center px-4 py-3 hover:bg-accent/50 rounded-lg transition-colors">
+    <div className='flex items-center px-4 py-3 hover:bg-accent/50 rounded-lg transition-colors'>
       <button
-        className="flex items-center gap-3 flex-1 min-w-0 text-left"
-        onClick={(e) => toggleProfile({ id: friendship.user.id, username: friendship.user.username, displayName: friendship.user.display_name, avatarUrl: friendship.user.avatar_url }, e)}
+        className='flex items-center gap-3 flex-1 min-w-0 text-left'
+        onClick={(e) =>
+          toggleProfile(
+            {
+              id: friendship.user.id,
+              username: friendship.user.username,
+              displayName: friendship.user.display_name,
+              avatarUrl: friendship.user.avatar_url,
+            },
+            e,
+          )
+        }
       >
-        <Avatar className="h-10 w-10 shrink-0">
-          <AvatarImage src={friendship.user.avatar_url ?? undefined} alt={displayName} />
+        <Avatar className='h-10 w-10 shrink-0'>
+          <AvatarImage
+            src={friendship.user.avatar_url ?? undefined}
+            alt={displayName}
+          />
           <AvatarFallback>{displayName[0].toUpperCase()}</AvatarFallback>
         </Avatar>
-        <div className="min-w-0">
-          <div className="font-medium text-foreground truncate">{displayName}</div>
-          <div className="text-sm text-muted-foreground">Demande envoyée</div>
+        <div className='min-w-0'>
+          <div className='font-medium text-foreground truncate'>
+            {displayName}
+          </div>
+          <div className='text-sm text-muted-foreground'>Demande envoyée</div>
         </div>
       </button>
-      <Clock className="h-4 w-4 text-muted-foreground" />
+      <Clock className='h-4 w-4 text-muted-foreground' />
     </div>
   )
 }
@@ -186,7 +219,11 @@ function FriendsPage() {
   const [tab, setTab] = useState<Tab>('all')
   const [addUsername, setAddUsername] = useState('')
 
-  const { data: friends = [], isLoading: friendsLoading, isError: friendsError } = useListFriends()
+  const {
+    data: friends = [],
+    isLoading: friendsLoading,
+    isError: friendsError,
+  } = useListFriends()
   const { data: incoming = [] } = useListIncomingRequests()
   const { data: outgoing = [] } = useListOutgoingRequests()
   const sendRequest = useSendFriendRequest()
@@ -209,7 +246,10 @@ function FriendsPage() {
           setAddUsername('')
         },
         onError: (err: any) => {
-          toast.error(err?.response?.data?.Unknown?.message ?? 'Erreur lors de la demande')
+          toast.error(
+            err?.response?.data?.Unknown?.message ??
+              'Erreur lors de la demande',
+          )
         },
       },
     )
@@ -220,9 +260,12 @@ function FriendsPage() {
       { body: { recipient_id: userId } },
       {
         onSuccess: (dm) => {
-          navigate({ to: '/channels/@me/$channelId', params: { channelId: dm.id } })
+          navigate({
+            to: '/channels/@me/$channelId',
+            params: { channelId: dm.id },
+          })
         },
-        onError: () => toast.error('Impossible d\'ouvrir la conversation'),
+        onError: () => toast.error("Impossible d'ouvrir la conversation"),
       },
     )
   }
@@ -232,21 +275,21 @@ function FriendsPage() {
   }
 
   return (
-    <div className="flex flex-col h-full">
+    <div className='flex flex-col h-full'>
       {/* Header */}
-      <div className="h-12 border-b border-sidebar-border px-4 flex items-center gap-4 bg-background">
+      <div className='h-12 border-b border-sidebar-border px-4 flex items-center gap-4 bg-background'>
         <button
-          className="md:hidden p-1.5 hover:bg-accent rounded text-muted-foreground hover:text-foreground transition-colors"
+          className='md:hidden p-1.5 hover:bg-accent rounded text-muted-foreground hover:text-foreground transition-colors'
           onClick={() => setCollapsed(false)}
         >
-          <Menu className="h-5 w-5" />
+          <Menu className='h-5 w-5' />
         </button>
-        <div className="flex items-center gap-2 text-foreground font-semibold">
-          <Users className="h-5 w-5" />
+        <div className='flex items-center gap-2 text-foreground font-semibold'>
+          <Users className='h-5 w-5' />
           <span>Amis</span>
         </div>
-        <div className="w-px h-5 bg-border" />
-        <div className="flex items-center gap-1">
+        <div className='w-px h-5 bg-border' />
+        <div className='flex items-center gap-1'>
           <button
             onClick={() => setTab('all')}
             className={cn(
@@ -269,7 +312,7 @@ function FriendsPage() {
           >
             En attente
             {pendingCount > 0 && (
-              <span className="bg-primary text-primary-foreground text-xs rounded-full px-1.5 py-0.5 leading-none">
+              <span className='bg-primary text-primary-foreground text-xs rounded-full px-1.5 py-0.5 leading-none'>
                 {pendingCount}
               </span>
             )}
@@ -278,54 +321,58 @@ function FriendsPage() {
       </div>
 
       {/* Content */}
-      <div className="flex-1 overflow-auto">
+      <div className='flex-1 overflow-auto'>
         {/* Add friend form */}
-        <div className="p-4 border-b border-sidebar-border">
-          <p className="text-sm font-semibold text-foreground mb-2 flex items-center gap-2">
-            <UserPlus className="h-4 w-4" />
+        <div className='p-4 border-b border-sidebar-border'>
+          <p className='text-sm font-semibold text-foreground mb-2 flex items-center gap-2'>
+            <UserPlus className='h-4 w-4' />
             Ajouter un ami
           </p>
-          <form onSubmit={handleAddFriend} className="flex gap-2">
+          <form onSubmit={handleAddFriend} className='flex gap-2'>
             <Input
               value={addUsername}
               onChange={(e) => setAddUsername(e.target.value)}
               placeholder="Nom d'utilisateur"
-              className="flex-1"
+              className='flex-1'
               disabled={sendRequest.isPending}
             />
             <Button
-              type="submit"
+              type='submit'
               disabled={!addUsername.trim() || sendRequest.isPending}
-              size="sm"
+              size='sm'
             >
               {sendRequest.isPending ? 'Envoi...' : 'Envoyer'}
             </Button>
           </form>
         </div>
 
-        <div className="p-4">
+        <div className='p-4'>
           {tab === 'all' && (
             <>
               {friendsLoading ? (
-                <div className="text-center py-12 text-muted-foreground">
+                <div className='text-center py-12 text-muted-foreground'>
                   <p>Chargement...</p>
                 </div>
               ) : friendsError ? (
-                <div className="text-center py-12 text-destructive">
+                <div className='text-center py-12 text-destructive'>
                   <p>Erreur lors du chargement des amis</p>
                 </div>
               ) : friends.length === 0 ? (
-                <div className="text-center py-12 text-muted-foreground">
-                  <Users className="h-12 w-12 mx-auto mb-3 opacity-40" />
+                <div className='text-center py-12 text-muted-foreground'>
+                  <Users className='h-12 w-12 mx-auto mb-3 opacity-40' />
                   <p>Pas encore d'amis. Envoyez une demande ci-dessus !</p>
                 </div>
               ) : (
-                <div className="space-y-1">
-                  <div className="text-xs font-semibold text-muted-foreground uppercase mb-2">
+                <div className='space-y-1'>
+                  <div className='text-xs font-semibold text-muted-foreground uppercase mb-2'>
                     Amis — {friends.length}
                   </div>
                   {friends.map((f) => (
-                    <FriendRow key={f.id} friendship={f} onMessage={handleMessage} />
+                    <FriendRow
+                      key={f.id}
+                      friendship={f}
+                      onMessage={handleMessage}
+                    />
                   ))}
                 </div>
               )}
@@ -333,25 +380,29 @@ function FriendsPage() {
           )}
 
           {tab === 'pending' && (
-            <div className="space-y-4">
+            <div className='space-y-4'>
               {incoming.length > 0 && (
                 <div>
-                  <div className="text-xs font-semibold text-muted-foreground uppercase mb-2">
+                  <div className='text-xs font-semibold text-muted-foreground uppercase mb-2'>
                     Demandes reçues — {incoming.length}
                   </div>
-                  <div className="space-y-1">
+                  <div className='space-y-1'>
                     {incoming.map((f) => (
-                      <IncomingRow key={f.id} friendship={f} onAccepted={handleMessage} />
+                      <IncomingRow
+                        key={f.id}
+                        friendship={f}
+                        onAccepted={handleMessage}
+                      />
                     ))}
                   </div>
                 </div>
               )}
               {outgoing.length > 0 && (
                 <div>
-                  <div className="text-xs font-semibold text-muted-foreground uppercase mb-2">
+                  <div className='text-xs font-semibold text-muted-foreground uppercase mb-2'>
                     Demandes envoyées — {outgoing.length}
                   </div>
-                  <div className="space-y-1">
+                  <div className='space-y-1'>
                     {outgoing.map((f) => (
                       <OutgoingRow key={f.id} friendship={f} />
                     ))}
@@ -359,8 +410,8 @@ function FriendsPage() {
                 </div>
               )}
               {incoming.length === 0 && outgoing.length === 0 && (
-                <div className="text-center py-12 text-muted-foreground">
-                  <Clock className="h-12 w-12 mx-auto mb-3 opacity-40" />
+                <div className='text-center py-12 text-muted-foreground'>
+                  <Clock className='h-12 w-12 mx-auto mb-3 opacity-40' />
                   <p>Aucune demande en attente</p>
                 </div>
               )}

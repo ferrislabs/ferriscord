@@ -19,6 +19,7 @@ import { useWsRoom } from '@/hooks/use-ws-events'
 import { MemberList } from '@/components/guild/member-list'
 import { cn } from '@/lib/utils'
 import { useSidebar } from '@/components/ui/sidebar'
+import { useNotificationStore } from '@/stores/notification.store'
 
 export const Route = createFileRoute('/_app/channels/$serverId/$channelId')({
   component: ChannelPage,
@@ -28,6 +29,7 @@ function ChannelPage() {
   const { serverId, channelId } = Route.useParams()
   const { setCollapsed } = useSidebar()
   const navigate = useNavigate()
+  const clearGuildMentions = useNotificationStore((s) => s.clearGuildMentions)
   const [showMemberList, setShowMemberList] = useState(
     () => localStorage.getItem('memberListOpen') === 'true',
   )
@@ -54,7 +56,8 @@ function ChannelPage() {
   useEffect(() => {
     saveLastVisited(`/channels/${serverId}/${channelId}`)
     saveGuildLastChannel(serverId, channelId)
-  }, [serverId, channelId])
+    clearGuildMentions(serverId)
+  }, [serverId, channelId, clearGuildMentions])
 
   const { data: channels = [], isLoading: isLoadingChannels } =
     useGuildChannels(serverId)

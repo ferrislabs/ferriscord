@@ -4,10 +4,14 @@ import { useAuthStore } from '@/stores/auth.store'
 import { useUserStore } from '@/stores/user.store'
 import { wsClient, type WsEvent } from '@/lib/ws'
 import { usePresenceStore, type PresenceStatus } from '@/stores/presence.store'
+import { containsMention } from '@/lib/mentions'
+import { useNotificationStore } from '@/stores/notification.store'
+import type { Schemas } from '@/api/api.client'
 
 export function useWsEvents() {
   const accessToken = useAuthStore((s) => s.accessToken)
   const isAuthenticated = useUserStore((s) => s.isAuthenticated)
+  const authUser = useUserStore((s) => s.user)
   const queryClient = useQueryClient()
 
   // Connect / disconnect when auth state changes.
@@ -20,21 +24,72 @@ export function useWsEvents() {
       return
     }
 
-    wsClient.connect(window.apiUrl ?? '', () => useAuthStore.getState().accessToken)
+    wsClient.connect(
+      window.apiUrl ?? '',
+      () => useAuthStore.getState().accessToken,
+    )
   }, [isAuthenticated, accessToken])
+
+  useEffect(() => {
+    if (!isAuthenticated || !accessToken || !window.tanstackApi) return
+
+    let cancelled = false
+    let rooms: string[] = []
+
+    void queryClient
+      .fetchQuery(window.tanstackApi.get('/users/@me/guilds').queryOptions)
+      .then((guilds) => {
+        if (cancelled) return
+        rooms = (guilds as Array<{ id: string }>).map(
+          (guild) => `guild:${guild.id}`,
+        )
+        if (rooms.length > 0) wsClient.subscribe(rooms)
+      })
+      .catch(() => {})
+
+    return () => {
+      cancelled = true
+      if (rooms.length > 0) wsClient.unsubscribe(rooms)
+    }
+  }, [isAuthenticated, accessToken, queryClient])
+
+  useEffect(() => {
+    if (!isAuthenticated || !accessToken || !window.tanstackApi) return
+
+    let cancelled = false
+    let rooms: string[] = []
+
+    void queryClient
+      .fetchQuery(window.tanstackApi.get('/channels/@me').queryOptions)
+      .then((dms) => {
+        if (cancelled) return
+        rooms = (dms as Array<{ id: string }>).map((dm) => `dm:${dm.id}`)
+        if (rooms.length > 0) wsClient.subscribe(rooms)
+      })
+      .catch(() => {})
+
+    return () => {
+      cancelled = true
+      if (rooms.length > 0) wsClient.unsubscribe(rooms)
+    }
+  }, [isAuthenticated, accessToken, queryClient])
 
   // On reconnect, invalidate all message queries so we catch anything missed
   // while the connection was down (e.g. a delete that fired during the gap).
   useEffect(() => {
     const remove = wsClient.addReconnectListener(() => {
       queryClient.invalidateQueries({
-        queryKey: [{ _id: '/guilds/{guild_id}/channels/{channel_id}/messages' }],
+        queryKey: [
+          { _id: '/guilds/{guild_id}/channels/{channel_id}/messages' },
+        ],
       })
       queryClient.invalidateQueries({
         queryKey: [{ _id: '/channels/@me/{channel_id}/messages' }],
       })
     })
-    return () => { remove() }
+    return () => {
+      remove()
+    }
   }, [queryClient])
 
   // Listen to events and invalidate the right query caches
@@ -49,19 +104,72 @@ export function useWsEvents() {
             // Invalidate all channel message caches — the server broadcasts to the
             // specific room so only observers of that channel will refetch.
             queryClient.invalidateQueries({
-              queryKey: [{ _id: '/guilds/{guild_id}/channels/{channel_id}/messages' }],
+              queryKey: [
+                { _id: '/guilds/{guild_id}/channels/{channel_id}/messages' },
+              ],
             })
+          } else if (kind === 'guild' && event.type === 'message.new') {
+            const message = event.data as Schemas.Message
+            const pathname = window.location.pathname
+            const currentGuildMatch = pathname.match(
+              /^\/channels\/([^/]+)\/([^/]+)$/,
+            )
+            const activeGuildId = currentGuildMatch?.[1]
+            const me = window.tanstackApi
+              ? (queryClient.getQueryData(
+                  window.tanstackApi.get('/users/@me').queryKey,
+                ) as { id?: string; username?: string } | undefined)
+              : undefined
+            const myUsername = me?.username ?? authUser?.preferred_username
+            const isOwnMessage =
+              (me?.id != null && message.author.id === me.id) ||
+              (!!authUser?.preferred_username &&
+                message.author.username === authUser.preferred_username)
+            const wasMentioned = containsMention(message.content, myUsername)
+
+            if (!isOwnMessage && wasMentioned && id !== activeGuildId) {
+              useNotificationStore.getState().addGuildMention(id)
+            }
           } else if (kind === 'dm') {
             queryClient.invalidateQueries({
-              queryKey: [{ _id: '/channels/@me/{channel_id}/messages', path: { channel_id: id } }],
+              queryKey: [
+                {
+                  _id: '/channels/@me/{channel_id}/messages',
+                  path: { channel_id: id },
+                },
+              ],
             })
+
+            if (event.type === 'message.new') {
+              const message = event.data as Schemas.Message
+              const pathname = window.location.pathname
+              const currentDmMatch = pathname.match(
+                /^\/channels\/@me\/([^/]+)$/,
+              )
+              const activeDmId = currentDmMatch?.[1]
+              const me = window.tanstackApi
+                ? (queryClient.getQueryData(
+                    window.tanstackApi.get('/users/@me').queryKey,
+                  ) as { id?: string } | undefined)
+                : undefined
+              const isOwnMessage =
+                (me?.id != null && message.author.id === me.id) ||
+                (!!authUser?.preferred_username &&
+                  message.author.username === authUser.preferred_username)
+
+              if (!isOwnMessage && id !== activeDmId) {
+                useNotificationStore.getState().addDmUnread(id)
+              }
+            }
           }
           break
         }
 
         case 'presence.update': {
           const data = event.data as { user_id: string; status: PresenceStatus }
-          usePresenceStore.getState().updateUserPresence(data.user_id, data.status)
+          usePresenceStore
+            .getState()
+            .updateUserPresence(data.user_id, data.status)
           queryClient.invalidateQueries({
             queryKey: [{ _id: '/guilds/{guild_id}/members' }],
           })
@@ -85,8 +193,10 @@ export function useWsEvents() {
       }
     })
 
-    return () => { remove() }
-  }, [queryClient])
+    return () => {
+      remove()
+    }
+  }, [queryClient, authUser?.preferred_username])
 }
 
 /**

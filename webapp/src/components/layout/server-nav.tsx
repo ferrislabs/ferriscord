@@ -1,30 +1,54 @@
-import { Compass, Ellipsis, Inbox, Menu, Moon, Sun, type LucideIcon } from "lucide-react"
-import { useTranslation } from "@/hooks/use-translation"
-import { Link, useNavigate } from "@tanstack/react-router"
-import { useQueryClient } from "@tanstack/react-query"
-import { getGuildLastChannel } from "@/lib/last-visited"
-import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from "@/components/ui/tooltip"
+import {
+  Compass,
+  Ellipsis,
+  Inbox,
+  Menu,
+  Moon,
+  Sun,
+  type LucideIcon,
+} from 'lucide-react'
+import { useTranslation } from '@/hooks/use-translation'
+import {
+  Link,
+  useMatchRoute,
+  useNavigate,
+  useParams,
+} from '@tanstack/react-router'
+import { useQueryClient } from '@tanstack/react-query'
+import { getGuildLastChannel } from '@/lib/last-visited'
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+  TooltipProvider,
+} from '@/components/ui/tooltip'
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu"
-import type { Schemas } from "@/api/api.client"
-import { Button } from "@/components/ui/button"
-import { useEffect, useState } from "react"
+} from '@/components/ui/dropdown-menu'
+import type { Schemas } from '@/api/api.client'
+import { Button } from '@/components/ui/button'
+import { useEffect, useState } from 'react'
 import { useUserGuilds, useCreateGuild } from '@/lib/queries/guild-queries'
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
-import { AddServerForm } from "@/components/forms/add-server-form"
-import { JoinGuildModal } from "@/components/guild/join-guild-modal"
-import { useForm } from "react-hook-form"
-import type z from "zod"
-import { addServerFormSchema } from "@/lib/validation/add-server-schema"
-import { zodResolver } from "@hookform/resolvers/zod"
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog'
+import { AddServerForm } from '@/components/forms/add-server-form'
+import { JoinGuildModal } from '@/components/guild/join-guild-modal'
+import { useForm } from 'react-hook-form'
+import type z from 'zod'
+import { addServerFormSchema } from '@/lib/validation/add-server-schema'
+import { zodResolver } from '@hookform/resolvers/zod'
 import { toast } from '@/lib/toast'
-import { Skeleton } from "@/components/ui/skeleton"
-import { useSidebar } from "@/components/ui/sidebar"
-
+import { Skeleton } from '@/components/ui/skeleton'
+import { useSidebar } from '@/components/ui/sidebar'
+import { useNotificationStore } from '@/stores/notification.store'
+import { cn } from '@/lib/utils'
 
 interface NavLinkButtonProps {
   to: string
@@ -37,38 +61,69 @@ function NavLinkButton({ to, icon: Icon, tooltip }: NavLinkButtonProps) {
     <Tooltip>
       <TooltipTrigger asChild>
         <Link to={to}>
-          <Button variant="nav" size="icon-sm" aria-label={tooltip} className="cursor-pointer">
-            <Icon className="text-muted-foreground h-4 w-4" />
+          <Button
+            variant='nav'
+            size='icon-sm'
+            aria-label={tooltip}
+            className='cursor-pointer'
+          >
+            <Icon className='text-muted-foreground h-4 w-4' />
           </Button>
         </Link>
       </TooltipTrigger>
-      <TooltipContent side="right">{tooltip}</TooltipContent>
+      <TooltipContent side='right'>{tooltip}</TooltipContent>
     </Tooltip>
   )
 }
 
 interface ServerButtonProps {
   guild: Schemas.Guild
+  hasMention: boolean
+  isActive: boolean
+  mentionCount: number
 }
 
-function ServerButton({ guild }: ServerButtonProps) {
+function formatBadgeCount(count: number) {
+  return count > 99 ? '99+' : String(count)
+}
+
+function ServerButton({
+  guild,
+  hasMention,
+  isActive,
+  mentionCount,
+}: ServerButtonProps) {
   const navigate = useNavigate()
   const queryClient = useQueryClient()
 
   const handleServerClick = async () => {
     const lastChannel = getGuildLastChannel(guild.id)
     if (lastChannel) {
-      navigate({ to: '/channels/$serverId/$channelId', params: { serverId: guild.id, channelId: lastChannel } })
+      navigate({
+        to: '/channels/$serverId/$channelId',
+        params: { serverId: guild.id, channelId: lastChannel },
+      })
       return
     }
     try {
       const channels = await queryClient.fetchQuery(
-        window.tanstackApi.get('/guilds/{guild_id}/channels', { path: { guild_id: guild.id } }).queryOptions
+        window.tanstackApi.get('/guilds/{guild_id}/channels', {
+          path: { guild_id: guild.id },
+        }).queryOptions,
       )
-      const first = (channels as { id: string; kind: string }[]).find((c) => c.kind === 'Text') ?? channels?.[0]
-      navigate({ to: '/channels/$serverId/$channelId', params: { serverId: guild.id, channelId: first?.id ?? '0' } })
+      const first =
+        (channels as { id: string; kind: string }[]).find(
+          (c) => c.kind === 'Text',
+        ) ?? channels?.[0]
+      navigate({
+        to: '/channels/$serverId/$channelId',
+        params: { serverId: guild.id, channelId: first?.id ?? '0' },
+      })
     } catch {
-      navigate({ to: '/channels/$serverId/$channelId', params: { serverId: guild.id, channelId: '0' } })
+      navigate({
+        to: '/channels/$serverId/$channelId',
+        params: { serverId: guild.id, channelId: '0' },
+      })
     }
   }
 
@@ -77,31 +132,52 @@ function ServerButton({ guild }: ServerButtonProps) {
       <TooltipTrigger asChild>
         <button
           onClick={handleServerClick}
-          className='flex h-10 w-10 cursor-pointer items-center justify-center rounded-lg border border-border/50 bg-muted/50 text-sm font-semibold text-foreground transition-all duration-150 hover:border-primary/40 hover:bg-muted/80 active:scale-95 overflow-hidden'
+          className={cn(
+            'relative flex h-10 w-10 cursor-pointer items-center justify-center rounded-lg border text-sm font-semibold transition-all duration-150 active:scale-95',
+            isActive
+              ? 'border-primary/60 bg-primary/10 text-foreground'
+              : 'border-border/50 bg-muted/50 text-foreground hover:border-primary/40 hover:bg-muted/80',
+          )}
         >
           {guild.icon_url ? (
-            <img src={guild.icon_url} alt={guild.name} className='h-full w-full object-cover' />
+            <img
+              src={guild.icon_url}
+              alt={guild.name}
+              className='h-full w-full object-cover'
+            />
           ) : (
             guild.name.charAt(0).toUpperCase()
           )}
+          {hasMention && (
+            <span className='absolute -right-1 -top-1 inline-flex min-w-4 items-center justify-center rounded-full bg-destructive px-1 py-0.5 text-[10px] font-semibold leading-none text-destructive-foreground ring-2 ring-sidebar'>
+              {formatBadgeCount(mentionCount)}
+            </span>
+          )}
         </button>
       </TooltipTrigger>
-      <TooltipContent side="right">{guild.name}</TooltipContent>
+      <TooltipContent side='right'>{guild.name}</TooltipContent>
     </Tooltip>
   )
 }
 
 export default function ServerNav() {
   const { t } = useTranslation()
-  const [isCreateServerModalOpen, setIsCreateServerModalOpen] = useState<boolean>(false)
-  const [isJoinServerModalOpen, setIsJoinServerModalOpen] = useState<boolean>(false)
+  const [isCreateServerModalOpen, setIsCreateServerModalOpen] =
+    useState<boolean>(false)
+  const [isJoinServerModalOpen, setIsJoinServerModalOpen] =
+    useState<boolean>(false)
   const [theme, setTheme] = useState<'light' | 'dark'>(() => {
     if (typeof window !== 'undefined') {
-      const savedTheme = localStorage.getItem('theme') as 'light' | 'dark' | null
+      const savedTheme = localStorage.getItem('theme') as
+        | 'light'
+        | 'dark'
+        | null
       if (savedTheme) {
         return savedTheme
       }
-      return document.documentElement.classList.contains('dark') ? 'dark' : 'light'
+      return document.documentElement.classList.contains('dark')
+        ? 'dark'
+        : 'light'
     }
     return 'light'
   })
@@ -143,7 +219,7 @@ export default function ServerNav() {
   // Handle errors (Could be replaced with a toast notification)
   useEffect(() => {
     if (serversError) {
-      toast.error(t("serverNav.error_loading_servers"))
+      toast.error(t('serverNav.error_loading_servers'))
     }
   }, [serversError, t])
 
@@ -154,7 +230,9 @@ export default function ServerNav() {
     },
   })
 
-  const onSubmitAddServer = async (values: z.infer<typeof addServerFormSchema>) => {
+  const onSubmitAddServer = async (
+    values: z.infer<typeof addServerFormSchema>,
+  ) => {
     createGuild({ body: { name: values.name } })
   }
 
@@ -176,60 +254,100 @@ export default function ServerNav() {
   const { setCollapsed } = useSidebar()
   const navigate = useNavigate()
   const queryClient = useQueryClient()
+  const params = useParams({ strict: false })
+  const matchRoute = useMatchRoute()
+  const guildMentionCounts = useNotificationStore((s) => s.guildMentionCounts)
+  const dmUnreadCounts = useNotificationStore((s) => s.dmUnreadCounts)
+  const hasAnyUnreadDm = Object.keys(dmUnreadCounts).length > 0
+  const activeServerId = params.serverId ?? null
+  const isDmRoute =
+    matchRoute({ to: '/channels/@me' }) ||
+    matchRoute({ to: '/channels/@me/$channelId' })
 
   return (
     <TooltipProvider>
       {/* Desktop: vertical right sidebar */}
-      <nav className="hidden md:flex bg-sidebar border-sidebar-border h-screen flex-col items-center gap-2 border-l p-2">
-        <NavLinkButton to="/channels/@me" icon={Inbox} tooltip={t("serverNav.messages")} />
-        <NavLinkButton to="/explore" icon={Compass} tooltip={t("serverNav.explore")} />
+      <nav className='hidden md:flex bg-sidebar border-sidebar-border h-screen flex-col items-center gap-2 border-l p-2'>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Link to='/channels/@me' className='relative'>
+              <Button
+                variant='nav'
+                size='icon-sm'
+                aria-label={t('serverNav.messages')}
+                className='cursor-pointer'
+              >
+                <Inbox className='text-muted-foreground h-4 w-4' />
+              </Button>
+              {hasAnyUnreadDm && (
+                <span className='absolute -right-0.5 -top-0.5 h-3 w-3 rounded-full bg-destructive ring-2 ring-sidebar' />
+              )}
+            </Link>
+          </TooltipTrigger>
+          <TooltipContent side='right'>
+            {t('serverNav.messages')}
+          </TooltipContent>
+        </Tooltip>
+        <NavLinkButton
+          to='/explore'
+          icon={Compass}
+          tooltip={t('serverNav.explore')}
+        />
 
         <Tooltip>
           <DropdownMenu>
             <TooltipTrigger asChild>
               <DropdownMenuTrigger asChild>
-                <Button variant="nav" size="icon-sm" className="cursor-pointer">
-                  <Ellipsis className="text-muted-foreground h-4 w-4" />
+                <Button variant='nav' size='icon-sm' className='cursor-pointer'>
+                  <Ellipsis className='text-muted-foreground h-4 w-4' />
                 </Button>
               </DropdownMenuTrigger>
             </TooltipTrigger>
-            <TooltipContent side="right">{t("serverNav.more_options")}</TooltipContent>
-            <DropdownMenuContent side="left" align="start" sideOffset={4}>
+            <TooltipContent side='right'>
+              {t('serverNav.more_options')}
+            </TooltipContent>
+            <DropdownMenuContent side='left' align='start' sideOffset={4}>
               <DropdownMenuItem
-                className="text-responsive-base!"
+                className='text-responsive-base!'
                 onSelect={(e) => {
                   e.preventDefault()
                   setIsCreateServerModalOpen(true)
                 }}
               >
-                {t("serverNav.create_server")}
+                {t('serverNav.create_server')}
               </DropdownMenuItem>
               <DropdownMenuItem
-                className="text-responsive-base!"
+                className='text-responsive-base!'
                 onSelect={(e) => {
                   e.preventDefault()
                   setIsJoinServerModalOpen(true)
                 }}
               >
-                {t("serverNav.join_server")}
+                {t('serverNav.join_server')}
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
         </Tooltip>
 
-        <div className="no-scrollbar flex flex-1 flex-col gap-2 overflow-y-auto">
+        <div className='no-scrollbar flex flex-1 flex-col gap-2 overflow-y-auto overflow-x-visible px-1 py-1'>
           {isLoadingServers ? (
             <>
-              <Skeleton className="h-10 w-10 rounded-sm" />
-              <Skeleton className="h-10 w-10 rounded-sm" />
-              <Skeleton className="h-10 w-10 rounded-sm" />
-              <Skeleton className="h-10 w-10 rounded-sm" />
-              <Skeleton className="h-10 w-10 rounded-sm" />
+              <Skeleton className='h-10 w-10 rounded-sm' />
+              <Skeleton className='h-10 w-10 rounded-sm' />
+              <Skeleton className='h-10 w-10 rounded-sm' />
+              <Skeleton className='h-10 w-10 rounded-sm' />
+              <Skeleton className='h-10 w-10 rounded-sm' />
             </>
           ) : (
             <>
               {guilds?.map((guild) => (
-                <ServerButton key={guild.id} guild={guild} />
+                <ServerButton
+                  key={guild.id}
+                  guild={guild}
+                  hasMention={(guildMentionCounts[guild.id] ?? 0) > 0}
+                  isActive={activeServerId === guild.id && !isDmRoute}
+                  mentionCount={guildMentionCounts[guild.id] ?? 0}
+                />
               ))}
             </>
           )}
@@ -238,29 +356,34 @@ export default function ServerNav() {
         <Tooltip>
           <TooltipTrigger asChild>
             <Button
-              variant="nav"
-              size="icon-sm"
-              className="cursor-pointer"
+              variant='nav'
+              size='icon-sm'
+              className='cursor-pointer'
               onClick={toggleTheme}
-              aria-label="Toggle theme"
+              aria-label='Toggle theme'
             >
               {theme === 'light' ? (
-                <Moon className="text-muted-foreground h-4 w-4" />
+                <Moon className='text-muted-foreground h-4 w-4' />
               ) : (
-                <Sun className="text-muted-foreground h-4 w-4" />
+                <Sun className='text-muted-foreground h-4 w-4' />
               )}
             </Button>
           </TooltipTrigger>
-          <TooltipContent side="right">
-            {theme === 'light' ? t("serverNav.dark_mode") : t("serverNav.light_mode")}
+          <TooltipContent side='right'>
+            {theme === 'light'
+              ? t('serverNav.dark_mode')
+              : t('serverNav.light_mode')}
           </TooltipContent>
         </Tooltip>
 
-        <Dialog open={isCreateServerModalOpen} onOpenChange={setIsCreateServerModalOpen}>
+        <Dialog
+          open={isCreateServerModalOpen}
+          onOpenChange={setIsCreateServerModalOpen}
+        >
           <form>
             <DialogContent>
               <DialogHeader>
-                <DialogTitle>{t("serverNav.modal.title")}</DialogTitle>
+                <DialogTitle>{t('serverNav.modal.title')}</DialogTitle>
               </DialogHeader>
               <AddServerForm
                 form={addServerForm}
@@ -270,48 +393,84 @@ export default function ServerNav() {
             </DialogContent>
           </form>
         </Dialog>
-        <JoinGuildModal open={isJoinServerModalOpen} onOpenChange={setIsJoinServerModalOpen} />
+        <JoinGuildModal
+          open={isJoinServerModalOpen}
+          onOpenChange={setIsJoinServerModalOpen}
+        />
       </nav>
 
       {/* Mobile: fixed bottom navigation bar */}
-      <nav className="fixed bottom-0 left-0 right-0 z-20 flex md:hidden h-14 bg-sidebar border-t border-sidebar-border items-center gap-1 px-2">
+      <nav className='fixed bottom-0 left-0 right-0 z-20 flex md:hidden h-14 bg-sidebar border-t border-sidebar-border items-center gap-1 px-2'>
         {/* Static actions */}
         <button
           onClick={() => setCollapsed(false)}
-          className="shrink-0 p-2 text-muted-foreground hover:text-foreground transition-colors"
-          aria-label="Menu"
+          className='shrink-0 p-2 text-muted-foreground hover:text-foreground transition-colors'
+          aria-label='Menu'
         >
-          <Menu className="h-5 w-5" />
+          <Menu className='h-5 w-5' />
         </button>
-        <Link to="/channels/@me" className="shrink-0 p-2 text-muted-foreground hover:text-foreground transition-colors">
-          <Inbox className="h-5 w-5" />
+        <Link
+          to='/channels/@me'
+          className='relative shrink-0 p-2 text-muted-foreground hover:text-foreground transition-colors'
+        >
+          <Inbox className='h-5 w-5' />
+          {hasAnyUnreadDm && (
+            <span className='absolute right-1.5 top-1.5 h-2.5 w-2.5 rounded-full bg-destructive' />
+          )}
         </Link>
 
         {/* Scrollable guild list */}
-        <div className="flex-1 overflow-x-auto no-scrollbar">
-          <div className="flex items-center gap-1.5 px-1">
+        <div className='flex-1 overflow-x-auto no-scrollbar'>
+          <div className='flex items-center gap-1.5 px-1'>
             {guilds?.map((guild) => (
               <button
                 key={guild.id}
                 onClick={async () => {
                   const lastChannel = getGuildLastChannel(guild.id)
                   if (lastChannel) {
-                    navigate({ to: '/channels/$serverId/$channelId', params: { serverId: guild.id, channelId: lastChannel } })
+                    navigate({
+                      to: '/channels/$serverId/$channelId',
+                      params: { serverId: guild.id, channelId: lastChannel },
+                    })
                     return
                   }
                   try {
                     const channels = await queryClient.fetchQuery(
-                      window.tanstackApi.get('/guilds/{guild_id}/channels', { path: { guild_id: guild.id } }).queryOptions
+                      window.tanstackApi.get('/guilds/{guild_id}/channels', {
+                        path: { guild_id: guild.id },
+                      }).queryOptions,
                     )
-                    const first = (channels as { id: string; kind: string }[]).find((c) => c.kind === 'Text') ?? channels?.[0]
-                    navigate({ to: '/channels/$serverId/$channelId', params: { serverId: guild.id, channelId: first?.id ?? '0' } })
+                    const first =
+                      (channels as { id: string; kind: string }[]).find(
+                        (c) => c.kind === 'Text',
+                      ) ?? channels?.[0]
+                    navigate({
+                      to: '/channels/$serverId/$channelId',
+                      params: {
+                        serverId: guild.id,
+                        channelId: first?.id ?? '0',
+                      },
+                    })
                   } catch {
-                    navigate({ to: '/channels/$serverId/$channelId', params: { serverId: guild.id, channelId: '0' } })
+                    navigate({
+                      to: '/channels/$serverId/$channelId',
+                      params: { serverId: guild.id, channelId: '0' },
+                    })
                   }
                 }}
-                className="shrink-0 h-8 w-8 flex items-center justify-center rounded-lg border border-border/50 bg-muted/50 text-xs font-semibold text-foreground transition-all hover:border-primary/40 hover:bg-muted/80 active:scale-95"
+                className={cn(
+                  'relative shrink-0 h-8 w-8 flex items-center justify-center rounded-lg border text-xs font-semibold text-foreground transition-all hover:border-primary/40 hover:bg-muted/80 active:scale-95',
+                  activeServerId === guild.id && !isDmRoute
+                    ? 'border-primary/60 bg-primary/10'
+                    : 'border-border/50 bg-muted/50',
+                )}
               >
                 {guild.name.charAt(0).toUpperCase()}
+                {(guildMentionCounts[guild.id] ?? 0) > 0 && (
+                  <span className='absolute -right-1 -top-1 inline-flex min-w-4 items-center justify-center rounded-full bg-destructive px-1 py-0.5 text-[9px] font-semibold leading-none text-destructive-foreground ring-2 ring-sidebar'>
+                    {formatBadgeCount(guildMentionCounts[guild.id] ?? 0)}
+                  </span>
+                )}
               </button>
             ))}
           </div>
@@ -320,10 +479,14 @@ export default function ServerNav() {
         {/* Theme toggle */}
         <button
           onClick={toggleTheme}
-          className="shrink-0 p-2 text-muted-foreground hover:text-foreground transition-colors"
-          aria-label="Toggle theme"
+          className='shrink-0 p-2 text-muted-foreground hover:text-foreground transition-colors'
+          aria-label='Toggle theme'
         >
-          {theme === 'light' ? <Moon className="h-5 w-5" /> : <Sun className="h-5 w-5" />}
+          {theme === 'light' ? (
+            <Moon className='h-5 w-5' />
+          ) : (
+            <Sun className='h-5 w-5' />
+          )}
         </button>
       </nav>
     </TooltipProvider>

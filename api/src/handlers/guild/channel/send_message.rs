@@ -3,10 +3,12 @@ use std::time::Duration;
 use axum::{Extension, extract::State};
 use axum_extra::routing::TypedPath;
 use ferriscord_auth::Identity;
-use ferriscord_entities::{Id, attachment::AttachmentId, channel::ChannelId, guild::GuildId, message::Message};
+use ferriscord_core::guild::domain::message::ports::{AttachmentInput, MessageService};
+use ferriscord_entities::{
+    Id, attachment::AttachmentId, channel::ChannelId, guild::GuildId, message::Message,
+};
 use ferriscord_error::ApiError;
 use ferriscord_server::http::response::Response;
-use ferriscord_core::guild::domain::message::ports::{AttachmentInput, MessageService};
 use ferriscord_storage::StoragePort;
 use serde::Deserialize;
 use tracing::error;
@@ -16,6 +18,10 @@ use crate::state::AppState;
 
 fn channel_room(channel_id: &ChannelId) -> String {
     format!("channel:{}", channel_id.get_uuid())
+}
+
+fn guild_room(guild_id: &GuildId) -> String {
+    format!("guild:{}", guild_id.get_uuid())
 }
 
 #[derive(TypedPath, Deserialize)]
@@ -47,7 +53,10 @@ pub struct SendMessageRoute {
     )
 )]
 pub async fn send_message_handler(
-    SendMessageRoute { guild_id, channel_id }: SendMessageRoute,
+    SendMessageRoute {
+        guild_id,
+        channel_id,
+    }: SendMessageRoute,
     State(state): State<AppState>,
     Extension(identity): Extension<Identity>,
     mut multipart: axum::extract::Multipart,
@@ -59,9 +68,13 @@ pub async fn send_message_handler(
     let mut attachment_inputs: Vec<AttachmentInput> = Vec::new();
     let bucket = &state.args.storage.bucket;
 
-    while let Some(field) = multipart.next_field().await.map_err(|e| ApiError::Unknown {
-        message: format!("multipart error: {}", e),
-    })? {
+    while let Some(field) = multipart
+        .next_field()
+        .await
+        .map_err(|e| ApiError::Unknown {
+            message: format!("multipart error: {}", e),
+        })?
+    {
         let field_name = field.name().unwrap_or("").to_string();
 
         if field_name == "content" {
@@ -69,10 +82,7 @@ pub async fn send_message_handler(
                 message: format!("failed to read content field: {}", e),
             })?;
         } else if field_name == "files" {
-            let filename = field
-                .file_name()
-                .unwrap_or("file")
-                .to_string();
+            let filename = field.file_name().unwrap_or("file").to_string();
             let content_type = field
                 .content_type()
                 .unwrap_or("application/octet-stream")
@@ -84,11 +94,7 @@ pub async fn send_message_handler(
             let size_bytes = data.len() as i64;
 
             let id = AttachmentId::new();
-            let storage_key = format!(
-                "attachments/{}/{}",
-                channel_id.get_uuid(),
-                id.get_uuid()
-            );
+            let storage_key = format!("attachments/{}/{}", channel_id.get_uuid(), id.get_uuid());
 
             state
                 .storage
@@ -113,7 +119,13 @@ pub async fn send_message_handler(
 
     let mut message = state
         .message_service
-        .send_message(identity, guild_id, channel_id.clone(), content, attachment_inputs)
+        .send_message(
+            identity,
+            guild_id.clone(),
+            channel_id.clone(),
+            content,
+            attachment_inputs,
+        )
         .await
         .map_err(|e| ApiError::Unknown {
             message: e.to_string(),
@@ -126,7 +138,10 @@ pub async fn send_message_handler(
             .presigned_get_url(bucket, &attachment.storage_key, Duration::from_secs(3600))
             .await
             .map_err(|e| {
-                error!("failed to generate presigned URL for '{}': {}", attachment.storage_key, e);
+                error!(
+                    "failed to generate presigned URL for '{}': {}",
+                    attachment.storage_key, e
+                );
                 ApiError::Unknown {
                     message: format!("failed to generate attachment URL: {}", e),
                 }
@@ -140,6 +155,15 @@ pub async fn send_message_handler(
         "data": &message,
     })) {
         state.hub.publish(&room, payload).await;
+    }
+
+    let guild_room = guild_room(&guild_id);
+    if let Ok(payload) = serde_json::to_string(&serde_json::json!({
+        "type": "message.new",
+        "room": guild_room,
+        "data": &message,
+    })) {
+        state.hub.publish(&guild_room, payload).await;
     }
 
     Ok(Response::Created(message))

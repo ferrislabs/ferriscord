@@ -68,6 +68,7 @@ import { useListDms } from '@/lib/queries/dm-queries'
 import { InviteModal } from '@/components/guild/invite-modal'
 import { usePresenceStore } from '@/stores/presence.store'
 import { PresenceIndicator } from '@/components/ui/presence-indicator'
+import { useNotificationStore } from '@/stores/notification.store'
 import {
   DndContext,
   DragOverlay,
@@ -645,6 +646,11 @@ export function AppSidebar() {
   const { mutate: updateChannel } = useUpdateChannel()
   const dms = dmsData ?? EMPTY_DMS
   const channels = channelsData ?? EMPTY_CHANNELS
+  const dmUnreadCounts = useNotificationStore((s) => s.dmUnreadCounts)
+  const totalUnreadDms = Object.values(dmUnreadCounts).reduce(
+    (sum, count) => sum + count,
+    0,
+  )
 
   const categories = useMemo(
     () =>
@@ -991,6 +997,11 @@ export function AppSidebar() {
                   >
                     <Users className='h-5 w-5 shrink-0' />
                     <span className='text-sm font-medium'>Friends</span>
+                    {totalUnreadDms > 0 && (
+                      <span className='ml-auto inline-flex min-w-5 items-center justify-center rounded-full bg-red-500 px-1.5 py-0.5 text-[11px] font-semibold text-white shadow-sm'>
+                        {totalUnreadDms > 99 ? '99+' : totalUnreadDms}
+                      </span>
+                    )}
                   </div>
                 </Link>
                 <div className='pt-4 pb-2'>
@@ -1001,6 +1012,7 @@ export function AppSidebar() {
                 {dms.map((dm) => {
                   const displayName =
                     dm.recipient.display_name ?? dm.recipient.username
+                  const unreadCount = dmUnreadCounts[dm.id] ?? 0
                   return (
                     <Link
                       key={dm.id}
@@ -1026,6 +1038,11 @@ export function AppSidebar() {
                           </AvatarFallback>
                         </Avatar>
                         <span className='text-sm truncate'>{displayName}</span>
+                        {unreadCount > 0 && (
+                          <span className='ml-auto inline-flex min-w-5 items-center justify-center rounded-full bg-red-500 px-1.5 py-0.5 text-[11px] font-semibold text-white shadow-sm'>
+                            {unreadCount > 99 ? '99+' : unreadCount}
+                          </span>
+                        )}
                       </div>
                     </Link>
                   )

@@ -17,6 +17,7 @@ import { toast } from '@/lib/toast'
 import { useSidebar } from '@/components/ui/sidebar'
 import { useProfileCardStore } from '@/stores/profile-card.store'
 import { FormattedMessage } from '@/components/ui/formatted-message'
+import { useNotificationStore } from '@/stores/notification.store'
 
 export const Route = createFileRoute('/_app/channels/@me/$channelId')({
   component: DMConversationPage,
@@ -26,6 +27,7 @@ function DMConversationPage() {
   const { channelId } = Route.useParams()
   const { setCollapsed } = useSidebar()
   const toggleProfile = useProfileCardStore((s) => s.toggle)
+  const clearDmUnread = useNotificationStore((s) => s.clearDmUnread)
 
   useWsRoom(`dm:${channelId}`)
 
@@ -44,6 +46,10 @@ function DMConversationPage() {
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
   }, [messages.length])
+
+  useEffect(() => {
+    clearDmUnread(channelId)
+  }, [channelId, clearDmUnread])
 
   const handleSendMessage = (content: string, files?: File[]) => {
     if (!content.trim() && (!files || files.length === 0)) return

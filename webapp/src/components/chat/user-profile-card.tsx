@@ -197,10 +197,10 @@ export function UserProfileCard({
         onClose()
     }
     document.addEventListener('keydown', onKey)
-    document.addEventListener('mousedown', onPointer)
+    document.addEventListener('click', onPointer)
     return () => {
       document.removeEventListener('keydown', onKey)
-      document.removeEventListener('mousedown', onPointer)
+      document.removeEventListener('click', onPointer)
     }
   }, [onClose, pickerOpen])
 
