@@ -68,10 +68,10 @@ function UserSettingsPage() {
         bio,
         banner: bannerFile ?? undefined,
       })
-      toast.success('Profil mis à jour')
+      toast.success('Profile updated')
       handleClose()
     } catch {
-      toast.error('Erreur lors de la mise à jour du profil')
+      toast.error('Failed to update profile')
     }
   }
 
@@ -100,7 +100,7 @@ function UserSettingsPage() {
       <div className='w-60 shrink-0 border-r border-sidebar-border bg-sidebar py-12 pr-2'>
         <div className='ml-auto w-44 space-y-0.5'>
           <p className='px-3 py-1.5 text-xs font-semibold uppercase tracking-wide text-muted-foreground'>
-            Paramètres utilisateur
+            User Settings
           </p>
           <button
             className={cn(
@@ -108,7 +108,7 @@ function UserSettingsPage() {
               'bg-accent font-medium text-accent-foreground',
             )}
           >
-            Mon compte
+            My Account
           </button>
         </div>
       </div>
@@ -117,10 +117,10 @@ function UserSettingsPage() {
         <div className='mx-auto max-w-4xl px-8 py-12'>
           <div className='mb-8'>
             <h1 className='mb-1 text-xl font-bold text-foreground'>
-              Mon compte
+              My Account
             </h1>
             <p className='text-sm text-muted-foreground'>
-              Gérez votre profil comme sur Discord.
+              Manage your profile like on Discord.
             </p>
           </div>
 
@@ -128,7 +128,7 @@ function UserSettingsPage() {
             <div className='space-y-6'>
               <div className='space-y-1.5'>
                 <Label className='text-xs font-semibold uppercase tracking-wide text-muted-foreground'>
-                  Bannière
+                  Banner
                 </Label>
                 <div className='relative'>
                   <button
@@ -139,7 +139,7 @@ function UserSettingsPage() {
                     {displayedBanner ? (
                       <img
                         src={displayedBanner}
-                        alt='bannière'
+                        alt='banner'
                         className='h-full w-full object-cover'
                       />
                     ) : (
@@ -185,19 +185,19 @@ function UserSettingsPage() {
               <div className='pt-10 space-y-4'>
                 <div className='space-y-1.5'>
                   <Label className='text-xs font-semibold uppercase tracking-wide text-muted-foreground'>
-                    Nom d&apos;utilisateur
+                    Username
                   </Label>
                   <Input value={profile?.username ?? ''} disabled />
                 </div>
 
                 <div className='space-y-1.5'>
                   <Label className='text-xs font-semibold uppercase tracking-wide text-muted-foreground'>
-                    Nom d&apos;affichage
+                    Display Name
                   </Label>
                   <Input
                     value={displayName}
                     onChange={(e) => setDisplayName(e.target.value)}
-                    placeholder="Laisser vide pour utiliser le nom d'utilisateur"
+                    placeholder='Leave blank to use your username'
                     maxLength={64}
                   />
                 </div>
@@ -209,7 +209,7 @@ function UserSettingsPage() {
                   <Textarea
                     value={bio}
                     onChange={(e) => setBio(e.target.value)}
-                    placeholder='Parlez de vous...'
+                    placeholder='Tell us about yourself...'
                     maxLength={190}
                     rows={5}
                     className='resize-none'
@@ -223,7 +223,7 @@ function UserSettingsPage() {
 
             <div className='space-y-2'>
               <p className='text-xs font-semibold uppercase tracking-wide text-muted-foreground'>
-                Aperçu
+                Preview
               </p>
               <UserProfileSummary
                 displayName={displayName || profile?.username || 'Unknown User'}
@@ -238,21 +238,19 @@ function UserSettingsPage() {
 
           {isDirty && (
             <div className='animate-in fade-in-0 zoom-in-95 slide-in-from-bottom-4 fixed bottom-6 left-1/2 z-20 flex w-[min(680px,calc(100%-2rem))] -translate-x-1/2 items-center justify-between gap-4 rounded-2xl border border-border/80 bg-background/95 px-5 py-3 shadow-2xl backdrop-blur-md duration-200'>
-              <p className='text-sm text-muted-foreground'>
-                Modifications non sauvegardées
-              </p>
+              <p className='text-sm text-muted-foreground'>Unsaved changes</p>
               <div className='flex shrink-0 gap-2'>
                 <Button variant='ghost' size='sm' onClick={handleReset}>
-                  Réinitialiser
+                  Reset
                 </Button>
                 <Button size='sm' onClick={handleSave} disabled={isPending}>
                   {isPending ? (
                     <>
                       <Loader2 className='mr-2 h-4 w-4 animate-spin' />
-                      Enregistrement...
+                      Saving...
                     </>
                   ) : (
-                    'Enregistrer'
+                    'Save'
                   )}
                 </Button>
               </div>

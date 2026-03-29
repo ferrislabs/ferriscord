@@ -28,12 +28,15 @@ export function JoinGuildModal({ open, onOpenChange }: JoinGuildModalProps) {
 
     try {
       const guild = await joinGuild({ body: { code: trimmed } })
-      toast.success(`Tu as rejoint ${guild.name} !`)
+      toast.success(`You joined ${guild.name}!`)
       onOpenChange(false)
       setCode('')
-      navigate({ to: '/channels/$serverId/$channelId', params: { serverId: guild.id, channelId: '0' } })
+      navigate({
+        to: '/channels/$serverId/$channelId',
+        params: { serverId: guild.id, channelId: '0' },
+      })
     } catch {
-      toast.error("Code d'invitation invalide ou expiré")
+      toast.error('Invalid or expired invite code')
     }
   }
 
@@ -41,12 +44,12 @@ export function JoinGuildModal({ open, onOpenChange }: JoinGuildModalProps) {
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className='max-w-sm'>
         <DialogHeader>
-          <DialogTitle>Rejoindre un serveur</DialogTitle>
+          <DialogTitle>Join a Server</DialogTitle>
         </DialogHeader>
         <form onSubmit={handleSubmit} className='space-y-4'>
           <div className='space-y-1.5'>
             <label className='text-xs font-semibold uppercase text-muted-foreground tracking-wide'>
-              Code d'invitation
+              Invite Code
             </label>
             <Input
               value={code}
@@ -57,11 +60,16 @@ export function JoinGuildModal({ open, onOpenChange }: JoinGuildModalProps) {
             />
           </div>
           <div className='flex justify-end gap-2'>
-            <Button type='button' variant='ghost' onClick={() => onOpenChange(false)} disabled={isPending}>
-              Annuler
+            <Button
+              type='button'
+              variant='ghost'
+              onClick={() => onOpenChange(false)}
+              disabled={isPending}
+            >
+              Cancel
             </Button>
             <Button type='submit' disabled={isPending || !code.trim()}>
-              {isPending ? 'Rejoindre...' : 'Rejoindre'}
+              {isPending ? 'Joining...' : 'Join'}
             </Button>
           </div>
         </form>

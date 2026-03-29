@@ -27,17 +27,20 @@ function InvitePage() {
   }, [isAuthenticated, isLoading])
 
   if (isLoading || !isAuthenticated) {
-    return <PageLoader message='Chargement...' />
+    return <PageLoader message='Loading...' />
   }
 
   const handleJoin = async () => {
     setJoining(true)
     try {
       const guild = await joinGuild({ body: { code } })
-      toast.success(`Tu as rejoint ${guild.name} !`)
-      navigate({ to: '/channels/$serverId/$channelId', params: { serverId: guild.id, channelId: '0' } })
+      toast.success(`You joined ${guild.name}!`)
+      navigate({
+        to: '/channels/$serverId/$channelId',
+        params: { serverId: guild.id, channelId: '0' },
+      })
     } catch {
-      toast.error("Code d'invitation invalide ou expiré")
+      toast.error('Invalid or expired invite code')
       setJoining(false)
     }
   }
@@ -46,18 +49,29 @@ function InvitePage() {
     <div className='min-h-screen flex items-center justify-center bg-background'>
       <div className='w-full max-w-sm rounded-xl border border-border bg-card p-8 shadow-lg text-center space-y-6'>
         <div className='space-y-2'>
-          <h1 className='text-xl font-bold text-foreground'>Invitation à rejoindre un serveur</h1>
+          <h1 className='text-xl font-bold text-foreground'>Server Invite</h1>
           <p className='text-sm text-muted-foreground'>
-            Tu as été invité avec le code <code className='font-mono bg-muted px-1.5 py-0.5 rounded text-foreground'>{code}</code>
+            You were invited with the code{' '}
+            <code className='font-mono bg-muted px-1.5 py-0.5 rounded text-foreground'>
+              {code}
+            </code>
           </p>
         </div>
 
         <div className='flex flex-col gap-2'>
-          <Button onClick={handleJoin} disabled={isPending || joining} className='w-full'>
-            {isPending || joining ? 'Rejoindre...' : 'Rejoindre le serveur'}
+          <Button
+            onClick={handleJoin}
+            disabled={isPending || joining}
+            className='w-full'
+          >
+            {isPending || joining ? 'Joining...' : 'Join Server'}
           </Button>
-          <Button variant='ghost' onClick={() => navigate({ to: '/channels/@me' })} className='w-full'>
-            Annuler
+          <Button
+            variant='ghost'
+            onClick={() => navigate({ to: '/channels/@me' })}
+            className='w-full'
+          >
+            Cancel
           </Button>
         </div>
       </div>

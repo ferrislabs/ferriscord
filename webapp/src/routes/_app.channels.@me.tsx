@@ -74,8 +74,8 @@ function FriendRow({
               { path: { user_id: friendship.user.id } },
               {
                 onSuccess: () =>
-                  toast.success(`${displayName} retiré de vos amis`),
-                onError: () => toast.error('Erreur'),
+                  toast.success(`${displayName} removed from your friends`),
+                onError: () => toast.error('Error'),
               },
             )
           }
@@ -126,7 +126,7 @@ function IncomingRow({
           <div className='font-medium text-foreground truncate'>
             {displayName}
           </div>
-          <div className='text-sm text-muted-foreground'>Demande reçue</div>
+          <div className='text-sm text-muted-foreground'>Incoming request</div>
         </div>
       </button>
       <div className='flex items-center gap-2'>
@@ -139,10 +139,10 @@ function IncomingRow({
               { path: { request_id: friendship.id } },
               {
                 onSuccess: () => {
-                  toast.success(`${displayName} ajouté comme ami`)
+                  toast.success(`${displayName} added as a friend`)
                   onAccepted(friendship.user.id)
                 },
-                onError: () => toast.error('Erreur'),
+                onError: () => toast.error('Error'),
               },
             )
           }
@@ -158,8 +158,8 @@ function IncomingRow({
             decline.mutate(
               { path: { request_id: friendship.id } },
               {
-                onSuccess: () => toast.success('Demande refusée'),
-                onError: () => toast.error('Erreur'),
+                onSuccess: () => toast.success('Request declined'),
+                onError: () => toast.error('Error'),
               },
             )
           }
@@ -203,7 +203,7 @@ function OutgoingRow({ friendship }: { friendship: Friendship }) {
           <div className='font-medium text-foreground truncate'>
             {displayName}
           </div>
-          <div className='text-sm text-muted-foreground'>Demande envoyée</div>
+          <div className='text-sm text-muted-foreground'>Outgoing request</div>
         </div>
       </button>
       <Clock className='h-4 w-4 text-muted-foreground' />
@@ -242,13 +242,13 @@ function FriendsPage() {
       { body: { username: addUsername.trim() } },
       {
         onSuccess: () => {
-          toast.success(`Demande envoyée à @${addUsername.trim()}`)
+          toast.success(`Friend request sent to @${addUsername.trim()}`)
           setAddUsername('')
         },
         onError: (err: any) => {
           toast.error(
             err?.response?.data?.Unknown?.message ??
-              'Erreur lors de la demande',
+              'Failed to send friend request',
           )
         },
       },
@@ -265,7 +265,7 @@ function FriendsPage() {
             params: { channelId: dm.id },
           })
         },
-        onError: () => toast.error("Impossible d'ouvrir la conversation"),
+        onError: () => toast.error('Failed to open conversation'),
       },
     )
   }
@@ -286,7 +286,7 @@ function FriendsPage() {
         </button>
         <div className='flex items-center gap-2 text-foreground font-semibold'>
           <Users className='h-5 w-5' />
-          <span>Amis</span>
+          <span>Friends</span>
         </div>
         <div className='w-px h-5 bg-border' />
         <div className='flex items-center gap-1'>
@@ -299,7 +299,7 @@ function FriendsPage() {
                 : 'text-muted-foreground hover:text-foreground hover:bg-accent/50',
             )}
           >
-            Tous ({friends.length})
+            All ({friends.length})
           </button>
           <button
             onClick={() => setTab('pending')}
@@ -351,21 +351,21 @@ function FriendsPage() {
             <>
               {friendsLoading ? (
                 <div className='text-center py-12 text-muted-foreground'>
-                  <p>Chargement...</p>
+                  <p>Loading...</p>
                 </div>
               ) : friendsError ? (
                 <div className='text-center py-12 text-destructive'>
-                  <p>Erreur lors du chargement des amis</p>
+                  <p>Failed to load friends</p>
                 </div>
               ) : friends.length === 0 ? (
                 <div className='text-center py-12 text-muted-foreground'>
                   <Users className='h-12 w-12 mx-auto mb-3 opacity-40' />
-                  <p>Pas encore d'amis. Envoyez une demande ci-dessus !</p>
+                  <p>No friends yet. Send a request above.</p>
                 </div>
               ) : (
                 <div className='space-y-1'>
                   <div className='text-xs font-semibold text-muted-foreground uppercase mb-2'>
-                    Amis — {friends.length}
+                    Friends - {friends.length}
                   </div>
                   {friends.map((f) => (
                     <FriendRow
@@ -384,7 +384,7 @@ function FriendsPage() {
               {incoming.length > 0 && (
                 <div>
                   <div className='text-xs font-semibold text-muted-foreground uppercase mb-2'>
-                    Demandes reçues — {incoming.length}
+                    Incoming Requests - {incoming.length}
                   </div>
                   <div className='space-y-1'>
                     {incoming.map((f) => (
@@ -400,7 +400,7 @@ function FriendsPage() {
               {outgoing.length > 0 && (
                 <div>
                   <div className='text-xs font-semibold text-muted-foreground uppercase mb-2'>
-                    Demandes envoyées — {outgoing.length}
+                    Outgoing Requests - {outgoing.length}
                   </div>
                   <div className='space-y-1'>
                     {outgoing.map((f) => (

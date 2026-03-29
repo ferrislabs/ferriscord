@@ -2,10 +2,10 @@ import { cn } from '@/lib/utils'
 import type { PresenceStatus } from '@/stores/presence.store'
 
 const statusConfig: Record<PresenceStatus, { color: string; label: string }> = {
-  online: { color: 'bg-green-500', label: 'En ligne' },
-  idle: { color: 'bg-yellow-400', label: 'Absent' },
-  dnd: { color: 'bg-red-500', label: 'Ne pas déranger' },
-  offline: { color: 'bg-gray-400', label: 'Hors ligne' },
+  online: { color: 'bg-green-500', label: 'Online' },
+  idle: { color: 'bg-yellow-400', label: 'Idle' },
+  dnd: { color: 'bg-red-500', label: 'Do Not Disturb' },
+  offline: { color: 'bg-gray-400', label: 'Offline' },
 }
 
 interface PresenceIndicatorProps {
@@ -14,7 +14,11 @@ interface PresenceIndicatorProps {
   size?: 'sm' | 'md'
 }
 
-export function PresenceIndicator({ status, className, size = 'sm' }: PresenceIndicatorProps) {
+export function PresenceIndicator({
+  status,
+  className,
+  size = 'sm',
+}: PresenceIndicatorProps) {
   const { color, label } = statusConfig[status]
   return (
     <div

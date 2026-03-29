@@ -224,7 +224,7 @@ export function UserProfileCard({
       {
         onError: () => {
           setLocalRoles((prev) => [...prev, role])
-          toast.error('Impossible de retirer le rôle')
+          toast.error('Failed to remove role')
         },
       },
     )
@@ -246,7 +246,7 @@ export function UserProfileCard({
         {
           onError: () => {
             setLocalRoles((prev) => [...prev, role])
-            toast.error('Impossible de retirer le rôle')
+            toast.error('Failed to remove role')
           },
         },
       )
@@ -264,9 +264,7 @@ export function UserProfileCard({
         {
           onError: () => {
             setLocalRoles((prev) => prev.filter((r) => r.id !== roleId))
-            toast.error(
-              'Impossible d' + String.fromCharCode(39) + 'ajouter le rôle',
-            )
+            toast.error('Failed to add role')
           },
         },
       )
@@ -310,7 +308,7 @@ export function UserProfileCard({
             <div className='space-y-1.5 px-4 pb-4 pt-0'>
               <div className='border-t border-border pt-2'>
                 <p className='text-xs font-semibold uppercase tracking-wide text-muted-foreground'>
-                  Rôles
+                  Roles
                 </p>
 
                 {/* Badges + add button */}
@@ -336,7 +334,7 @@ export function UserProfileCard({
                       <button
                         onMouseDown={(e) => handleRemove(e, role.id)}
                         className='ml-0.5 -mr-0.5 opacity-0 group-hover:opacity-100 transition-opacity hover:text-destructive'
-                        title='Retirer ce rôle'
+                        title='Remove this role'
                       >
                         <X className='h-2.5 w-2.5' />
                       </button>
@@ -355,7 +353,7 @@ export function UserProfileCard({
                         pickerOpen &&
                           'border-foreground text-foreground bg-accent',
                       )}
-                      title='Ajouter un rôle'
+                      title='Add a role'
                     >
                       <Plus className='h-3 w-3' />
                     </button>
@@ -363,7 +361,7 @@ export function UserProfileCard({
 
                   {localRoles.length === 0 && guildRoles.data.length === 0 && (
                     <p className='text-xs text-muted-foreground italic'>
-                      Aucun rôle
+                      No roles
                     </p>
                   )}
                 </div>
@@ -380,7 +378,7 @@ export function UserProfileCard({
                         ref={searchRef}
                         value={search}
                         onChange={(e) => setSearch(e.target.value)}
-                        placeholder='Rechercher un rôle…'
+                        placeholder='Search roles...'
                         className='flex-1 bg-transparent text-xs outline-none placeholder:text-muted-foreground'
                       />
                     </div>
@@ -388,7 +386,7 @@ export function UserProfileCard({
                     <div className='max-h-36 overflow-y-auto'>
                       {filteredRoles.length === 0 ? (
                         <p className='px-3 py-2 text-xs text-muted-foreground italic'>
-                          Aucun rôle trouvé
+                          No roles found
                         </p>
                       ) : (
                         filteredRoles.map((role) => {

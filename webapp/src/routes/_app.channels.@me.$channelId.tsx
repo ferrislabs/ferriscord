@@ -56,7 +56,7 @@ function DMConversationPage() {
     sendMessage.mutate(
       { content, files },
       {
-        onError: () => toast.error("Impossible d'envoyer le message"),
+        onError: () => toast.error('Failed to send message'),
       },
     )
   }
@@ -115,7 +115,7 @@ function DMConversationPage() {
               {displayName}
             </h2>
             <p className='text-muted-foreground'>
-              Début de votre conversation avec{' '}
+              This is the beginning of your conversation with{' '}
               <span className='font-semibold'>
                 @{dm?.recipient.username ?? displayName}
               </span>
@@ -176,7 +176,7 @@ function DMConversationPage() {
                   <button
                     onClick={() => deleteMessage(msg.id)}
                     className='ml-auto opacity-0 group-hover:opacity-100 p-1 text-muted-foreground hover:text-red-500 transition-all'
-                    title='Supprimer le message'
+                    title='Delete message'
                   >
                     <Trash2 className='h-4 w-4' />
                   </button>

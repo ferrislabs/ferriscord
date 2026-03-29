@@ -88,7 +88,7 @@ function PreviewCard({
             </AvatarFallback>
           </Avatar>
         </div>
-        <p className='font-bold text-foreground'>{name || 'Nom du serveur'}</p>
+        <p className='font-bold text-foreground'>{name || 'Server Name'}</p>
       </div>
     </div>
   )
@@ -124,13 +124,13 @@ function GuildSettingsPage() {
       <div className='w-60 shrink-0 flex flex-col items-end bg-sidebar border-r border-sidebar-border py-12 pr-2'>
         <div className='w-44 space-y-0.5'>
           <p className='px-3 py-1.5 text-xs font-semibold text-muted-foreground uppercase tracking-wide'>
-            {guild?.name ?? 'Serveur'}
+            {guild?.name ?? 'Server'}
           </p>
           <NavItem
             active={tab === 'overview'}
             onClick={() => setTab('overview')}
           >
-            Aperçu
+            Overview
           </NavItem>
           <div className='pt-2'>
             <p className='px-3 py-1.5 text-xs font-semibold text-muted-foreground uppercase tracking-wide'>
@@ -138,10 +138,10 @@ function GuildSettingsPage() {
             </p>
           </div>
           <NavItem active={tab === 'members'} onClick={() => setTab('members')}>
-            Membres
+            Members
           </NavItem>
           <NavItem active={tab === 'roles'} onClick={() => setTab('roles')}>
-            Rôles
+            Roles
           </NavItem>
         </div>
       </div>
@@ -257,8 +257,8 @@ function OverviewTab({ guild }: { guild: Schemas.Guild | null }) {
       fd.append('banner_color', bannerColor)
 
     updateGuild({ path: { guild_id: guild.id }, body: fd } as any, {
-      onSuccess: () => toast.success('Serveur mis à jour'),
-      onError: () => toast.error('Erreur lors de la mise à jour'),
+      onSuccess: () => toast.success('Server updated'),
+      onError: () => toast.error('Failed to update server'),
     })
   }
 
@@ -276,10 +276,10 @@ function OverviewTab({ guild }: { guild: Schemas.Guild | null }) {
     <div className='space-y-8'>
       <div>
         <h1 className='text-xl font-bold text-foreground mb-1'>
-          Aperçu du serveur
+          Server Overview
         </h1>
         <p className='text-sm text-muted-foreground'>
-          Personnalisez l'apparence de votre serveur.
+          Customize the look of your server.
         </p>
       </div>
 
@@ -289,7 +289,7 @@ function OverviewTab({ guild }: { guild: Schemas.Guild | null }) {
           {/* Name */}
           <div className='space-y-1.5'>
             <label className='text-xs font-semibold uppercase tracking-wide text-muted-foreground'>
-              Nom du serveur
+              Server Name
             </label>
             <Input
               value={name}
@@ -301,7 +301,7 @@ function OverviewTab({ guild }: { guild: Schemas.Guild | null }) {
           {/* Icon */}
           <div className='space-y-1.5'>
             <label className='text-xs font-semibold uppercase tracking-wide text-muted-foreground'>
-              Icône du serveur
+              Server Icon
             </label>
             <div
               className='relative w-20 h-20 cursor-pointer group'
@@ -334,7 +334,7 @@ function OverviewTab({ guild }: { guild: Schemas.Guild | null }) {
           {/* Banner */}
           <div className='space-y-2'>
             <label className='text-xs font-semibold uppercase tracking-wide text-muted-foreground'>
-              Bannière du serveur
+              Server Banner
             </label>
             <div className='flex gap-2 mb-3'>
               <button
@@ -346,7 +346,7 @@ function OverviewTab({ guild }: { guild: Schemas.Guild | null }) {
                     : 'border-border text-muted-foreground hover:border-foreground',
                 )}
               >
-                Couleur
+                Color
               </button>
               <button
                 onClick={() => setBannerMode('image')}
@@ -381,7 +381,7 @@ function OverviewTab({ guild }: { guild: Schemas.Guild | null }) {
                   value={bannerColor || '#5865F2'}
                   onChange={(e) => setBannerColor(e.target.value)}
                   className='h-8 w-8 rounded-full cursor-pointer border-0 p-0 bg-transparent'
-                  title='Couleur personnalisée'
+                  title='Custom color'
                 />
               </div>
             )}
@@ -394,7 +394,7 @@ function OverviewTab({ guild }: { guild: Schemas.Guild | null }) {
                   onClick={() => bannerInputRef.current?.click()}
                 >
                   <Upload className='h-4 w-4 mr-2' />
-                  {bannerFile ? bannerFile.name : 'Choisir une image'}
+                  {bannerFile ? bannerFile.name : 'Choose an image'}
                 </Button>
                 <input
                   ref={bannerInputRef}
@@ -411,7 +411,7 @@ function OverviewTab({ guild }: { guild: Schemas.Guild | null }) {
         {/* ── Right column: preview ── */}
         <div className='space-y-2'>
           <p className='text-xs font-semibold uppercase tracking-wide text-muted-foreground'>
-            Aperçu
+            Preview
           </p>
           <PreviewCard
             name={name}
@@ -427,15 +427,13 @@ function OverviewTab({ guild }: { guild: Schemas.Guild | null }) {
       {/* ── Save bar ── */}
       {isDirty && (
         <div className='fixed bottom-0 left-0 right-0 z-10 flex items-center justify-between px-8 py-3 bg-zinc-900 border-t border-border shadow-lg'>
-          <p className='text-sm text-muted-foreground'>
-            Modifications non sauvegardées
-          </p>
+          <p className='text-sm text-muted-foreground'>Unsaved changes</p>
           <div className='flex gap-2'>
             <Button variant='ghost' size='sm' onClick={handleReset}>
-              Réinitialiser
+              Reset
             </Button>
             <Button size='sm' onClick={handleSave} disabled={isPending}>
-              {isPending ? 'Sauvegarde...' : 'Sauvegarder les modifications'}
+              {isPending ? 'Saving...' : 'Save Changes'}
             </Button>
           </div>
         </div>
@@ -452,9 +450,9 @@ function MembersTab({ guildId }: { guildId: string }) {
   return (
     <div className='space-y-6'>
       <div>
-        <h1 className='text-xl font-bold text-foreground mb-1'>Membres</h1>
+        <h1 className='text-xl font-bold text-foreground mb-1'>Members</h1>
         <p className='text-sm text-muted-foreground'>
-          {members.length} membre{members.length !== 1 ? 's' : ''}
+          {members.length} member{members.length !== 1 ? 's' : ''}
         </p>
       </div>
 
@@ -547,17 +545,17 @@ function RolesTab({ guildId }: { guildId: string }) {
           setNewName('')
           setNewColor('#5865F2')
           setShowCreate(false)
-          toast.success('Rôle créé')
+          toast.success('Role created')
         },
-        onError: () => toast.error('Erreur lors de la création du rôle'),
+        onError: () => toast.error('Failed to create role'),
       },
     )
   }
 
   function handleDelete(roleId: string) {
     deleteRole({ path: { guild_id: guildId, role_id: roleId } } as any, {
-      onSuccess: () => toast.success('Rôle supprimé'),
-      onError: () => toast.error('Erreur lors de la suppression'),
+      onSuccess: () => toast.success('Role deleted'),
+      onError: () => toast.error('Failed to delete role'),
     })
   }
 
@@ -567,25 +565,25 @@ function RolesTab({ guildId }: { guildId: string }) {
     <div className='space-y-6'>
       <div className='flex items-center justify-between'>
         <div>
-          <h1 className='text-xl font-bold text-foreground mb-1'>Rôles</h1>
+          <h1 className='text-xl font-bold text-foreground mb-1'>Roles</h1>
           <p className='text-sm text-muted-foreground'>
-            {roles.length} rôle{roles.length !== 1 ? 's' : ''}
+            {roles.length} role{roles.length !== 1 ? 's' : ''}
           </p>
         </div>
         <Button size='sm' onClick={() => setShowCreate((v) => !v)}>
           <Plus className='h-4 w-4 mr-1' />
-          Créer un rôle
+          Create Role
         </Button>
       </div>
 
       {/* Create form */}
       {showCreate && (
         <div className='border border-border rounded-lg p-4 bg-card space-y-3'>
-          <p className='text-sm font-semibold'>Nouveau rôle</p>
+          <p className='text-sm font-semibold'>New Role</p>
           <div className='flex gap-3'>
             <div className='flex-1'>
               <Input
-                placeholder='Nom du rôle'
+                placeholder='Role name'
                 value={newName}
                 onChange={(e) => setNewName(e.target.value)}
                 onKeyDown={(e) => e.key === 'Enter' && handleCreate()}
@@ -604,14 +602,14 @@ function RolesTab({ guildId }: { guildId: string }) {
               onClick={handleCreate}
               disabled={isCreating || !newName.trim()}
             >
-              Créer
+              Create
             </Button>
             <Button
               size='sm'
               variant='ghost'
               onClick={() => setShowCreate(false)}
             >
-              Annuler
+              Cancel
             </Button>
           </div>
         </div>
@@ -648,7 +646,7 @@ function RolesTab({ guildId }: { guildId: string }) {
         })}
         {roles.length === 0 && (
           <p className='text-sm text-muted-foreground italic px-3'>
-            Aucun rôle pour l'instant.
+            No roles yet.
           </p>
         )}
       </div>

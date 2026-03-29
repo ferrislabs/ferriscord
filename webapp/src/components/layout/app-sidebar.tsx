@@ -141,12 +141,12 @@ function CreateChannelDialog({
       })
       toast.success(
         kind === 'Category'
-          ? `Catégorie "${name.trim()}" créée`
-          : `#${name.trim()} créé`,
+          ? `Category "${name.trim()}" created`
+          : `#${name.trim()} created`,
       )
       onOpenChange(false)
     } catch {
-      toast.error('Erreur lors de la création')
+      toast.error('Failed to create channel')
     }
   }
 
@@ -159,20 +159,20 @@ function CreateChannelDialog({
     {
       value: 'Text',
       icon: <Hash className='h-5 w-5 shrink-0' />,
-      label: 'Texte',
-      description: 'Messages, liens, fichiers',
+      label: 'Text',
+      description: 'Messages, links, files',
     },
     {
       value: 'Voice',
       icon: <Volume2 className='h-5 w-5 shrink-0' />,
-      label: 'Vocal',
-      description: 'Appel vocal',
+      label: 'Voice',
+      description: 'Voice call',
     },
     {
       value: 'Category',
       icon: <FolderOpen className='h-5 w-5 shrink-0' />,
-      label: 'Catégorie',
-      description: 'Groupe de channels',
+      label: 'Category',
+      description: 'Group of channels',
     },
   ]
 
@@ -180,7 +180,7 @@ function CreateChannelDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>Créer un channel</DialogTitle>
+          <DialogTitle>Create a Channel</DialogTitle>
         </DialogHeader>
         <form onSubmit={handleSubmit} className='space-y-5'>
           <div className='grid grid-cols-3 gap-2'>
@@ -209,7 +209,7 @@ function CreateChannelDialog({
 
           <div className='space-y-1.5'>
             <label className='text-xs font-semibold uppercase text-muted-foreground tracking-wide'>
-              {kind === 'Category' ? 'Nom de la catégorie' : 'Nom du channel'}
+              {kind === 'Category' ? 'Category Name' : 'Channel Name'}
             </label>
             <div className='relative'>
               <span className='pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground/60'>
@@ -225,7 +225,7 @@ function CreateChannelDialog({
                 value={name}
                 onChange={(e) => setName(e.target.value)}
                 placeholder={
-                  kind === 'Category' ? 'nouvelle-catégorie' : 'nouveau-channel'
+                  kind === 'Category' ? 'new-category' : 'new-channel'
                 }
                 className='pl-9'
                 disabled={isPending}
@@ -238,7 +238,7 @@ function CreateChannelDialog({
           {kind !== 'Category' && categories.length > 0 && (
             <div className='space-y-1.5'>
               <label className='text-xs font-semibold uppercase text-muted-foreground tracking-wide'>
-                Catégorie (optionnel)
+                Category (optional)
               </label>
               <select
                 value={categoryId ?? ''}
@@ -246,7 +246,7 @@ function CreateChannelDialog({
                 className='w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2'
                 disabled={isPending}
               >
-                <option value=''>Aucune catégorie</option>
+                <option value=''>No category</option>
                 {categories.map((cat) => (
                   <option key={cat.id} value={cat.id}>
                     {cat.name}
@@ -263,10 +263,10 @@ function CreateChannelDialog({
               onClick={() => onOpenChange(false)}
               disabled={isPending}
             >
-              Annuler
+              Cancel
             </Button>
             <Button type='submit' disabled={isPending || !name.trim()}>
-              {isPending ? 'Création...' : 'Créer'}
+              {isPending ? 'Creating...' : 'Create'}
             </Button>
           </div>
         </form>
@@ -410,33 +410,31 @@ function SortableChannelItem({
       <ContextMenuTrigger asChild>{item}</ContextMenuTrigger>
       <ContextMenuContent className='w-56'>
         <ContextMenuLabel className='truncate'>
-          {channel.kind === 'Voice' ? 'Salon vocal' : 'Salon textuel'} •{' '}
+          {channel.kind === 'Voice' ? 'Voice Channel' : 'Text Channel'} •{' '}
           {channel.name}
         </ContextMenuLabel>
         <ContextMenuSeparator />
-        <ContextMenuItem onSelect={handleClick}>
-          Ouvrir le salon
-        </ContextMenuItem>
+        <ContextMenuItem onSelect={handleClick}>Open channel</ContextMenuItem>
         {onCreateClick && (
           <ContextMenuItem
             onSelect={() => onCreateClick(channel.parent_id ?? null)}
           >
-            Créer un salon
+            Create channel
           </ContextMenuItem>
         )}
         {onInviteClick && (
           <ContextMenuItem onSelect={onInviteClick}>
-            Inviter des gens
+            Invite people
           </ContextMenuItem>
         )}
         <ContextMenuItem onSelect={() => onCopyChannelId?.(channel)}>
           <Copy className='mr-2 h-4 w-4' />
-          Copier l&apos;ID du salon
+          Copy channel ID
         </ContextMenuItem>
         {(canManageServer || canLeaveGuild) && <ContextMenuSeparator />}
         {canManageServer && onOpenServerSettings && (
           <ContextMenuItem onSelect={onOpenServerSettings}>
-            Paramètres du serveur
+            Server Settings
           </ContextMenuItem>
         )}
         {canLeaveGuild && onLeaveGuild && (
@@ -444,7 +442,7 @@ function SortableChannelItem({
             className='text-destructive focus:text-destructive'
             onSelect={onLeaveGuild}
           >
-            Quitter le serveur
+            Leave Server
           </ContextMenuItem>
         )}
       </ContextMenuContent>
@@ -528,7 +526,7 @@ function SortableCategory({
                 onCreateClick()
               }}
               className='opacity-0 group-hover/cat:opacity-100 transition-opacity rounded p-0.5 text-muted-foreground hover:text-foreground hover:bg-accent/50 shrink-0'
-              title='Créer un channel dans cette catégorie'
+              title='Create a channel in this category'
             >
               <Plus className='h-3.5 w-3.5' />
             </button>
@@ -536,18 +534,18 @@ function SortableCategory({
         </ContextMenuTrigger>
         <ContextMenuContent className='w-56'>
           <ContextMenuLabel className='truncate'>
-            Catégorie • {category.name}
+            Category • {category.name}
           </ContextMenuLabel>
           <ContextMenuSeparator />
           <ContextMenuItem onSelect={onToggle}>
-            {collapsed ? 'Déplier la catégorie' : 'Replier la catégorie'}
+            {collapsed ? 'Expand category' : 'Collapse category'}
           </ContextMenuItem>
           <ContextMenuItem onSelect={onCreateClick}>
-            Créer un salon dans la catégorie
+            Create channel in category
           </ContextMenuItem>
           <ContextMenuItem onSelect={() => onCopyCategoryId?.(category)}>
             <Copy className='mr-2 h-4 w-4' />
-            Copier l&apos;ID de la catégorie
+            Copy category ID
           </ContextMenuItem>
         </ContextMenuContent>
       </ContextMenu>
@@ -836,11 +834,11 @@ export function AppSidebar() {
       { path: { guild_id: serverId } },
       {
         onSuccess: () => {
-          toast.success('Vous avez quitté le serveur')
+          toast.success('You left the server')
           navigate({ to: '/channels/@me' })
         },
         onError: () => {
-          toast.error('Impossible de quitter le serveur')
+          toast.error('Failed to leave server')
         },
       },
     )
@@ -849,9 +847,9 @@ export function AppSidebar() {
   const handleCopyToClipboard = async (value: string, label: string) => {
     try {
       await navigator.clipboard.writeText(value)
-      toast.success(`${label} copié`)
+      toast.success(`${label} copied`)
     } catch {
-      toast.error(`Impossible de copier ${label.toLowerCase()}`)
+      toast.error(`Failed to copy ${label.toLowerCase()}`)
     }
   }
 
@@ -862,11 +860,11 @@ export function AppSidebar() {
 
   const handleCopyUserId = () => {
     if (!profile?.id) return
-    void handleCopyToClipboard(profile.id, 'ID utilisateur')
+    void handleCopyToClipboard(profile.id, 'User ID')
   }
 
   const handleUpdateActivity = () => {
-    toast('Update Activity arrive bientôt')
+    toast('Update Activity is coming soon')
   }
 
   const openUserSettings = () => {
@@ -963,7 +961,7 @@ export function AppSidebar() {
             onSelect={handleLogout}
           >
             <LogOut className='mr-2 h-4 w-4' />
-            Déconnexion
+            Sign Out
           </DropdownMenuItem>
         </div>
       </DropdownMenuContent>
@@ -1161,15 +1159,15 @@ export function AppSidebar() {
             <DropdownMenuContent align='start' className='w-56'>
               <DropdownMenuItem onSelect={() => openCreateDialog('Text')}>
                 <Plus className='h-4 w-4 mr-2' />
-                Créer un channel
+                Create channel
               </DropdownMenuItem>
               <DropdownMenuItem onSelect={() => openCreateDialog('Category')}>
                 <FolderOpen className='h-4 w-4 mr-2' />
-                Créer une catégorie
+                Create category
               </DropdownMenuItem>
               <DropdownMenuItem onSelect={() => setInviteModalOpen(true)}>
                 <Users className='h-4 w-4 mr-2' />
-                Inviter des gens
+                Invite people
               </DropdownMenuItem>
               {isGuildOwner && (
                 <DropdownMenuItem
@@ -1181,7 +1179,7 @@ export function AppSidebar() {
                   }
                 >
                   <Settings className='h-4 w-4 mr-2' />
-                  Paramètres du serveur
+                  Server Settings
                 </DropdownMenuItem>
               )}
               {!isGuildOwner && (
@@ -1190,7 +1188,7 @@ export function AppSidebar() {
                   onSelect={handleLeaveGuild}
                   disabled={isLeaving}
                 >
-                  Quitter le serveur
+                  Leave Server
                 </DropdownMenuItem>
               )}
             </DropdownMenuContent>
@@ -1205,7 +1203,7 @@ export function AppSidebar() {
                   {channels.length === 0 ? (
                     <div className='px-4 py-6 text-center'>
                       <p className='text-sm text-muted-foreground mb-3'>
-                        Pas encore de channels
+                        No channels yet
                       </p>
                       <Button
                         size='sm'
@@ -1213,7 +1211,7 @@ export function AppSidebar() {
                         onClick={() => openCreateDialog('Text')}
                       >
                         <Plus className='h-4 w-4 mr-1.5' />
-                        Créer un channel
+                        Create channel
                       </Button>
                     </div>
                   ) : (
@@ -1248,7 +1246,7 @@ export function AppSidebar() {
                                 onCopyChannelId={(channel) =>
                                   void handleCopyToClipboard(
                                     channel.id,
-                                    'ID du salon',
+                                    'Channel ID',
                                   )
                                 }
                                 onCreateClick={(categoryId) =>
@@ -1290,13 +1288,13 @@ export function AppSidebar() {
                             onCopyCategoryId={(category) =>
                               void handleCopyToClipboard(
                                 category.id,
-                                'ID de la catégorie',
+                                'Category ID',
                               )
                             }
                             onCopyChannelId={(channel) =>
                               void handleCopyToClipboard(
                                 channel.id,
-                                'ID du salon',
+                                'Channel ID',
                               )
                             }
                             isChannelOver={
@@ -1337,35 +1335,35 @@ export function AppSidebar() {
                 </div>
               </ContextMenuTrigger>
               <ContextMenuContent className='w-60'>
-                <ContextMenuLabel>Liste des salons</ContextMenuLabel>
+                <ContextMenuLabel>Channel List</ContextMenuLabel>
                 <ContextMenuSeparator />
                 <ContextMenuItem onSelect={() => openCreateDialog('Text')}>
                   <Plus className='mr-2 h-4 w-4' />
-                  Créer un salon
+                  Create channel
                 </ContextMenuItem>
                 <ContextMenuItem onSelect={() => openCreateDialog('Category')}>
                   <FolderOpen className='mr-2 h-4 w-4' />
-                  Créer une catégorie
+                  Create category
                 </ContextMenuItem>
                 <ContextMenuItem onSelect={() => setInviteModalOpen(true)}>
                   <Users className='mr-2 h-4 w-4' />
-                  Inviter des gens
+                  Invite people
                 </ContextMenuItem>
                 {serverId && (
                   <ContextMenuItem
                     onSelect={() =>
-                      void handleCopyToClipboard(serverId, 'ID du serveur')
+                      void handleCopyToClipboard(serverId, 'Server ID')
                     }
                   >
                     <Copy className='mr-2 h-4 w-4' />
-                    Copier l&apos;ID du serveur
+                    Copy server ID
                   </ContextMenuItem>
                 )}
                 <ContextMenuSeparator />
                 {isGuildOwner ? (
                   <ContextMenuItem onSelect={openServerSettings}>
                     <Settings className='mr-2 h-4 w-4' />
-                    Paramètres du serveur
+                    Server Settings
                   </ContextMenuItem>
                 ) : (
                   <ContextMenuItem
@@ -1373,7 +1371,7 @@ export function AppSidebar() {
                     onSelect={handleLeaveGuild}
                     disabled={isLeaving}
                   >
-                    Quitter le serveur
+                    Leave Server
                   </ContextMenuItem>
                 )}
               </ContextMenuContent>

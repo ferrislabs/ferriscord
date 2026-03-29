@@ -150,7 +150,7 @@ function MessageItem({
             <button
               onClick={() => onDeleteMessage(message.id)}
               className='p-1.5 text-muted-foreground transition-colors hover:bg-destructive/10 hover:text-destructive'
-              title='Supprimer le message'
+              title='Delete message'
             >
               <Trash2 className='w-4 h-4' />
             </button>

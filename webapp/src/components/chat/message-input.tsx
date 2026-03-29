@@ -289,6 +289,17 @@ export function MessageInput({
     }
   }
 
+  const focusTextarea = () => {
+    if (disabled || isLoading) return
+    const textarea = textareaRef.current
+    if (!textarea) return
+
+    textarea.focus()
+    const position = textarea.value.length
+    textarea.setSelectionRange(position, position)
+    setCaretPosition(position)
+  }
+
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const selected = Array.from(e.target.files ?? [])
     if (selected.length > 0) {
@@ -415,7 +426,10 @@ export function MessageInput({
             </div>
 
             {/* Text input */}
-            <div className='flex-1 py-3 pr-2'>
+            <div
+              className='flex flex-1 cursor-text items-center py-3 pr-2'
+              onClick={focusTextarea}
+            >
               <textarea
                 ref={textareaRef}
                 value={message}
@@ -502,7 +516,7 @@ export function MessageInput({
         {showMentionSuggestions && (
           <div className='absolute bottom-full left-0 right-0 z-20 mb-2 overflow-hidden rounded-lg border border-border bg-popover shadow-xl'>
             <div className='border-b border-border px-3 py-2 text-xs font-medium uppercase tracking-wide text-muted-foreground'>
-              Mentionner un membre
+              Mention a member
             </div>
             <div className='py-1'>
               {mentionSuggestions.map((candidate, index) => {

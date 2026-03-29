@@ -11,7 +11,8 @@ interface InviteEmbedProps {
 
 function useInvitePreview(code: string) {
   return useQuery({
-    ...window.tanstackApi.get('/invites/{code}', { path: { code } }).queryOptions,
+    ...window.tanstackApi.get('/invites/{code}', { path: { code } })
+      .queryOptions,
     retry: false,
   })
 }
@@ -32,20 +33,21 @@ export function InviteEmbed({ code }: InviteEmbedProps) {
 
   if (isError || !preview) return null
 
-  const isExpired = preview.expires_at && new Date(preview.expires_at) < new Date()
+  const isExpired =
+    preview.expires_at && new Date(preview.expires_at) < new Date()
   const isMaxed = preview.max_uses != null && preview.uses >= preview.max_uses
   const canJoin = !isExpired && !isMaxed
 
   const handleJoin = async () => {
     try {
       const guild = await joinGuild({ body: { code } })
-      toast.success(`Tu as rejoint ${guild.name} !`)
+      toast.success(`You joined ${guild.name}!`)
       navigate({
         to: '/channels/$serverId/$channelId',
         params: { serverId: guild.id, channelId: '0' },
       })
     } catch {
-      toast.error("Code d'invitation invalide ou expiré")
+      toast.error('Invalid or expired invite code')
     }
   }
 
@@ -53,7 +55,7 @@ export function InviteEmbed({ code }: InviteEmbedProps) {
     <div className='mt-2 w-80 rounded-lg border border-border bg-card shadow-sm overflow-hidden'>
       <div className='px-4 py-3 border-b border-border/50'>
         <p className='text-xs font-semibold uppercase tracking-wide text-muted-foreground'>
-          Invitation à rejoindre un serveur
+          Server Invite
         </p>
       </div>
       <div className='px-4 py-3 flex items-center gap-3'>
@@ -62,17 +64,19 @@ export function InviteEmbed({ code }: InviteEmbedProps) {
           {preview.guild_name[0].toUpperCase()}
         </div>
         <div className='flex-1 min-w-0'>
-          <p className='font-semibold text-foreground truncate'>{preview.guild_name}</p>
+          <p className='font-semibold text-foreground truncate'>
+            {preview.guild_name}
+          </p>
           <div className='flex items-center gap-1 text-xs text-muted-foreground mt-0.5'>
             <Users className='h-3 w-3' />
             <span>
-              {preview.uses} membre{preview.uses !== 1 ? 's' : ''}
+              {preview.uses} member{preview.uses !== 1 ? 's' : ''}
               {preview.max_uses != null && ` / ${preview.max_uses} max`}
             </span>
           </div>
           {(isExpired || isMaxed) && (
             <p className='text-xs text-destructive mt-0.5'>
-              {isExpired ? 'Invitation expirée' : 'Nombre maximal atteint'}
+              {isExpired ? 'Invite expired' : 'Maximum uses reached'}
             </p>
           )}
         </div>
@@ -83,7 +87,7 @@ export function InviteEmbed({ code }: InviteEmbedProps) {
           disabled={!canJoin || isPending}
           className='shrink-0'
         >
-          {isPending ? '...' : 'Rejoindre'}
+          {isPending ? '...' : 'Join'}
         </Button>
       </div>
     </div>

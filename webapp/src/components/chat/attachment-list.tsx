@@ -1,5 +1,13 @@
 import { useState, useEffect } from 'react'
-import { FileText, Download, ChevronDown, ChevronUp, ZoomIn, X, Film } from 'lucide-react'
+import {
+  FileText,
+  Download,
+  ChevronDown,
+  ChevronUp,
+  ZoomIn,
+  X,
+  Film,
+} from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { createPortal } from 'react-dom'
 import type { Schemas } from '@/api/api.client'
@@ -7,13 +15,44 @@ import type { Schemas } from '@/api/api.client'
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
 const TEXT_PREVIEWABLE_TYPES = new Set([
-  'application/json', 'application/xml', 'application/yaml',
-  'application/x-yaml', 'application/toml',
+  'application/json',
+  'application/xml',
+  'application/yaml',
+  'application/x-yaml',
+  'application/toml',
 ])
 const TEXT_PREVIEWABLE_EXTS = new Set([
-  'txt', 'md', 'mdx', 'rst', 'json', 'xml', 'yaml', 'yml', 'toml', 'csv',
-  'rs', 'py', 'js', 'ts', 'jsx', 'tsx', 'go', 'java', 'c', 'cpp', 'h',
-  'css', 'html', 'sh', 'bash', 'zsh', 'fish', 'env', 'ini', 'conf', 'log',
+  'txt',
+  'md',
+  'mdx',
+  'rst',
+  'json',
+  'xml',
+  'yaml',
+  'yml',
+  'toml',
+  'csv',
+  'rs',
+  'py',
+  'js',
+  'ts',
+  'jsx',
+  'tsx',
+  'go',
+  'java',
+  'c',
+  'cpp',
+  'h',
+  'css',
+  'html',
+  'sh',
+  'bash',
+  'zsh',
+  'fish',
+  'env',
+  'ini',
+  'conf',
+  'log',
 ])
 
 function isTextPreviewable(contentType: string, filename: string): boolean {
@@ -25,7 +64,15 @@ function isTextPreviewable(contentType: string, filename: string): boolean {
 
 // ─── ImageLightbox ────────────────────────────────────────────────────────────
 
-function ImageLightbox({ src, alt, onClose }: { src: string; alt: string; onClose: () => void }) {
+function ImageLightbox({
+  src,
+  alt,
+  onClose,
+}: {
+  src: string
+  alt: string
+  onClose: () => void
+}) {
   const [visible, setVisible] = useState(false)
 
   useEffect(() => {
@@ -34,21 +81,27 @@ function ImageLightbox({ src, alt, onClose }: { src: string; alt: string; onClos
   }, [])
 
   useEffect(() => {
-    const handle = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose() }
+    const handle = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') onClose()
+    }
     document.addEventListener('keydown', handle)
     return () => document.removeEventListener('keydown', handle)
   }, [onClose])
 
   useEffect(() => {
     document.body.style.overflow = 'hidden'
-    return () => { document.body.style.overflow = '' }
+    return () => {
+      document.body.style.overflow = ''
+    }
   }, [])
 
   return createPortal(
     <div
       className={cn(
         'fixed inset-0 z-50 flex items-center justify-center transition-all duration-200',
-        visible ? 'bg-black/85 backdrop-blur-sm' : 'bg-black/0 backdrop-blur-none',
+        visible
+          ? 'bg-black/85 backdrop-blur-sm'
+          : 'bg-black/0 backdrop-blur-none',
       )}
       onClick={onClose}
     >
@@ -62,17 +115,17 @@ function ImageLightbox({ src, alt, onClose }: { src: string; alt: string; onClos
         <img
           src={src}
           alt={alt}
-          className="max-w-[90vw] max-h-[90vh] rounded-lg shadow-2xl object-contain"
+          className='max-w-[90vw] max-h-[90vh] rounded-lg shadow-2xl object-contain'
         />
         <button
           onClick={onClose}
-          className="absolute top-2 right-2 w-8 h-8 bg-black/60 hover:bg-black/80 text-white rounded-full flex items-center justify-center transition-colors"
-          aria-label="Fermer"
+          className='absolute top-2 right-2 w-8 h-8 bg-black/60 hover:bg-black/80 text-white rounded-full flex items-center justify-center transition-colors'
+          aria-label='Close'
         >
-          <X className="w-4 h-4" />
+          <X className='w-4 h-4' />
         </button>
         {alt && (
-          <div className="absolute bottom-2 left-1/2 -translate-x-1/2 px-3 py-1 bg-black/60 text-white text-xs rounded-full max-w-xs truncate">
+          <div className='absolute bottom-2 left-1/2 -translate-x-1/2 px-3 py-1 bg-black/60 text-white text-xs rounded-full max-w-xs truncate'>
             {alt}
           </div>
         )}
@@ -95,46 +148,74 @@ function TextAttachmentPreview({ att }: { att: Schemas.Attachment }) {
     let cancelled = false
     fetch(att.url)
       .then((r) => r.text())
-      .then((t) => { if (!cancelled) { setText(t); setLoading(false) } })
-      .catch(() => { if (!cancelled) { setText(null); setLoading(false) } })
-    return () => { cancelled = true }
+      .then((t) => {
+        if (!cancelled) {
+          setText(t)
+          setLoading(false)
+        }
+      })
+      .catch(() => {
+        if (!cancelled) {
+          setText(null)
+          setLoading(false)
+        }
+      })
+    return () => {
+      cancelled = true
+    }
   }, [att.url])
 
-  const preview = text === null ? null : expanded ? text : text.slice(0, PREVIEW_CHARS)
+  const preview =
+    text === null ? null : expanded ? text : text.slice(0, PREVIEW_CHARS)
   const isTruncated = text !== null && text.length > PREVIEW_CHARS
 
   return (
-    <div className="max-w-sm w-full border border-border rounded-lg overflow-hidden text-sm">
-      <div className="flex items-center justify-between gap-2 px-3 py-2 bg-accent border-b border-border">
-        <div className="flex items-center gap-2 min-w-0">
-          <FileText className="w-4 h-4 flex-shrink-0 text-muted-foreground" />
-          <span className="font-medium text-foreground truncate">{att.filename}</span>
+    <div className='max-w-sm w-full border border-border rounded-lg overflow-hidden text-sm'>
+      <div className='flex items-center justify-between gap-2 px-3 py-2 bg-accent border-b border-border'>
+        <div className='flex items-center gap-2 min-w-0'>
+          <FileText className='w-4 h-4 flex-shrink-0 text-muted-foreground' />
+          <span className='font-medium text-foreground truncate'>
+            {att.filename}
+          </span>
         </div>
         <a
           href={att.url}
           download={att.filename}
-          className="flex-shrink-0 text-muted-foreground hover:text-foreground transition-colors"
-          title="Télécharger"
+          className='flex-shrink-0 text-muted-foreground hover:text-foreground transition-colors'
+          title='Download'
         >
-          <Download className="w-4 h-4" />
+          <Download className='w-4 h-4' />
         </a>
       </div>
-      <div className="bg-muted/30 px-3 py-2">
-        {loading && <span className="text-xs text-muted-foreground">Chargement…</span>}
-        {!loading && text === null && <span className="text-xs text-muted-foreground">Aperçu indisponible</span>}
+      <div className='bg-muted/30 px-3 py-2'>
+        {loading && (
+          <span className='text-xs text-muted-foreground'>Loading...</span>
+        )}
+        {!loading && text === null && (
+          <span className='text-xs text-muted-foreground'>
+            Preview unavailable
+          </span>
+        )}
         {preview !== null && (
           <>
-            <pre className="text-xs text-foreground font-mono whitespace-pre-wrap break-all max-h-48 overflow-y-auto leading-relaxed">
+            <pre className='text-xs text-foreground font-mono whitespace-pre-wrap break-all max-h-48 overflow-y-auto leading-relaxed'>
               {preview}
             </pre>
             {isTruncated && (
               <button
                 onClick={() => setExpanded((v) => !v)}
-                className="mt-1.5 flex items-center gap-1 text-xs text-primary hover:text-primary/80 transition-colors"
+                className='mt-1.5 flex items-center gap-1 text-xs text-primary hover:text-primary/80 transition-colors'
               >
-                {expanded
-                  ? <><ChevronUp className="w-3 h-3" /> Voir moins</>
-                  : <><ChevronDown className="w-3 h-3" /> Voir plus ({text.length - PREVIEW_CHARS} caractères)</>}
+                {expanded ? (
+                  <>
+                    <ChevronUp className='w-3 h-3' /> Show less
+                  </>
+                ) : (
+                  <>
+                    <ChevronDown className='w-3 h-3' /> Show more (
+                    {text.length - PREVIEW_CHARS} characters)
+                  </>
+                )}
               </button>
             )}
           </>
@@ -151,8 +232,13 @@ interface AttachmentListProps {
   className?: string
 }
 
-export function AttachmentList({ attachments, className }: AttachmentListProps) {
-  const [lightbox, setLightbox] = useState<{ src: string; alt: string } | null>(null)
+export function AttachmentList({
+  attachments,
+  className,
+}: AttachmentListProps) {
+  const [lightbox, setLightbox] = useState<{ src: string; alt: string } | null>(
+    null,
+  )
 
   if (attachments.length === 0) return null
 
@@ -168,17 +254,17 @@ export function AttachmentList({ attachments, className }: AttachmentListProps) 
             return (
               <button
                 key={att.id}
-                type="button"
-                className="group relative block rounded-lg overflow-hidden border border-border focus:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                type='button'
+                className='group relative block rounded-lg overflow-hidden border border-border focus:outline-none focus-visible:ring-2 focus-visible:ring-ring'
                 onClick={() => setLightbox({ src: att.url, alt: att.filename })}
               >
                 <img
                   src={att.url}
                   alt={att.filename}
-                  className="max-w-xs max-h-72 object-cover transition-transform duration-200 group-hover:scale-[1.02]"
+                  className='max-w-xs max-h-72 object-cover transition-transform duration-200 group-hover:scale-[1.02]'
                 />
-                <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors duration-200 flex items-center justify-center">
-                  <ZoomIn className="w-6 h-6 text-white opacity-0 group-hover:opacity-100 drop-shadow transition-opacity duration-200" />
+                <div className='absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors duration-200 flex items-center justify-center'>
+                  <ZoomIn className='w-6 h-6 text-white opacity-0 group-hover:opacity-100 drop-shadow transition-opacity duration-200' />
                 </div>
               </button>
             )
@@ -186,22 +272,22 @@ export function AttachmentList({ attachments, className }: AttachmentListProps) 
 
           if (isVideo) {
             return (
-              <div key={att.id} className="flex flex-col gap-1">
+              <div key={att.id} className='flex flex-col gap-1'>
                 <video
                   src={att.url}
                   controls
-                  className="max-w-xs max-h-72 rounded-lg border border-border"
+                  className='max-w-xs max-h-72 rounded-lg border border-border'
                 />
-                <div className="flex items-center gap-1.5 text-xs text-muted-foreground px-1">
-                  <Film className="w-3 h-3" />
-                  <span className="truncate max-w-[16rem]">{att.filename}</span>
+                <div className='flex items-center gap-1.5 text-xs text-muted-foreground px-1'>
+                  <Film className='w-3 h-3' />
+                  <span className='truncate max-w-[16rem]'>{att.filename}</span>
                   <a
                     href={att.url}
                     download={att.filename}
-                    className="ml-auto hover:text-foreground transition-colors"
-                    title="Télécharger"
+                    className='ml-auto hover:text-foreground transition-colors'
+                    title='Download'
                   >
-                    <Download className="w-3.5 h-3.5" />
+                    <Download className='w-3.5 h-3.5' />
                   </a>
                 </div>
               </div>
@@ -217,13 +303,13 @@ export function AttachmentList({ attachments, className }: AttachmentListProps) 
               key={att.id}
               href={att.url}
               download={att.filename}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="flex items-center gap-2 px-3 py-2 bg-accent hover:bg-accent/70 rounded-lg border border-border text-sm text-foreground transition-colors max-w-xs"
+              target='_blank'
+              rel='noopener noreferrer'
+              className='flex items-center gap-2 px-3 py-2 bg-accent hover:bg-accent/70 rounded-lg border border-border text-sm text-foreground transition-colors max-w-xs'
             >
-              <FileText className="w-4 h-4 flex-shrink-0 text-muted-foreground" />
-              <span className="truncate flex-1">{att.filename}</span>
-              <Download className="w-4 h-4 flex-shrink-0 text-muted-foreground" />
+              <FileText className='w-4 h-4 flex-shrink-0 text-muted-foreground' />
+              <span className='truncate flex-1'>{att.filename}</span>
+              <Download className='w-4 h-4 flex-shrink-0 text-muted-foreground' />
             </a>
           )
         })}
