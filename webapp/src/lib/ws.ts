@@ -1,6 +1,7 @@
 export type WsEventType =
   | 'message.new'
   | 'message.delete'
+  | 'typing.update'
   | 'presence.update'
   | 'friend_request.received'
   | 'friend_request.accepted'
@@ -48,7 +49,10 @@ class FerrisWsClient {
     // once the auth store has a valid token.
     if (!this.apiUrl || !token) return
 
-    const url = this.apiUrl.replace(/^http/, 'ws') + '/ws?token=' + encodeURIComponent(token)
+    const url =
+      this.apiUrl.replace(/^http/, 'ws') +
+      '/ws?token=' +
+      encodeURIComponent(token)
 
     this.stopPing()
 
@@ -75,7 +79,12 @@ class FerrisWsClient {
       // connection as Online, so we override it immediately if the user had set
       // a different status before this (re)connect.
       if (this.desiredPresence && this.desiredPresence !== 'online') {
-        this.ws?.send(JSON.stringify({ type: 'presence.set', status: this.desiredPresence }))
+        this.ws?.send(
+          JSON.stringify({
+            type: 'presence.set',
+            status: this.desiredPresence,
+          }),
+        )
       }
 
       // Notify reconnect listeners so they can refetch stale data
@@ -170,6 +179,14 @@ class FerrisWsClient {
     this.desiredPresence = status
     if (this.ws?.readyState === WebSocket.OPEN) {
       this.ws.send(JSON.stringify({ type: 'presence.set', status }))
+    }
+  }
+
+  setTyping(room: string, isTyping: boolean) {
+    if (this.ws?.readyState === WebSocket.OPEN) {
+      this.ws.send(
+        JSON.stringify({ type: 'typing.update', room, is_typing: isTyping }),
+      )
     }
   }
 

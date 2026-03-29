@@ -1,8 +1,8 @@
 use std::collections::HashMap;
 use std::sync::Arc;
 
-use axum::extract::{Query, State, WebSocketUpgrade};
 use axum::extract::ws::{Message, WebSocket};
+use axum::extract::{Query, State, WebSocketUpgrade};
 use axum::http::StatusCode;
 use axum::response::IntoResponse;
 use ferriscord_auth::AuthRepository;
@@ -61,6 +61,8 @@ struct WsClientMsg {
     #[serde(rename = "type")]
     kind: String,
     rooms: Option<Vec<String>>,
+    room: Option<String>,
+    is_typing: Option<bool>,
     status: Option<PresenceStatus>,
 }
 
@@ -89,7 +91,11 @@ pub async fn ws_handler(
     let hub = state.hub.clone();
     let presence = state.presence.clone();
 
-    Ok(ws.on_upgrade(move |socket| handle_socket(socket, hub, user_room, presence, user_id)))
+    let username = identity.username().to_string();
+
+    Ok(ws.on_upgrade(move |socket| {
+        handle_socket(socket, hub, user_room, presence, user_id, username)
+    }))
 }
 
 async fn broadcast_presence_to_guilds(
@@ -111,7 +117,14 @@ async fn broadcast_presence_to_guilds(
     }
 }
 
-async fn handle_socket(socket: WebSocket, hub: WsHub, user_room: String, presence: PresenceStore, user_id: Uuid) {
+async fn handle_socket(
+    socket: WebSocket,
+    hub: WsHub,
+    user_room: String,
+    presence: PresenceStore,
+    user_id: Uuid,
+    username: String,
+) {
     // Mark user as online
     presence.set(user_id, PresenceStatus::Online).await;
 
@@ -223,6 +236,32 @@ async fn handle_socket(socket: WebSocket, hub: WsHub, user_room: String, presenc
                             };
                             presence.set(user_id, status.clone()).await;
                             broadcast_presence_to_guilds(&hub, user_id, &status, &room_tasks).await;
+                        }
+                    }
+                    "typing.update" => {
+                        let Some(room) = cmd.room else {
+                            continue;
+                        };
+                        let is_typing = cmd.is_typing.unwrap_or(false);
+
+                        if !room.starts_with("channel:") && !room.starts_with("dm:") {
+                            continue;
+                        }
+
+                        if !room_tasks.contains_key(&room) {
+                            continue;
+                        }
+
+                        if let Ok(payload) = serde_json::to_string(&serde_json::json!({
+                            "type": "typing.update",
+                            "room": room,
+                            "data": {
+                                "user_id": user_id,
+                                "username": username,
+                                "is_typing": is_typing,
+                            },
+                        })) {
+                            hub.publish(&room, payload).await;
                         }
                     }
                     _ => {}

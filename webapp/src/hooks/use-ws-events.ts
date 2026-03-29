@@ -6,6 +6,7 @@ import { wsClient, type WsEvent } from '@/lib/ws'
 import { usePresenceStore, type PresenceStatus } from '@/stores/presence.store'
 import { containsMention } from '@/lib/mentions'
 import { useNotificationStore } from '@/stores/notification.store'
+import { useTypingStore } from '@/stores/typing.store'
 import type { Schemas } from '@/api/api.client'
 
 export function useWsEvents() {
@@ -101,6 +102,12 @@ export function useWsEvents() {
           // room is either "channel:<uuid>" or "dm:<uuid>"
           const [kind, id] = event.room.split(':')
           if (kind === 'channel') {
+            if (event.type === 'message.new') {
+              const message = event.data as Schemas.Message
+              useTypingStore
+                .getState()
+                .removeTypingUser(event.room, message.author.id)
+            }
             // Invalidate all channel message caches — the server broadcasts to the
             // specific room so only observers of that channel will refetch.
             queryClient.invalidateQueries({
@@ -131,6 +138,12 @@ export function useWsEvents() {
               useNotificationStore.getState().addGuildMention(id)
             }
           } else if (kind === 'dm') {
+            if (event.type === 'message.new') {
+              const message = event.data as Schemas.Message
+              useTypingStore
+                .getState()
+                .removeTypingUser(event.room, message.author.id)
+            }
             queryClient.invalidateQueries({
               queryKey: [
                 {
@@ -161,6 +174,35 @@ export function useWsEvents() {
                 useNotificationStore.getState().addDmUnread(id)
               }
             }
+          }
+          break
+        }
+
+        case 'typing.update': {
+          const data = event.data as {
+            user_id: string
+            username: string
+            is_typing: boolean
+          }
+          const me = window.tanstackApi
+            ? (queryClient.getQueryData(
+                window.tanstackApi.get('/users/@me').queryKey,
+              ) as { id?: string; username?: string } | undefined)
+            : undefined
+          const isOwnEvent =
+            (me?.id != null && data.user_id === me.id) ||
+            (!!authUser?.preferred_username &&
+              data.username === authUser.preferred_username)
+
+          if (isOwnEvent) break
+
+          if (data.is_typing) {
+            useTypingStore.getState().upsertTypingUser(event.room, {
+              userId: data.user_id,
+              username: data.username,
+            })
+          } else {
+            useTypingStore.getState().removeTypingUser(event.room, data.user_id)
           }
           break
         }

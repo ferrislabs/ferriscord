@@ -21,6 +21,7 @@ import {
   FileText,
   Film,
 } from 'lucide-react'
+import { wsClient } from '@/lib/ws'
 
 interface MessageInputProps {
   onSendMessage: (content: string, files?: File[]) => void
@@ -32,6 +33,7 @@ interface MessageInputProps {
   channelType?: 'text' | 'dm'
   recipientName?: string
   mentionCandidates?: MentionCandidate[]
+  typingRoom?: string
 }
 
 const INPUT_TEXT_PREVIEWABLE_TYPES = new Set([
@@ -161,6 +163,7 @@ export function MessageInput({
   channelType = 'text',
   recipientName,
   mentionCandidates = [],
+  typingRoom,
 }: MessageInputProps) {
   const [message, setMessage] = useState('')
   const [isExpanded, setIsExpanded] = useState(false)
@@ -170,6 +173,8 @@ export function MessageInput({
   const [caretPosition, setCaretPosition] = useState(0)
   const textareaRef = useRef<HTMLTextAreaElement>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
+  const typingActiveRef = useRef(false)
+  const lastTypingSentAtRef = useRef(0)
 
   const activeMention = getActiveMention(message, caretPosition)
   const mentionSuggestions =
@@ -193,6 +198,10 @@ export function MessageInput({
     const trimmedMessage = message.trim()
     const hasFiles = files.length > 0
     if ((trimmedMessage || hasFiles) && !isLoading && !disabled) {
+      if (typingRoom && typingActiveRef.current) {
+        wsClient.setTyping(typingRoom, false)
+        typingActiveRef.current = false
+      }
       onSendMessage(trimmedMessage, hasFiles ? files : undefined)
       setMessage('')
       setFiles([])
@@ -203,6 +212,43 @@ export function MessageInput({
       }
     }
   }
+
+  const updateTypingState = (nextValue: string) => {
+    if (!typingRoom) return
+
+    const hasContent = nextValue.trim().length > 0
+    if (!hasContent) {
+      if (typingActiveRef.current) {
+        wsClient.setTyping(typingRoom, false)
+        typingActiveRef.current = false
+      }
+      return
+    }
+
+    const now = Date.now()
+    if (
+      !typingActiveRef.current ||
+      now - lastTypingSentAtRef.current >= 2_000
+    ) {
+      wsClient.setTyping(typingRoom, true)
+      typingActiveRef.current = true
+      lastTypingSentAtRef.current = now
+    }
+  }
+
+  useEffect(() => {
+    if (!typingRoom || message.trim().length === 0 || disabled || isLoading) {
+      return
+    }
+
+    const interval = setInterval(() => {
+      wsClient.setTyping(typingRoom, true)
+      typingActiveRef.current = true
+      lastTypingSentAtRef.current = Date.now()
+    }, 2_000)
+
+    return () => clearInterval(interval)
+  }, [typingRoom, message, disabled, isLoading])
 
   const handleKeyDown = (e: KeyboardEvent<HTMLTextAreaElement>) => {
     if (showMentionSuggestions) {
@@ -238,20 +284,26 @@ export function MessageInput({
   }
 
   const handleInput = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
-    setMessage(e.target.value)
-    setCaretPosition(e.target.selectionStart ?? e.target.value.length)
+    const nextValue = e.target.value
+    setMessage(nextValue)
+    setCaretPosition(e.target.selectionStart ?? nextValue.length)
     adjustTextareaHeight()
+    updateTypingState(nextValue)
 
-    if (e.target.value.length > 0 && !isExpanded) {
+    if (nextValue.length > 0 && !isExpanded) {
       setIsExpanded(true)
-    } else if (
-      e.target.value.length === 0 &&
-      isExpanded &&
-      files.length === 0
-    ) {
+    } else if (nextValue.length === 0 && isExpanded && files.length === 0) {
       setIsExpanded(false)
     }
   }
+
+  useEffect(() => {
+    return () => {
+      if (typingRoom && typingActiveRef.current) {
+        wsClient.setTyping(typingRoom, false)
+      }
+    }
+  }, [typingRoom])
 
   const insertMention = (candidate: MentionCandidate) => {
     const textarea = textareaRef.current
@@ -331,11 +383,6 @@ export function MessageInput({
         className,
       )}
     >
-      {/* Typing indicator */}
-      <div className='mb-2 h-5 flex items-center'>
-        <div className='text-sm text-muted-foreground' />
-      </div>
-
       {/* Hidden file input */}
       <input
         ref={fileInputRef}

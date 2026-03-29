@@ -20,6 +20,10 @@ import { MemberList } from '@/components/guild/member-list'
 import { cn } from '@/lib/utils'
 import { useSidebar } from '@/components/ui/sidebar'
 import { useNotificationStore } from '@/stores/notification.store'
+import { useTypingStore } from '@/stores/typing.store'
+import { TypingIndicator } from '@/components/ui/typing-indicator'
+
+const EMPTY_TYPING_USERS: Array<{ userId: string; username: string }> = []
 
 export const Route = createFileRoute('/_app/channels/$serverId/$channelId')({
   component: ChannelPage,
@@ -70,6 +74,9 @@ function ChannelPage() {
   )
   const { mutate: deleteMessage } = useDeleteMessage(serverId, channelId)
   const { data: me } = useGetMe()
+  const typingUsers = useTypingStore(
+    (state) => state.typingByRoom[`channel:${channelId}`] ?? EMPTY_TYPING_USERS,
+  )
 
   const handleDeleteMessage = (messageId: string) => {
     deleteMessage(messageId)
@@ -101,6 +108,10 @@ function ChannelPage() {
     displayName: member.display_name ?? member.username,
     avatarUrl: member.avatar_url ?? undefined,
   }))
+  const typingNames = typingUsers.map((user) => {
+    const member = guildMembers.find((entry) => entry.user_id === user.userId)
+    return member?.display_name ?? member?.username ?? user.username
+  })
 
   return (
     <div className='flex flex-col h-full'>
@@ -206,14 +217,21 @@ function ChannelPage() {
             </div>
           ) : (
             selectedChannel && (
-              <MessageInput
-                onSendMessage={handleSendMessage}
-                isLoading={isSending}
-                channelName={selectedChannel.name}
-                channelType='text'
-                mentionCandidates={mentionCandidates}
-                className='border-t-0'
-              />
+              <>
+                <TypingIndicator
+                  users={typingNames}
+                  className='border-t border-sidebar-border bg-background pt-2'
+                />
+                <MessageInput
+                  onSendMessage={handleSendMessage}
+                  isLoading={isSending}
+                  channelName={selectedChannel.name}
+                  channelType='text'
+                  mentionCandidates={mentionCandidates}
+                  typingRoom={`channel:${channelId}`}
+                  className='border-t-0'
+                />
+              </>
             )
           )}
         </div>

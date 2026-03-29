@@ -18,6 +18,10 @@ import { useSidebar } from '@/components/ui/sidebar'
 import { useProfileCardStore } from '@/stores/profile-card.store'
 import { FormattedMessage } from '@/components/ui/formatted-message'
 import { useNotificationStore } from '@/stores/notification.store'
+import { useTypingStore } from '@/stores/typing.store'
+import { TypingIndicator } from '@/components/ui/typing-indicator'
+
+const EMPTY_TYPING_USERS: Array<{ userId: string; username: string }> = []
 
 export const Route = createFileRoute('/_app/channels/@me/$channelId')({
   component: DMConversationPage,
@@ -37,11 +41,15 @@ function DMConversationPage() {
   const { mutate: deleteMessage } = useDeleteDmMessage(channelId)
   const { data: me } = useGetMe()
   const bottomRef = useRef<HTMLDivElement>(null)
+  const typingUsers = useTypingStore(
+    (state) => state.typingByRoom[`dm:${channelId}`] ?? EMPTY_TYPING_USERS,
+  )
 
   const dm = dms.find((d) => d.id === channelId)
   const displayName = dm
     ? (dm.recipient.display_name ?? dm.recipient.username)
     : '...'
+  const typingNames = typingUsers.map(() => displayName)
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
@@ -197,10 +205,15 @@ function DMConversationPage() {
       </div>
 
       {/* Input */}
+      <TypingIndicator
+        users={typingNames}
+        className='border-t border-sidebar-border bg-background pt-2'
+      />
       <MessageInput
         onSendMessage={handleSendMessage}
         channelType='dm'
         recipientName={displayName}
+        typingRoom={`dm:${channelId}`}
         className='border-t-0'
       />
     </div>
