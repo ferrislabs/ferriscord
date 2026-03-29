@@ -22,6 +22,11 @@ import { useSidebar } from '@/components/ui/sidebar'
 import { useNotificationStore } from '@/stores/notification.store'
 import { useTypingStore } from '@/stores/typing.store'
 import { TypingIndicator } from '@/components/ui/typing-indicator'
+import {
+  getReplyPreview,
+  parseReplyContent,
+  type ReplyReference,
+} from '@/lib/reply'
 
 const EMPTY_TYPING_USERS: Array<{ userId: string; username: string }> = []
 
@@ -37,6 +42,8 @@ function ChannelPage() {
   const [showMemberList, setShowMemberList] = useState(
     () => localStorage.getItem('memberListOpen') === 'true',
   )
+  const [replyTarget, setReplyTarget] = useState<ReplyReference | null>(null)
+  const [replyMentionEnabled, setReplyMentionEnabled] = useState(true)
 
   const { data: guilds = [], isPending: isGuildsPending } = useUserGuilds()
 
@@ -89,19 +96,38 @@ function ChannelPage() {
     sendMessage({ content, files })
   }
 
+  const handleReplyMessage = (message: {
+    id: string
+    content: string
+    author: { id: string; username: string; avatar?: string }
+  }) => {
+    setReplyTarget({
+      messageId: message.id,
+      authorId: message.author.id,
+      authorUsername: message.author.username,
+      authorAvatarUrl: message.author.avatar,
+      preview: getReplyPreview(message.content),
+    })
+    setReplyMentionEnabled(true)
+  }
+
   // Map API messages to MessageList format
-  const formattedMessages = messages.map((msg) => ({
-    id: msg.id,
-    content: msg.content,
-    attachments: msg.attachments,
-    author: {
-      id: msg.author.id,
-      username: msg.author.username,
-      avatar: msg.author.avatar_url ?? undefined,
-    },
-    timestamp: msg.created_at,
-    isOwn: me?.id === msg.author.id,
-  }))
+  const formattedMessages = messages.map((msg) => {
+    const parsed = parseReplyContent(msg.content)
+    return {
+      id: msg.id,
+      content: parsed.body,
+      replyTo: parsed.reply,
+      attachments: msg.attachments,
+      author: {
+        id: msg.author.id,
+        username: msg.author.username,
+        avatar: msg.author.avatar_url ?? undefined,
+      },
+      timestamp: msg.created_at,
+      isOwn: me?.id === msg.author.id,
+    }
+  })
   const mentionCandidates = guildMembers.map((member) => ({
     id: member.user_id,
     username: member.username,
@@ -195,6 +221,7 @@ function ChannelPage() {
               guildId={serverId}
               mentionCandidates={mentionCandidates}
               currentUsername={me?.username}
+              onReplyMessage={handleReplyMessage}
             />
           ) : (
             <div className='flex items-center justify-center h-full'>
@@ -229,6 +256,12 @@ function ChannelPage() {
                   channelType='text'
                   mentionCandidates={mentionCandidates}
                   typingRoom={`channel:${channelId}`}
+                  replyTarget={replyTarget}
+                  replyMentionEnabled={replyMentionEnabled}
+                  onToggleReplyMention={() =>
+                    setReplyMentionEnabled((value) => !value)
+                  }
+                  onCancelReply={() => setReplyTarget(null)}
                   className='border-t-0'
                 />
               </>

@@ -22,6 +22,8 @@ import {
   Film,
 } from 'lucide-react'
 import { wsClient } from '@/lib/ws'
+import type { ReplyReference } from '@/lib/reply'
+import { buildReplyContent } from '@/lib/reply'
 
 interface MessageInputProps {
   onSendMessage: (content: string, files?: File[]) => void
@@ -34,6 +36,10 @@ interface MessageInputProps {
   recipientName?: string
   mentionCandidates?: MentionCandidate[]
   typingRoom?: string
+  replyTarget?: ReplyReference | null
+  replyMentionEnabled?: boolean
+  onToggleReplyMention?: () => void
+  onCancelReply?: () => void
 }
 
 const INPUT_TEXT_PREVIEWABLE_TYPES = new Set([
@@ -164,6 +170,10 @@ export function MessageInput({
   recipientName,
   mentionCandidates = [],
   typingRoom,
+  replyTarget = null,
+  replyMentionEnabled = true,
+  onToggleReplyMention,
+  onCancelReply,
 }: MessageInputProps) {
   const [message, setMessage] = useState('')
   const [isExpanded, setIsExpanded] = useState(false)
@@ -177,10 +187,9 @@ export function MessageInput({
   const lastTypingSentAtRef = useRef(0)
 
   const activeMention = getActiveMention(message, caretPosition)
-  const mentionSuggestions =
-    channelType === 'text' && activeMention
-      ? filterMentionCandidates(mentionCandidates, activeMention.query)
-      : []
+  const mentionSuggestions = activeMention
+    ? filterMentionCandidates(mentionCandidates, activeMention.query)
+    : []
   const showMentionSuggestions = mentionSuggestions.length > 0
 
   useEffect(() => {
@@ -202,11 +211,20 @@ export function MessageInput({
         wsClient.setTyping(typingRoom, false)
         typingActiveRef.current = false
       }
-      onSendMessage(trimmedMessage, hasFiles ? files : undefined)
+      const finalBody =
+        replyTarget && replyMentionEnabled
+          ? `@${replyTarget.authorUsername} ${trimmedMessage}`.trim()
+          : trimmedMessage
+
+      onSendMessage(
+        buildReplyContent(finalBody, replyTarget),
+        hasFiles ? files : undefined,
+      )
       setMessage('')
       setFiles([])
       setIsExpanded(false)
       setCaretPosition(0)
+      onCancelReply?.()
       if (textareaRef.current) {
         textareaRef.current.style.height = '20px'
       }
@@ -435,6 +453,46 @@ export function MessageInput({
             disabled && 'opacity-50 cursor-not-allowed',
           )}
         >
+          {replyTarget && (
+            <div className='flex items-start justify-between gap-3 border-b border-border/70 px-3 py-2'>
+              <div className='min-w-0'>
+                <p className='text-xs font-semibold text-foreground'>
+                  Replying to @{replyTarget.authorUsername}
+                </p>
+                <p className='truncate text-xs text-muted-foreground'>
+                  {replyTarget.preview}
+                </p>
+                <p className='mt-1 text-[11px] text-muted-foreground'>
+                  {replyMentionEnabled
+                    ? 'Will mention user'
+                    : "Won't mention user"}
+                </p>
+              </div>
+              <div className='flex items-center gap-1'>
+                <button
+                  type='button'
+                  onClick={onToggleReplyMention}
+                  className={cn(
+                    'rounded px-2 py-1 text-[11px] font-medium transition-colors',
+                    replyMentionEnabled
+                      ? 'bg-primary/15 text-primary hover:bg-primary/25'
+                      : 'bg-accent text-muted-foreground hover:text-foreground',
+                  )}
+                >
+                  {replyMentionEnabled ? 'Mention: on' : 'Mention: off'}
+                </button>
+                <button
+                  type='button'
+                  onClick={onCancelReply}
+                  className='rounded p-1 text-muted-foreground transition-colors hover:bg-accent hover:text-foreground'
+                  aria-label='Cancel reply'
+                >
+                  <X className='h-4 w-4' />
+                </button>
+              </div>
+            </div>
+          )}
+
           {/* File previews */}
           {files.length > 0 && (
             <div className='flex gap-2 p-3 pb-0 flex-wrap'>

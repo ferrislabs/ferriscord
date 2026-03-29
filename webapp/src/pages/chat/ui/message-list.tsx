@@ -10,6 +10,7 @@ import { useProfileCardStore } from '@/stores/profile-card.store'
 import { AttachmentList } from '@/components/chat/attachment-list'
 import { InviteEmbed, extractInviteCodes } from '@/components/chat/invite-embed'
 import { containsMention, type MentionCandidate } from '@/lib/mentions'
+import type { ReplyReference } from '@/lib/reply'
 
 interface Message {
   id: string
@@ -22,6 +23,7 @@ interface Message {
   }
   timestamp: string
   isOwn?: boolean
+  replyTo?: ReplyReference | null
   reactions?: Array<{
     emoji: string
     count: number
@@ -37,6 +39,7 @@ interface MessageListProps {
   guildId?: string
   mentionCandidates?: MentionCandidate[]
   currentUsername?: string
+  onReplyMessage?: (message: Message) => void
 }
 
 function shouldGroupMessages(
@@ -64,6 +67,7 @@ function MessageItem({
   guildId,
   mentionCandidates,
   currentUsername,
+  onReplyMessage,
 }: {
   message: Message
   isGrouped: boolean
@@ -72,10 +76,19 @@ function MessageItem({
   guildId?: string
   mentionCandidates?: MentionCandidate[]
   currentUsername?: string
+  onReplyMessage?: (message: Message) => void
 }) {
   const [isHovered, setIsHovered] = useState(false)
   const toggleProfile = useProfileCardStore((s) => s.toggle)
   const mentionsCurrentUser = containsMention(message.content, currentUsername)
+  const replyAvatarUrl =
+    message.replyTo?.authorAvatarUrl ??
+    mentionCandidates?.find(
+      (candidate) =>
+        candidate.id === message.replyTo?.authorId ||
+        candidate.username === message.replyTo?.authorUsername,
+    )?.avatarUrl ??
+    undefined
 
   const openProfile = useCallback(
     (e: React.MouseEvent) => {
@@ -140,7 +153,11 @@ function MessageItem({
           <button className='rounded-l-md p-1.5 text-muted-foreground transition-colors hover:bg-accent hover:text-foreground'>
             <Smile className='w-4 h-4' />
           </button>
-          <button className='p-1.5 text-muted-foreground transition-colors hover:bg-accent hover:text-foreground'>
+          <button
+            className='p-1.5 text-muted-foreground transition-colors hover:bg-accent hover:text-foreground'
+            onClick={() => onReplyMessage?.(message)}
+            title='Reply'
+          >
             <Reply className='w-4 h-4' />
           </button>
           <button className='p-1.5 text-muted-foreground transition-colors hover:bg-accent hover:text-foreground'>
@@ -161,87 +178,125 @@ function MessageItem({
         </div>
       )}
 
-      <div className='flex'>
-        {/* Avatar column */}
-        <div className='w-10 flex-shrink-0 mr-4'>
-          {!isGrouped && (
-            <button
-              type='button'
-              onClick={openProfile}
-              className='rounded-full focus:outline-none'
-            >
-              <Avatar className='w-10 h-10 cursor-pointer hover:opacity-80 transition-opacity'>
-                <AvatarImage
-                  src={message.author.avatar}
-                  alt={message.author.username}
-                />
-                <AvatarFallback className='text-xs font-medium bg-indigo-500 text-white'>
-                  {initials}
-                </AvatarFallback>
-              </Avatar>
-            </button>
-          )}
-          {isGrouped && showTimestamp && (
-            <div className='pt-0.5 text-right text-xs text-muted-foreground opacity-0 transition-opacity group-hover:opacity-100'>
-              {formatTime(message.timestamp)}
+      <div className='flex flex-col'>
+        {message.replyTo && (
+          <div className='mb-1 flex items-center gap-2 overflow-hidden pl-0 text-xs leading-none text-muted-foreground'>
+            <div className='h-3.5 w-14 shrink-0'>
+              <div className='ml-5 h-full w-8 rounded-tl-md border-l-2 border-t-2 border-border/70' />
             </div>
-          )}
-        </div>
+            <Avatar className='h-4 w-4 shrink-0'>
+              <AvatarImage
+                src={replyAvatarUrl}
+                alt={message.replyTo.authorUsername}
+              />
+              <AvatarFallback className='text-[8px]'>
+                {message.replyTo.authorUsername[0]?.toUpperCase() ?? '?'}
+              </AvatarFallback>
+            </Avatar>
+            <div className='flex min-w-0 items-center gap-1'>
+              <button
+                type='button'
+                className='shrink-0 truncate text-xs font-semibold text-primary/80 hover:text-primary hover:underline'
+              >
+                @{message.replyTo.authorUsername}
+              </button>
+              <span className='truncate text-muted-foreground/90'>
+                {message.replyTo.preview}
+              </span>
+            </div>
+          </div>
+        )}
 
-        {/* Message content */}
-        <div className='flex-1 min-w-0'>
-          {!isGrouped && (
-            <div className='flex items-baseline mb-1'>
+        <div className='flex'>
+          {/* Avatar column */}
+          <div className='w-10 flex-shrink-0 mr-4'>
+            {!isGrouped && (
               <button
                 type='button'
                 onClick={openProfile}
-                className='cursor-pointer text-sm font-semibold text-foreground hover:underline focus:outline-none'
+                className='block rounded-full focus:outline-none'
               >
-                {message.author.username}
+                <Avatar className='h-10 w-10 shrink-0 cursor-pointer transition-opacity hover:opacity-80'>
+                  <AvatarImage
+                    src={message.author.avatar}
+                    alt={message.author.username}
+                  />
+                  <AvatarFallback className='text-xs font-medium bg-indigo-500 text-white'>
+                    {initials}
+                  </AvatarFallback>
+                </Avatar>
               </button>
-              <span className='ml-2 text-xs text-muted-foreground'>
-                {formatDate(message.timestamp)} at{' '}
+            )}
+            {isGrouped && showTimestamp && (
+              <div className='pt-0.5 text-right text-xs text-muted-foreground opacity-0 transition-opacity group-hover:opacity-100'>
                 {formatTime(message.timestamp)}
-              </span>
-            </div>
-          )}
+              </div>
+            )}
+          </div>
 
-          <FormattedMessage
-            content={message.content}
-            className='text-[15px] leading-5 text-foreground'
-            mentionCandidates={mentionCandidates}
-            guildId={guildId}
-            currentUsername={currentUsername}
-          />
+          {/* Message content */}
+          <div className='flex-1 min-w-0'>
+            {!isGrouped && (
+              <div
+                className={cn(
+                  'flex items-baseline leading-none',
+                  message.replyTo ? '-mb-0.5' : 'mb-1',
+                )}
+              >
+                <button
+                  type='button'
+                  onClick={openProfile}
+                  className='cursor-pointer text-sm font-semibold text-foreground hover:underline focus:outline-none'
+                >
+                  {message.author.username}
+                </button>
+                <span className='ml-2 text-xs text-muted-foreground'>
+                  {formatDate(message.timestamp)} at{' '}
+                  {formatTime(message.timestamp)}
+                </span>
+              </div>
+            )}
 
-          {message.attachments && (
-            <AttachmentList attachments={message.attachments} />
-          )}
-
-          {extractInviteCodes(message.content).map((code) => (
-            <InviteEmbed key={code} code={code} />
-          ))}
-
-          {/* Message reactions */}
-          {message.reactions && message.reactions.length > 0 && (
-            <MessageReactions
-              reactions={message.reactions}
-              onAddReaction={(emoji) => {
-                // Handle add reaction - this would call an API
-                console.log('Add reaction:', emoji, 'to message:', message.id)
-              }}
-              onRemoveReaction={(emoji) => {
-                // Handle remove reaction - this would call an API
-                console.log(
-                  'Remove reaction:',
-                  emoji,
-                  'from message:',
-                  message.id,
-                )
-              }}
-              className='mt-1'
+            <FormattedMessage
+              content={message.content}
+              className={cn(
+                'text-[15px] leading-5 text-foreground',
+                message.replyTo && '-mt-1.5',
+              )}
+              mentionCandidates={mentionCandidates}
+              guildId={guildId}
+              currentUsername={currentUsername}
             />
-          )}
+
+            {message.attachments && (
+              <AttachmentList attachments={message.attachments} />
+            )}
+
+            {extractInviteCodes(message.content).map((code) => (
+              <InviteEmbed key={code} code={code} />
+            ))}
+
+            {/* Message reactions */}
+            {message.reactions && message.reactions.length > 0 && (
+              <MessageReactions
+                reactions={message.reactions}
+                onAddReaction={(emoji) => {
+                  // Handle add reaction - this would call an API
+                  console.log('Add reaction:', emoji, 'to message:', message.id)
+                }}
+                onRemoveReaction={(emoji) => {
+                  // Handle remove reaction - this would call an API
+                  console.log(
+                    'Remove reaction:',
+                    emoji,
+                    'from message:',
+                    message.id,
+                  )
+                }}
+                className='mt-1'
+              />
+            )}
+          </div>
         </div>
       </div>
     </div>
@@ -267,6 +322,7 @@ export function MessageList({
   guildId,
   mentionCandidates,
   currentUsername,
+  onReplyMessage,
 }: MessageListProps) {
   const bottomRef = useRef<HTMLDivElement>(null)
   const isFirstRender = useRef(true)
@@ -354,6 +410,7 @@ export function MessageList({
                 guildId={guildId}
                 mentionCandidates={mentionCandidates}
                 currentUsername={currentUsername}
+                onReplyMessage={onReplyMessage}
               />
             </div>
           )

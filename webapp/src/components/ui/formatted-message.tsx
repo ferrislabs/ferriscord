@@ -1,6 +1,7 @@
 import { cn } from '@/lib/utils'
 import { useProfileCardStore } from '@/stores/profile-card.store'
 import type { MentionCandidate } from '@/lib/mentions'
+import { parseReplyContent } from '@/lib/reply'
 
 interface FormattedMessageProps {
   content: string
@@ -272,7 +273,7 @@ export function FormattedMessage({
   guildId,
   currentUsername,
 }: FormattedMessageProps) {
-  const segments = parseMessage(content)
+  const segments = parseMessage(parseReplyContent(content).body)
   const toggleProfile = useProfileCardStore((s) => s.toggle)
 
   return (
