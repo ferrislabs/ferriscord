@@ -1,13 +1,27 @@
 import { createFileRoute, useNavigate } from '@tanstack/react-router'
 import { useEffect, useState } from 'react'
-import { Hash, Volume2, Users, Pin, Bell, Search, Menu } from 'lucide-react'
+import {
+  Hash,
+  Volume2,
+  Users,
+  Pin,
+  Bell,
+  Search,
+  Menu,
+  ChevronRight,
+  MessageSquarePlus,
+  List,
+} from 'lucide-react'
 import { Skeleton } from '@/components/ui/skeleton'
 import { MessageListSkeleton } from '@/components/layout/message-list-skeleton'
 import { MessageInput } from '@/components/chat'
 import { MessageList } from '@/pages/chat/ui/message-list'
 import { saveLastVisited, saveGuildLastChannel } from '@/lib/last-visited'
 import { useUserGuilds } from '@/lib/queries/guild-queries'
-import { useGuildChannels } from '@/lib/queries/channel-queries'
+import {
+  useCreateChannel,
+  useGuildChannels,
+} from '@/lib/queries/channel-queries'
 import {
   useChannelMessages,
   useSendMessage,
@@ -17,16 +31,35 @@ import { useGuildMembers } from '@/lib/queries/member-queries'
 import { useGetMe } from '@/lib/queries/user-queries'
 import { useWsRoom } from '@/hooks/use-ws-events'
 import { MemberList } from '@/components/guild/member-list'
+import { Button } from '@/components/ui/button'
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog'
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu'
+import { Input } from '@/components/ui/input'
 import { cn } from '@/lib/utils'
 import { useSidebar } from '@/components/ui/sidebar'
 import { useNotificationStore } from '@/stores/notification.store'
 import { useTypingStore } from '@/stores/typing.store'
 import { TypingIndicator } from '@/components/ui/typing-indicator'
+import { toast } from '@/lib/toast'
 import {
   getReplyPreview,
   parseReplyContent,
   type ReplyReference,
 } from '@/lib/reply'
+import {
+  buildThreadNoticeContent,
+  parseThreadNoticeContent,
+  type ThreadReference,
+} from '@/lib/thread'
 
 const EMPTY_TYPING_USERS: Array<{ userId: string; username: string }> = []
 
@@ -44,6 +77,12 @@ function ChannelPage() {
   )
   const [replyTarget, setReplyTarget] = useState<ReplyReference | null>(null)
   const [replyMentionEnabled, setReplyMentionEnabled] = useState(true)
+  const [isCreateThreadOpen, setIsCreateThreadOpen] = useState(false)
+  const [isThreadListOpen, setIsThreadListOpen] = useState(false)
+  const [threadName, setThreadName] = useState('')
+  const [threadSearch, setThreadSearch] = useState('')
+  const [threadSourceMessage, setThreadSourceMessage] =
+    useState<ThreadReference | null>(null)
 
   const { data: guilds = [], isPending: isGuildsPending } = useUserGuilds()
 
@@ -80,6 +119,7 @@ function ChannelPage() {
     channelId,
   )
   const { mutate: deleteMessage } = useDeleteMessage(serverId, channelId)
+  const createChannel = useCreateChannel()
   const { data: me } = useGetMe()
   const typingUsers = useTypingStore(
     (state) => state.typingByRoom[`channel:${channelId}`] ?? EMPTY_TYPING_USERS,
@@ -90,10 +130,73 @@ function ChannelPage() {
   }
 
   const selectedChannel = channels.find((ch) => ch.id === channelId)
+  const parentTextChannel = selectedChannel?.parent_id
+    ? channels.find(
+        (channel) =>
+          channel.id === selectedChannel.parent_id && channel.kind === 'Text',
+      )
+    : undefined
+  const threadRootChannel =
+    parentTextChannel ??
+    (selectedChannel?.kind === 'Text' ? selectedChannel : undefined)
+  const threadChannels = threadRootChannel
+    ? channels
+        .filter(
+          (channel) =>
+            channel.kind === 'Text' &&
+            channel.parent_id === threadRootChannel.id,
+        )
+        .sort((a, b) => a.position - b.position)
+    : []
+  const filteredThreadChannels = threadChannels.filter((thread) =>
+    thread.name.toLowerCase().includes(threadSearch.toLowerCase()),
+  )
+  const isThreadChannel = !!parentTextChannel
+  const canCreateThreads =
+    !!selectedChannel && selectedChannel.kind === 'Text' && !isThreadChannel
   const isLoading = isLoadingChannels
 
   const handleSendMessage = (content: string, files?: File[]) => {
     sendMessage({ content, files })
+  }
+
+  const handleCreateThread = () => {
+    if (!serverId || !selectedChannel || !threadName.trim()) return
+
+    createChannel.mutate(
+      {
+        path: { guild_id: serverId },
+        body: {
+          name: threadName.trim(),
+          kind: 'Text',
+          parent_id: selectedChannel.id,
+        },
+      },
+      {
+        onSuccess: (channel) => {
+          sendMessage({
+            content: buildThreadNoticeContent({
+              threadId: channel.id,
+              threadName: channel.name,
+              sourceMessageId: threadSourceMessage?.sourceMessageId,
+              sourceAuthorUsername: threadSourceMessage?.sourceAuthorUsername,
+              sourcePreview: threadSourceMessage?.sourcePreview,
+            }),
+          })
+          setThreadName('')
+          setThreadSourceMessage(null)
+          setIsCreateThreadOpen(false)
+          navigate({
+            to: '/channels/$serverId/$channelId',
+            params: { serverId, channelId: channel.id },
+          })
+          toast.success('Thread created')
+        },
+        onError: () => {
+          toast.error('Failed to create thread')
+        },
+      },
+    )
   }
 
   const handleReplyMessage = (message: {
@@ -111,13 +214,32 @@ function ChannelPage() {
     setReplyMentionEnabled(true)
   }
 
+  const handleCreateThreadFromMessage = (message: {
+    id: string
+    content: string
+    author: { username: string }
+  }) => {
+    const defaultThreadName = getReplyPreview(message.content)
+    setThreadSourceMessage({
+      threadId: '',
+      threadName: defaultThreadName,
+      sourceMessageId: message.id,
+      sourceAuthorUsername: message.author.username,
+      sourcePreview: getReplyPreview(message.content),
+    })
+    setThreadName(defaultThreadName)
+    setIsCreateThreadOpen(true)
+  }
+
   // Map API messages to MessageList format
   const formattedMessages = messages.map((msg) => {
-    const parsed = parseReplyContent(msg.content)
+    const threadParsed = parseThreadNoticeContent(msg.content)
+    const parsed = parseReplyContent(threadParsed.body)
     return {
       id: msg.id,
       content: parsed.body,
       replyTo: parsed.reply,
+      threadNotice: threadParsed.thread,
       attachments: msg.attachments,
       author: {
         id: msg.author.id,
@@ -157,52 +279,179 @@ function ChannelPage() {
         </div>
       ) : (
         selectedChannel && (
-          <div className='h-12 border-b border-sidebar-border px-4 flex items-center justify-between bg-background'>
-            <div className='flex items-center space-x-2'>
-              <button
-                className='md:hidden p-1.5 hover:bg-accent rounded text-muted-foreground hover:text-foreground transition-colors'
-                onClick={() => setCollapsed(false)}
-              >
-                <Menu className='h-5 w-5' />
-              </button>
-              {selectedChannel.kind === 'Voice' ? (
-                <Volume2 className='h-5 w-5 text-muted-foreground' />
-              ) : (
-                <Hash className='h-5 w-5 text-muted-foreground' />
-              )}
-              <h2 className='font-semibold text-foreground'>
-                {selectedChannel.name}
-              </h2>
-              {selectedChannel.topic && (
-                <>
-                  <span className='text-muted-foreground'>|</span>
-                  <span className='text-sm text-muted-foreground'>
-                    {selectedChannel.topic}
-                  </span>
-                </>
-              )}
-            </div>
-            <div className='flex items-center space-x-2'>
-              <button className='p-2 hover:bg-accent rounded text-muted-foreground hover:text-foreground transition-colors'>
-                <Bell className='h-5 w-5' />
-              </button>
-              <button className='p-2 hover:bg-accent rounded text-muted-foreground hover:text-foreground transition-colors'>
-                <Pin className='h-5 w-5' />
-              </button>
-              <button
-                onClick={() => setShowMemberList((v) => !v)}
-                className={cn(
-                  'p-2 rounded text-muted-foreground hover:text-foreground transition-colors',
-                  showMemberList
-                    ? 'bg-accent text-foreground'
-                    : 'hover:bg-accent',
+          <div className='border-b border-sidebar-border bg-background'>
+            <div className='h-12 px-4 flex items-center justify-between'>
+              <div className='flex min-w-0 items-center space-x-2'>
+                <button
+                  className='md:hidden p-1.5 hover:bg-accent rounded text-muted-foreground hover:text-foreground transition-colors'
+                  onClick={() => setCollapsed(false)}
+                >
+                  <Menu className='h-5 w-5' />
+                </button>
+                {selectedChannel.kind === 'Voice' ? (
+                  <Volume2 className='h-5 w-5 text-muted-foreground' />
+                ) : (
+                  <Hash className='h-5 w-5 text-muted-foreground' />
                 )}
-              >
-                <Users className='h-5 w-5' />
-              </button>
-              <button className='p-2 hover:bg-accent rounded text-muted-foreground hover:text-foreground transition-colors'>
-                <Search className='h-5 w-5' />
-              </button>
+                {parentTextChannel && (
+                  <>
+                    <button
+                      className='shrink-0 text-sm text-muted-foreground hover:text-foreground'
+                      onClick={() =>
+                        navigate({
+                          to: '/channels/$serverId/$channelId',
+                          params: { serverId, channelId: parentTextChannel.id },
+                        })
+                      }
+                    >
+                      {parentTextChannel.name}
+                    </button>
+                    <ChevronRight className='h-4 w-4 shrink-0 text-muted-foreground' />
+                  </>
+                )}
+                <h2 className='truncate font-semibold text-foreground'>
+                  {selectedChannel.name}
+                </h2>
+                {selectedChannel.topic && (
+                  <>
+                    <span className='text-muted-foreground'>|</span>
+                    <span className='truncate text-sm text-muted-foreground'>
+                      {selectedChannel.topic}
+                    </span>
+                  </>
+                )}
+              </div>
+              <div className='flex items-center space-x-2'>
+                {threadRootChannel && (
+                  <DropdownMenu
+                    open={isThreadListOpen}
+                    onOpenChange={setIsThreadListOpen}
+                  >
+                    <DropdownMenuTrigger asChild>
+                      <button
+                        className='p-2 hover:bg-accent rounded text-muted-foreground hover:text-foreground transition-colors'
+                        title='Open thread list'
+                      >
+                        <List className='h-5 w-5' />
+                      </button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent
+                      align='end'
+                      side='bottom'
+                      sideOffset={12}
+                      className='w-[min(42rem,calc(100vw-1rem))] border-border bg-card p-0'
+                      onCloseAutoFocus={(e) => e.preventDefault()}
+                    >
+                      <div className='border-b border-border px-4 py-4'>
+                        <div className='flex items-center gap-3'>
+                          <div className='flex items-center gap-2 border-r border-border pr-4'>
+                            <List className='h-5 w-5 text-muted-foreground' />
+                            <div className='text-lg font-semibold text-foreground'>
+                              Threads
+                            </div>
+                          </div>
+                          <div className='relative flex-1'>
+                            <Search className='absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground' />
+                            <Input
+                              value={threadSearch}
+                              onChange={(e) => setThreadSearch(e.target.value)}
+                              placeholder='Search for Thread Name'
+                              className='h-10 pl-10 text-sm'
+                            />
+                          </div>
+                          {canCreateThreads && (
+                            <Button
+                              onClick={() => {
+                                setIsThreadListOpen(false)
+                                setThreadSourceMessage(null)
+                                setThreadName('')
+                                setIsCreateThreadOpen(true)
+                              }}
+                              className='h-10 px-4 text-sm'
+                            >
+                              Create
+                            </Button>
+                          )}
+                        </div>
+                      </div>
+
+                      <div className='no-scrollbar max-h-[26rem] overflow-y-auto bg-card px-4 py-4'>
+                        <div className='mb-4 text-xs font-semibold uppercase tracking-wide text-muted-foreground'>
+                          {filteredThreadChannels.length} Joined Threads
+                        </div>
+                        <div className='space-y-3'>
+                          {filteredThreadChannels.map((thread) => (
+                            <button
+                              key={thread.id}
+                              onClick={() => {
+                                setIsThreadListOpen(false)
+                                navigate({
+                                  to: '/channels/$serverId/$channelId',
+                                  params: { serverId, channelId: thread.id },
+                                })
+                              }}
+                              className={cn(
+                                'flex w-full items-center justify-between rounded-xl border border-border bg-background px-4 py-4 text-left transition-colors hover:bg-accent/20',
+                                thread.id === channelId && 'border-primary/60',
+                              )}
+                            >
+                              <div className='min-w-0'>
+                                <div className='truncate text-base font-semibold text-foreground'>
+                                  {thread.name}
+                                </div>
+                                <div className='mt-1 text-sm text-muted-foreground'>
+                                  Open thread
+                                </div>
+                              </div>
+                              <div className='ml-4 flex h-10 w-10 items-center justify-center rounded-full bg-muted text-muted-foreground'>
+                                <Hash className='h-4 w-4' />
+                              </div>
+                            </button>
+                          ))}
+                          {filteredThreadChannels.length === 0 && (
+                            <div className='rounded-xl border border-dashed border-border px-4 py-8 text-center text-sm text-muted-foreground'>
+                              No threads found.
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                )}
+                {canCreateThreads && (
+                  <button
+                    onClick={() => {
+                      setThreadSourceMessage(null)
+                      setThreadName('')
+                      setIsCreateThreadOpen(true)
+                    }}
+                    className='p-2 hover:bg-accent rounded text-muted-foreground hover:text-foreground transition-colors'
+                    title='Create thread'
+                  >
+                    <MessageSquarePlus className='h-5 w-5' />
+                  </button>
+                )}
+                <button className='p-2 hover:bg-accent rounded text-muted-foreground hover:text-foreground transition-colors'>
+                  <Bell className='h-5 w-5' />
+                </button>
+                <button className='p-2 hover:bg-accent rounded text-muted-foreground hover:text-foreground transition-colors'>
+                  <Pin className='h-5 w-5' />
+                </button>
+                <button
+                  onClick={() => setShowMemberList((v) => !v)}
+                  className={cn(
+                    'p-2 rounded text-muted-foreground hover:text-foreground transition-colors',
+                    showMemberList
+                      ? 'bg-accent text-foreground'
+                      : 'hover:bg-accent',
+                  )}
+                >
+                  <Users className='h-5 w-5' />
+                </button>
+                <button className='p-2 hover:bg-accent rounded text-muted-foreground hover:text-foreground transition-colors'>
+                  <Search className='h-5 w-5' />
+                </button>
+              </div>
             </div>
           </div>
         )
@@ -222,6 +471,7 @@ function ChannelPage() {
               mentionCandidates={mentionCandidates}
               currentUsername={me?.username}
               onReplyMessage={handleReplyMessage}
+              onCreateThreadMessage={handleCreateThreadFromMessage}
             />
           ) : (
             <div className='flex items-center justify-center h-full'>
@@ -272,6 +522,54 @@ function ChannelPage() {
           <MemberList guildId={serverId} className='hidden md:flex' />
         )}
       </div>
+
+      <Dialog open={isCreateThreadOpen} onOpenChange={setIsCreateThreadOpen}>
+        <DialogContent className='max-w-sm'>
+          <DialogHeader>
+            <DialogTitle>Create Thread</DialogTitle>
+          </DialogHeader>
+          <form
+            className='space-y-4'
+            onSubmit={(e) => {
+              e.preventDefault()
+              handleCreateThread()
+            }}
+          >
+            {threadSourceMessage?.sourcePreview && (
+              <div className='rounded-md border border-border/70 bg-accent/30 px-3 py-2 text-sm'>
+                <div className='font-medium text-foreground'>
+                  From @{threadSourceMessage.sourceAuthorUsername}
+                </div>
+                <div className='truncate text-xs text-muted-foreground'>
+                  {threadSourceMessage.sourcePreview}
+                </div>
+              </div>
+            )}
+            <Input
+              value={threadName}
+              onChange={(e) => setThreadName(e.target.value)}
+              placeholder='release-planning'
+              maxLength={100}
+              autoFocus
+            />
+            <div className='flex justify-end gap-2'>
+              <Button
+                type='button'
+                variant='ghost'
+                onClick={() => setIsCreateThreadOpen(false)}
+              >
+                Cancel
+              </Button>
+              <Button
+                type='submit'
+                disabled={createChannel.isPending || !threadName.trim()}
+              >
+                {createChannel.isPending ? 'Creating...' : 'Create Thread'}
+              </Button>
+            </div>
+          </form>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }

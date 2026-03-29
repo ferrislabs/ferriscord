@@ -2,7 +2,17 @@ import { ScrollArea } from '@/components/ui/scroll-area'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { cn } from '@/lib/utils'
 import { useState, useCallback, useEffect, useRef } from 'react'
-import { MoreHorizontal, Reply, Smile, Copy, Trash2 } from 'lucide-react'
+import { useNavigate } from '@tanstack/react-router'
+import {
+  MoreHorizontal,
+  Reply,
+  Smile,
+  Copy,
+  Trash2,
+  MessageSquarePlus,
+  ChevronRight,
+  Hash,
+} from 'lucide-react'
 import { FormattedMessage } from '@/components/ui/formatted-message'
 import { MessageReactions } from '@/components/ui/message-reactions'
 import type { Schemas } from '@/api/api.client'
@@ -11,6 +21,8 @@ import { AttachmentList } from '@/components/chat/attachment-list'
 import { InviteEmbed, extractInviteCodes } from '@/components/chat/invite-embed'
 import { containsMention, type MentionCandidate } from '@/lib/mentions'
 import type { ReplyReference } from '@/lib/reply'
+import type { ThreadReference } from '@/lib/thread'
+import { useChannelMessages } from '@/lib/queries/message-queries'
 
 interface Message {
   id: string
@@ -24,6 +36,8 @@ interface Message {
   timestamp: string
   isOwn?: boolean
   replyTo?: ReplyReference | null
+  threadNotice?: ThreadReference | null
+  attachedThread?: ThreadReference | null
   reactions?: Array<{
     emoji: string
     count: number
@@ -40,6 +54,7 @@ interface MessageListProps {
   mentionCandidates?: MentionCandidate[]
   currentUsername?: string
   onReplyMessage?: (message: Message) => void
+  onCreateThreadMessage?: (message: Message) => void
 }
 
 function shouldGroupMessages(
@@ -59,6 +74,74 @@ function shouldGroupMessages(
   return timeDiff <= 7 * 60 * 1000 // 7 minutes in milliseconds
 }
 
+function ThreadCard({
+  guildId,
+  thread,
+  compact = false,
+}: {
+  guildId?: string
+  thread: ThreadReference
+  compact?: boolean
+}) {
+  const navigate = useNavigate()
+  const { data: threadMessages = [] } = useChannelMessages(
+    guildId,
+    thread.threadId,
+  )
+  const messageCount = Math.max(threadMessages.length, 1)
+  const latestMessage = threadMessages[threadMessages.length - 1]
+  const latestLabel = latestMessage
+    ? `${latestMessage.author.username} ${latestMessage.content || 'started the thread'}`
+    : thread.sourcePreview
+
+  return (
+    <button
+      type='button'
+      onClick={() => {
+        if (!guildId) return
+        navigate({
+          to: '/channels/$serverId/$channelId',
+          params: { serverId: guildId, channelId: thread.threadId },
+        })
+      }}
+      className={cn(
+        'w-full max-w-[500px] rounded-lg border border-border/80 bg-card/80 px-3 py-2 text-left shadow-sm transition-colors hover:bg-accent/30',
+        compact && 'max-w-[380px]',
+      )}
+    >
+      <div className='flex items-center gap-3'>
+        <div className='truncate text-sm font-semibold text-foreground'>
+          {thread.threadName}
+        </div>
+        <div className='flex shrink-0 items-center gap-1 text-xs font-semibold text-primary'>
+          <span>
+            {messageCount} Message{messageCount > 1 ? 's' : ''}
+          </span>
+          <ChevronRight className='h-3 w-3' />
+        </div>
+      </div>
+      <div className='mt-1 flex items-center gap-2 text-xs text-muted-foreground'>
+        {latestMessage?.author.avatar_url ? (
+          <Avatar className='h-4 w-4 shrink-0'>
+            <AvatarImage
+              src={latestMessage.author.avatar_url}
+              alt={latestMessage.author.username}
+            />
+            <AvatarFallback className='text-[8px]'>
+              {latestMessage.author.username[0]?.toUpperCase() ?? '?'}
+            </AvatarFallback>
+          </Avatar>
+        ) : (
+          <div className='flex h-4 w-4 shrink-0 items-center justify-center rounded-full bg-muted'>
+            <Hash className='h-2.5 w-2.5' />
+          </div>
+        )}
+        <span className='truncate'>{latestLabel}</span>
+      </div>
+    </button>
+  )
+}
+
 function MessageItem({
   message,
   isGrouped,
@@ -68,6 +151,7 @@ function MessageItem({
   mentionCandidates,
   currentUsername,
   onReplyMessage,
+  onCreateThreadMessage,
 }: {
   message: Message
   isGrouped: boolean
@@ -77,6 +161,7 @@ function MessageItem({
   mentionCandidates?: MentionCandidate[]
   currentUsername?: string
   onReplyMessage?: (message: Message) => void
+  onCreateThreadMessage?: (message: Message) => void
 }) {
   const [isHovered, setIsHovered] = useState(false)
   const toggleProfile = useProfileCardStore((s) => s.toggle)
@@ -135,6 +220,39 @@ function MessageItem({
     }
   }
 
+  if (message.threadNotice && !message.threadNotice.sourceMessageId) {
+    return (
+      <div className={cn('px-4 py-1', isGrouped ? 'mt-0.5' : 'mt-4')}>
+        <div className='flex'>
+          <div className='mr-4 w-10 shrink-0'>
+            <div className='ml-5 h-16 w-6 rounded-bl-2xl border-b-2 border-l-2 border-border/70' />
+          </div>
+          <div className='min-w-0 flex-1'>
+            <div className='mb-3 text-[15px] leading-5 text-muted-foreground'>
+              <span className='font-semibold text-foreground'>
+                {message.author.username}
+              </span>{' '}
+              started a thread:{' '}
+              <span className='font-semibold text-foreground'>
+                {message.threadNotice.threadName}
+              </span>
+              . See all{' '}
+              <span className='font-semibold text-foreground'>threads</span>.
+              <span className='ml-2 text-xs text-muted-foreground'>
+                {formatTime(message.timestamp)}
+              </span>
+            </div>
+            <ThreadCard
+              guildId={guildId}
+              thread={message.threadNotice}
+              compact
+            />
+          </div>
+        </div>
+      </div>
+    )
+  }
+
   return (
     <div
       className={cn(
@@ -160,6 +278,15 @@ function MessageItem({
           >
             <Reply className='w-4 h-4' />
           </button>
+          {onCreateThreadMessage && !message.threadNotice && (
+            <button
+              className='p-1.5 text-muted-foreground transition-colors hover:bg-accent hover:text-foreground'
+              onClick={() => onCreateThreadMessage(message)}
+              title='Create thread'
+            >
+              <MessageSquarePlus className='w-4 h-4' />
+            </button>
+          )}
           <button className='p-1.5 text-muted-foreground transition-colors hover:bg-accent hover:text-foreground'>
             <Copy className='w-4 h-4' />
           </button>
@@ -257,19 +384,36 @@ function MessageItem({
               </div>
             )}
 
-            <FormattedMessage
-              content={message.content}
-              className={cn(
-                'text-[15px] leading-5 text-foreground',
-                message.replyTo && '-mt-1.5',
-              )}
-              mentionCandidates={mentionCandidates}
-              guildId={guildId}
-              currentUsername={currentUsername}
-            />
+            {(!message.threadNotice ||
+              message.threadNotice.sourceMessageId) && (
+              <FormattedMessage
+                content={message.content}
+                className={cn(
+                  'text-[15px] leading-5 text-foreground',
+                  message.replyTo && '-mt-1.5',
+                )}
+                mentionCandidates={mentionCandidates}
+                guildId={guildId}
+                currentUsername={currentUsername}
+              />
+            )}
 
             {message.attachments && (
               <AttachmentList attachments={message.attachments} />
+            )}
+
+            {message.attachedThread && (
+              <div className='mt-2 ml-[-36px] flex'>
+                <div className='mr-2 w-8 shrink-0'>
+                  <div className='h-8 w-8 rounded-bl-xl border-b-2 border-l-2 border-border/70' />
+                </div>
+                <div className='min-w-0 flex-1'>
+                  <ThreadCard
+                    guildId={guildId}
+                    thread={message.attachedThread}
+                  />
+                </div>
+              </div>
             )}
 
             {extractInviteCodes(message.content).map((code) => (
@@ -323,9 +467,27 @@ export function MessageList({
   mentionCandidates,
   currentUsername,
   onReplyMessage,
+  onCreateThreadMessage,
 }: MessageListProps) {
   const bottomRef = useRef<HTMLDivElement>(null)
   const isFirstRender = useRef(true)
+
+  const threadBySourceMessageId = new Map<string, ThreadReference>()
+  for (const message of messages) {
+    if (message.threadNotice?.sourceMessageId) {
+      threadBySourceMessageId.set(
+        message.threadNotice.sourceMessageId,
+        message.threadNotice,
+      )
+    }
+  }
+
+  const displayMessages = messages
+    .filter((message) => !message.threadNotice?.sourceMessageId)
+    .map((message) => ({
+      ...message,
+      attachedThread: threadBySourceMessageId.get(message.id) ?? null,
+    }))
 
   useEffect(() => {
     if (isFirstRender.current) {
@@ -334,9 +496,9 @@ export function MessageList({
     } else {
       bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
     }
-  }, [messages.length])
+  }, [displayMessages.length])
 
-  if (messages.length === 0) {
+  if (displayMessages.length === 0) {
     return (
       <div className='flex-1 flex items-center justify-center'>
         <div className='text-center text-muted-foreground'>
@@ -374,8 +536,8 @@ export function MessageList({
           </div>
         </div>
 
-        {messages.map((message, index) => {
-          const previousMessage = index > 0 ? messages[index - 1] : null
+        {displayMessages.map((message, index) => {
+          const previousMessage = index > 0 ? displayMessages[index - 1] : null
           const isGrouped = shouldGroupMessages(message, previousMessage)
 
           const messageDate = new Date(message.timestamp).toDateString()
@@ -386,7 +548,9 @@ export function MessageList({
           }
 
           const nextMessage =
-            index < messages.length - 1 ? messages[index + 1] : null
+            index < displayMessages.length - 1
+              ? displayMessages[index + 1]
+              : null
           const showTimestamp =
             !nextMessage || !shouldGroupMessages(nextMessage, message)
 
@@ -411,6 +575,7 @@ export function MessageList({
                 mentionCandidates={mentionCandidates}
                 currentUsername={currentUsername}
                 onReplyMessage={onReplyMessage}
+                onCreateThreadMessage={onCreateThreadMessage}
               />
             </div>
           )

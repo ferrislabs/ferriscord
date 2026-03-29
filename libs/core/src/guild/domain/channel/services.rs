@@ -6,9 +6,7 @@ use ferriscord_entities::{
 use ferriscord_permission::{Permissions, require_permission};
 
 use crate::guild::domain::{
-    common::build_permission_context,
-    errors::CoreError,
-    guild::ports::GuildPort,
+    common::build_permission_context, errors::CoreError, guild::ports::GuildPort,
 };
 
 use super::{
@@ -47,9 +45,17 @@ where
                 .channel_repository
                 .find_by_id(parent_id)
                 .await?
-                .ok_or_else(|| CoreError::ChannelNotFound { channel_id: parent_id.clone() })?;
+                .ok_or_else(|| CoreError::ChannelNotFound {
+                    channel_id: parent_id.clone(),
+                })?;
 
-            if parent.kind != ChannelKind::Category {
+            let valid_parent = match parent.kind {
+                ChannelKind::Category => true,
+                ChannelKind::Text => input.kind == ChannelKind::Text,
+                _ => false,
+            };
+
+            if !valid_parent {
                 return Err(CoreError::InvalidChannelParent);
             }
 
@@ -62,7 +68,12 @@ where
             Some(p) => p,
             None => {
                 let channels = self.channel_repository.list_by_guild(&guild_id).await?;
-                channels.iter().map(|c| c.position).max().map(|m| m + 1).unwrap_or(0)
+                channels
+                    .iter()
+                    .map(|c| c.position)
+                    .max()
+                    .map(|m| m + 1)
+                    .unwrap_or(0)
             }
         };
 
@@ -77,7 +88,9 @@ where
         self.guild_repository
             .find_by_id(&guild_id)
             .await?
-            .ok_or_else(|| CoreError::GuildNotFound { guild_id: guild_id.clone() })?;
+            .ok_or_else(|| CoreError::GuildNotFound {
+                guild_id: guild_id.clone(),
+            })?;
 
         self.channel_repository.list_by_guild(&guild_id).await
     }
@@ -99,10 +112,14 @@ where
             .channel_repository
             .find_by_id(&channel_id)
             .await?
-            .ok_or_else(|| CoreError::ChannelNotFound { channel_id: channel_id.clone() })?;
+            .ok_or_else(|| CoreError::ChannelNotFound {
+                channel_id: channel_id.clone(),
+            })?;
 
         if channel.guild_id.as_ref() != Some(&guild_id) {
-            return Err(CoreError::ChannelNotFound { channel_id: channel_id.clone() });
+            return Err(CoreError::ChannelNotFound {
+                channel_id: channel_id.clone(),
+            });
         }
 
         // Validate parent if provided
@@ -111,9 +128,17 @@ where
                 .channel_repository
                 .find_by_id(parent_id)
                 .await?
-                .ok_or_else(|| CoreError::ChannelNotFound { channel_id: parent_id.clone() })?;
+                .ok_or_else(|| CoreError::ChannelNotFound {
+                    channel_id: parent_id.clone(),
+                })?;
 
-            if parent.kind != ChannelKind::Category {
+            let valid_parent = match parent.kind {
+                ChannelKind::Category => true,
+                ChannelKind::Text => channel.kind == ChannelKind::Text,
+                _ => false,
+            };
+
+            if !valid_parent {
                 return Err(CoreError::InvalidChannelParent);
             }
 
@@ -122,6 +147,8 @@ where
             }
         }
 
-        self.channel_repository.update_channel(&channel_id, input).await
+        self.channel_repository
+            .update_channel(&channel_id, input)
+            .await
     }
 }
