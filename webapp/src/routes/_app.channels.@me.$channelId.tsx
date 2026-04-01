@@ -42,17 +42,17 @@ function DMConversationPage() {
 
   useWsRoom(`dm:${channelId}`)
 
-  const { data: dms = [] } = useListDms()
-  const { data: messages = [], isLoading } = useDmMessages(channelId)
-  const sendMessage = useSendDmMessage(channelId)
-  const { mutate: deleteMessage } = useDeleteDmMessage(channelId)
   const { data: me } = useGetMe()
+  const { data: dms = [] } = useListDms()
+  const dm = dms.find((d) => d.id === channelId)
+  const { data: messages = [], isLoading } = useDmMessages(channelId, me?.id)
+  const sendMessage = useSendDmMessage(channelId, dm?.recipient.id)
+  const { mutate: deleteMessage } = useDeleteDmMessage(channelId)
   const bottomRef = useRef<HTMLDivElement>(null)
   const typingUsers = useTypingStore(
     (state) => state.typingByRoom[`dm:${channelId}`] ?? EMPTY_TYPING_USERS,
   )
 
-  const dm = dms.find((d) => d.id === channelId)
   const displayName = dm
     ? (dm.recipient.display_name ?? dm.recipient.username)
     : '...'

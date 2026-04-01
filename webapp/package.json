@@ -11,6 +11,9 @@
   },
   "dependencies": {
     "@axa-fr/react-oidc": "^7.26.0",
+    "@noble/ciphers": "^1.2.1",
+    "@noble/curves": "^1.8.2",
+    "@noble/hashes": "^1.7.2",
     "@dnd-kit/core": "^6.3.1",
     "@dnd-kit/sortable": "^10.0.0",
     "@dnd-kit/utilities": "^3.2.2",

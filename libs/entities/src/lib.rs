@@ -7,6 +7,7 @@ use uuid::{NoContext, Timestamp, Uuid};
 
 pub mod attachment;
 pub mod channel;
+pub mod crypto;
 pub mod friendship;
 pub mod guild;
 pub mod invite;

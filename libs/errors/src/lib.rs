@@ -16,6 +16,12 @@ pub enum ApiError {
 
     #[error("invalid token: {message}")]
     InvalidToken { message: String },
+
+    #[error("not found: {message}")]
+    NotFound { message: String },
+
+    #[error("bad request: {message}")]
+    BadRequest { message: String },
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, ToSchema)]
@@ -63,6 +69,26 @@ impl IntoResponse for ApiError {
                 Json(ApiErrorResponse {
                     code: "E_UNAUTHORIZED".to_string(),
                     status: 401,
+                    message,
+                }),
+            )
+                .into_response(),
+
+            ApiError::NotFound { message } => (
+                StatusCode::NOT_FOUND,
+                Json(ApiErrorResponse {
+                    code: "E_NOT_FOUND".to_string(),
+                    status: 404,
+                    message,
+                }),
+            )
+                .into_response(),
+
+            ApiError::BadRequest { message } => (
+                StatusCode::BAD_REQUEST,
+                Json(ApiErrorResponse {
+                    code: "E_BAD_REQUEST".to_string(),
+                    status: 400,
                     message,
                 }),
             )

@@ -45,5 +45,6 @@ pub struct Attachment {
     pub storage_key: String,
     /// Pre-signed or public URL, populated by the handler.
     pub url: String,
+    pub encrypted: bool,
     pub created_at: DateTime<Utc>,
 }

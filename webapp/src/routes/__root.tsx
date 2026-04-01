@@ -1,5 +1,6 @@
 import { createRootRoute, Outlet } from '@tanstack/react-router'
 import { AuthSync } from '@/components/auth/auth-sync'
+import { CryptoSync } from '@/components/auth/crypto-sync'
 import { useWsEvents } from '@/hooks/use-ws-events'
 
 function WsSync() {
@@ -12,6 +13,7 @@ export const Route = createRootRoute({
     return (
       <>
         <AuthSync />
+        <CryptoSync />
         <WsSync />
         <Outlet />
       </>

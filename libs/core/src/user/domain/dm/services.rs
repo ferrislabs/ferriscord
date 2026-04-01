@@ -3,7 +3,7 @@ use uuid::Uuid;
 
 use crate::user::domain::{
     common::CoreError,
-    dm::ports::{DmAttachmentInput, DmRepository, DmService},
+    dm::ports::{DmAttachmentInput, DmEncryptionMeta, DmRepository, DmService},
 };
 
 #[derive(Clone)]
@@ -40,8 +40,9 @@ impl<D: DmRepository> DmService for DmServiceImpl<D> {
         channel_id: Uuid,
         content: String,
         attachments: Vec<DmAttachmentInput>,
+        encryption: DmEncryptionMeta,
     ) -> Result<Message, CoreError> {
-        self.dm_repository.send_message(caller_sub, channel_id, content, attachments).await
+        self.dm_repository.send_message(caller_sub, channel_id, content, attachments, encryption).await
     }
 
     async fn delete_message(

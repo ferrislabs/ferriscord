@@ -6,12 +6,16 @@ use axum::{
     response::Response,
 };
 use ferriscord_auth::AuthRepository;
-use ferriscord_core::guild::domain::errors::CoreError;
+use ferriscord_core::{
+    crypto::domain::ports::CryptoError,
+    guild::domain::errors::CoreError,
+};
 use ferriscord_core::user::domain::user::ports::UserService;
 use ferriscord_error::ApiError;
 use ferriscord_server::http::extract_token_from_bearer;
 use tracing::error;
 
+pub mod crypto;
 pub mod dm;
 pub mod guild;
 pub mod user;
@@ -24,6 +28,21 @@ pub(crate) fn map_core_error(error: CoreError) -> ApiError {
         _ => ApiError::Unknown {
             message: error.to_string(),
         },
+    }
+}
+
+pub(crate) fn map_crypto_error(error: CryptoError) -> ApiError {
+    match error {
+        CryptoError::NotFound => ApiError::NotFound {
+            message: "not found".into(),
+        },
+        CryptoError::AlreadyExists => ApiError::BadRequest {
+            message: "already exists".into(),
+        },
+        CryptoError::NoPreKeysAvailable => ApiError::NotFound {
+            message: "no pre-keys available".into(),
+        },
+        CryptoError::Internal { message } => ApiError::Unknown { message },
     }
 }
 
@@ -68,6 +87,7 @@ pub fn handlers_routes(state: crate::state::AppState) -> Router<crate::state::Ap
         .merge(guild::guild_routes(state.clone()))
         .merge(user::user_routes(state.clone()))
         .merge(dm::dm_routes(state.clone()))
+        .merge(crypto::crypto_routes(state.clone()))
         .layer(middleware::from_fn_with_state(
             state.clone(),
             service_auth_middleware,

@@ -12,7 +12,7 @@ use crate::guild::domain::{
     guild::ports::GuildPort, member::ports::MemberRepository, role::ports::RoleRepository,
 };
 
-use super::ports::{AttachmentInput, MessagePort, MessageService};
+use super::ports::{AttachmentInput, EncryptionMeta, MessagePort, MessageService};
 
 #[derive(Clone)]
 pub struct MessageServiceImpl<G, Msg, R, M, C>
@@ -71,6 +71,7 @@ where
         channel_id: ChannelId,
         content: String,
         attachments: Vec<AttachmentInput>,
+        encryption: EncryptionMeta,
     ) -> Result<Message, CoreError> {
         let mut permission_context = build_channel_permission_context(
             &self.guild_repository,
@@ -86,7 +87,7 @@ where
         require_permission!(permission_context, Permissions::SEND_MESSAGES);
 
         self.message_repository
-            .insert(&channel_id, identity.id(), content, attachments)
+            .insert(&channel_id, identity.id(), content, attachments, encryption)
             .await
     }
 

@@ -50,6 +50,10 @@ pub struct Message {
     pub author: MessageAuthor,
     pub content: String,
     pub attachments: Vec<Attachment>,
+    pub encrypted: bool,
+    pub encryption_version: i32,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub sender_key_generation: Option<i32>,
     pub edited_at: Option<DateTime<Utc>>,
     pub created_at: DateTime<Utc>,
 }

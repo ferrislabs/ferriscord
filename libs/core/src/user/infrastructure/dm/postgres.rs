@@ -13,7 +13,7 @@ use uuid::Uuid;
 
 use crate::user::domain::{
     common::CoreError,
-    dm::ports::{DmAttachmentInput, DmRepository},
+    dm::ports::{DmAttachmentInput, DmEncryptionMeta, DmRepository},
 };
 
 #[derive(Clone)]
@@ -62,6 +62,9 @@ struct MessageRow {
     author_username: String,
     author_avatar_url: Option<String>,
     content: String,
+    encrypted: bool,
+    encryption_version: i32,
+    sender_key_generation: Option<i32>,
     edited_at: Option<DateTime<Utc>>,
     created_at: DateTime<Utc>,
 }
@@ -74,6 +77,7 @@ struct AttachmentRow {
     content_type: String,
     size_bytes: i64,
     storage_key: String,
+    encrypted: bool,
     created_at: DateTime<Utc>,
 }
 
@@ -88,6 +92,9 @@ fn row_to_message(row: MessageRow, attachments: Vec<Attachment>) -> Message {
         },
         content: row.content,
         attachments,
+        encrypted: row.encrypted,
+        encryption_version: row.encryption_version,
+        sender_key_generation: row.sender_key_generation,
         edited_at: row.edited_at,
         created_at: row.created_at,
     }
@@ -101,6 +108,9 @@ const SELECT_MESSAGES_SQL: &str = r#"
         u.username AS author_username,
         u.avatar_url AS author_avatar_url,
         m.content,
+        m.encrypted,
+        m.encryption_version,
+        m.sender_key_generation,
         m.edited_at,
         m.created_at
     FROM messages m
@@ -116,7 +126,7 @@ async fn fetch_attachments(
     }
     sqlx::query_as::<_, AttachmentRow>(
         r#"
-        SELECT id, message_id, filename, content_type, size_bytes, storage_key, created_at
+        SELECT id, message_id, filename, content_type, size_bytes, storage_key, encrypted, created_at
         FROM attachments
         WHERE message_id = ANY($1)
         ORDER BY created_at ASC
@@ -355,6 +365,7 @@ impl DmRepository for PostgresDmRepository {
                 size_bytes: ar.size_bytes,
                 storage_key: ar.storage_key,
                 url: String::new(),
+                encrypted: ar.encrypted,
                 created_at: ar.created_at,
             };
             att_map.entry(ar.message_id).or_default().push(att);
@@ -375,6 +386,7 @@ impl DmRepository for PostgresDmRepository {
         channel_id: Uuid,
         content: String,
         attachments: Vec<DmAttachmentInput>,
+        encryption: DmEncryptionMeta,
     ) -> Result<Message, CoreError> {
         // Verify participant
         let is_participant: Option<(bool,)> = sqlx::query_as(
@@ -404,8 +416,8 @@ impl DmRepository for PostgresDmRepository {
 
         let rows_affected = sqlx::query(
             r#"
-            INSERT INTO messages (id, channel_id, author_id, content, created_at)
-            SELECT $1, $2, id, $3, $4 FROM users WHERE oauth_sub = $5
+            INSERT INTO messages (id, channel_id, author_id, content, encrypted, encryption_version, created_at)
+            SELECT $1, $2, id, $3, $6, $7, $4 FROM users WHERE oauth_sub = $5
             "#,
         )
         .bind(id)
@@ -413,6 +425,8 @@ impl DmRepository for PostgresDmRepository {
         .bind(&content)
         .bind(now)
         .bind(caller_sub)
+        .bind(encryption.encrypted)
+        .bind(encryption.encryption_version)
         .execute(&mut *tx)
         .await
         .map_err(|e| {
@@ -471,6 +485,7 @@ impl DmRepository for PostgresDmRepository {
                 size_bytes: ar.size_bytes,
                 storage_key: ar.storage_key,
                 url: String::new(),
+                encrypted: ar.encrypted,
                 created_at: ar.created_at,
             })
             .collect();

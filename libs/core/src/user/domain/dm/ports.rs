@@ -17,6 +17,13 @@ pub struct DmAttachmentInput {
     pub storage_key: String,
 }
 
+/// E2EE encryption metadata attached to a DM message.
+#[derive(Debug, Clone, Default)]
+pub struct DmEncryptionMeta {
+    pub encrypted: bool,
+    pub encryption_version: i32,
+}
+
 pub trait DmRepository: Send + Sync {
     fn create_or_get(
         &self,
@@ -43,6 +50,7 @@ pub trait DmRepository: Send + Sync {
         channel_id: Uuid,
         content: String,
         attachments: Vec<DmAttachmentInput>,
+        encryption: DmEncryptionMeta,
     ) -> impl Future<Output = Result<Message, CoreError>> + Send;
 
     fn delete_message(
@@ -79,6 +87,7 @@ pub trait DmService: Send + Sync {
         channel_id: Uuid,
         content: String,
         attachments: Vec<DmAttachmentInput>,
+        encryption: DmEncryptionMeta,
     ) -> impl Future<Output = Result<Message, CoreError>> + Send;
 
     fn delete_message(
