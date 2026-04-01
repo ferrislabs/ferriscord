@@ -104,9 +104,11 @@ export namespace Schemas {
     user_limit?: (number | null) | undefined
   }
   export type CreateDmSessionRequest = {
-    device_id: string
     encrypted_ratchet_state: string
     ephemeral_public_key: string
+    owner_device_id: string
+    peer_device_id: string
+    peer_user_id: string
   }
   export type CreateGuildRequest = { name: string }
   export type CreateInviteRequest = Partial<{
@@ -139,6 +141,7 @@ export namespace Schemas {
   export type DistributeSenderKeyRequest = {
     distributions: Array<SenderKeyDistributionUpload>
     generation: number
+    sender_device_id: string
   }
   export type FriendUser = {
     avatar_url?: (string | null) | undefined
@@ -149,11 +152,13 @@ export namespace Schemas {
   export type DmChannel = { created_at: string; id: Id; recipient: FriendUser }
   export type DmSessionInfo = {
     channel_id: string
-    device_id: string
     encrypted_ratchet_state: string
     ephemeral_public_key: string
     generation: number
     id: string
+    owner_device_id: string
+    peer_device_id: string
+    peer_user_id: string
   }
   export type FriendshipStatus = 'pending' | 'accepted' | 'declined'
   export type Friendship = {
@@ -227,6 +232,7 @@ export namespace Schemas {
     version: number
   }
   export type KeyBundle = {
+    device_id: string
     identity_key: string
     onetime_prekey?: (string | null) | undefined
     onetime_prekey_id?: (string | null) | undefined
@@ -249,6 +255,7 @@ export namespace Schemas {
     encrypted: boolean
     encryption_version: number
     id: Id
+    sender_device_id?: (string | null) | undefined
     sender_key_generation?: (number | null) | undefined
   }
   export type MessageId = Id
@@ -282,6 +289,7 @@ export namespace Schemas {
     encrypted_key: string
     generation: number
     nonce: string
+    sender_device_id: string
     sender_key_id: string
     sender_user_id: string
   }
@@ -295,6 +303,9 @@ export namespace Schemas {
   export type UpdateDmSessionRequest = {
     encrypted_ratchet_state: string
     ephemeral_public_key: string
+    owner_device_id: string
+    peer_device_id: string
+    peer_user_id: string
   }
   export type UpdateRoleRequest = {
     color: number
@@ -309,9 +320,11 @@ export namespace Schemas {
     salt: string
   }
   export type UploadOneTimePreKeysRequest = {
+    device_id: string
     prekeys: Array<OneTimePreKeyUpload>
   }
   export type UploadSignedPreKeyRequest = {
+    device_id: string
     public_key: string
     signature: string
   }
@@ -358,7 +371,12 @@ export namespace Endpoints {
     path: '/channels/@me/{channel_id}/messages'
     requestFormat: 'json'
     parameters: {
-      path: { channel_id: string; before: string | null; limit: number | null }
+      path: {
+        channel_id: string
+        device_id: string | null
+        before: string | null
+        limit: number | null
+      }
     }
     responses: {
       200: Array<Schemas.Message>
@@ -437,10 +455,14 @@ export namespace Endpoints {
   }
   export type get_Get_dm_session_handler = {
     method: 'GET'
-    path: '/dm/{channel_id}/session/{device_id}'
+    path: '/dm/{channel_id}/session/{owner_device_id}/{peer_device_id}'
     requestFormat: 'json'
     parameters: {
-      path: { channel_id: string; device_id: string }
+      path: {
+        channel_id: string
+        owner_device_id: string
+        peer_device_id: string
+      }
     }
     responses: { 200: Schemas.DmSessionInfo; 404: Schemas.ApiError }
   }
@@ -893,7 +915,7 @@ export namespace Endpoints {
     parameters: {
       path: { user_id: string }
     }
-    responses: { 200: Schemas.KeyBundle; 404: Schemas.ApiError }
+    responses: { 200: Array<Schemas.KeyBundle>; 404: Schemas.ApiError }
   }
   export type get_List_devices_handler = {
     method: 'GET'
@@ -1017,7 +1039,7 @@ export type EndpointByMethod = {
     '/channels/@me': Endpoints.get_List_dms_handler
     '/channels/@me/{channel_id}/messages': Endpoints.get_Get_dm_messages_handler
     '/channels/{channel_id}/sender-keys/@me': Endpoints.get_Get_sender_keys_handler
-    '/dm/{channel_id}/session/{device_id}': Endpoints.get_Get_dm_session_handler
+    '/dm/{channel_id}/session/{owner_device_id}/{peer_device_id}': Endpoints.get_Get_dm_session_handler
     '/friends': Endpoints.get_List_friends_handler
     '/friends/requests/incoming': Endpoints.get_List_incoming_handler
     '/friends/requests/outgoing': Endpoints.get_List_outgoing_handler

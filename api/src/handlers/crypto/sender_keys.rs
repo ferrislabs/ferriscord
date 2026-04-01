@@ -53,7 +53,13 @@ pub async fn distribute_sender_keys_handler(
 
     state
         .crypto_repository
-        .distribute_sender_key(channel_id, user.id.0, body.generation, distributions)
+        .distribute_sender_key(
+            channel_id,
+            user.id.0,
+            body.sender_device_id,
+            body.generation,
+            distributions,
+        )
         .await
         .map_err(map_crypto_error)?;
 
@@ -65,6 +71,7 @@ pub async fn distribute_sender_keys_handler(
         "data": {
             "channel_id": channel_id,
             "sender_user_id": user.id.0,
+            "sender_device_id": body.sender_device_id,
             "generation": body.generation,
         }
     })) {

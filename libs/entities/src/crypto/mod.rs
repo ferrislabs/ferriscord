@@ -21,6 +21,7 @@ pub struct DeviceInfo {
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize, ToSchema)]
 pub struct KeyBundle {
     pub user_id: Uuid,
+    pub device_id: Uuid,
     #[serde(with = "base64_bytes")]
     #[schema(value_type = String, format = "byte")]
     pub identity_key: Vec<u8>,
@@ -73,6 +74,7 @@ pub struct KeyBackup {
 pub struct SenderKeyDistribution {
     pub sender_key_id: Uuid,
     pub sender_user_id: Uuid,
+    pub sender_device_id: Uuid,
     pub channel_id: Uuid,
     pub generation: i32,
     #[serde(with = "base64_bytes")]
@@ -89,7 +91,9 @@ pub struct SenderKeyDistribution {
 pub struct DmSessionInfo {
     pub id: Uuid,
     pub channel_id: Uuid,
-    pub device_id: Uuid,
+    pub owner_device_id: Uuid,
+    pub peer_device_id: Uuid,
+    pub peer_user_id: Uuid,
     #[serde(with = "base64_bytes")]
     #[schema(value_type = String, format = "byte")]
     pub encrypted_ratchet_state: Vec<u8>,
@@ -118,6 +122,7 @@ pub struct RegisterDeviceRequest {
 
 #[derive(Debug, Deserialize, ToSchema)]
 pub struct UploadSignedPreKeyRequest {
+    pub device_id: Uuid,
     #[serde(with = "base64_bytes")]
     #[schema(value_type = String, format = "byte")]
     pub public_key: Vec<u8>,
@@ -128,6 +133,7 @@ pub struct UploadSignedPreKeyRequest {
 
 #[derive(Debug, Deserialize, ToSchema)]
 pub struct UploadOneTimePreKeysRequest {
+    pub device_id: Uuid,
     pub prekeys: Vec<OneTimePreKeyUpload>,
 }
 
@@ -156,6 +162,7 @@ pub struct UploadKeyBackupRequest {
 
 #[derive(Debug, Deserialize, ToSchema)]
 pub struct DistributeSenderKeyRequest {
+    pub sender_device_id: Uuid,
     pub generation: i32,
     pub distributions: Vec<SenderKeyDistributionUpload>,
 }
@@ -173,7 +180,9 @@ pub struct SenderKeyDistributionUpload {
 
 #[derive(Debug, Deserialize, ToSchema)]
 pub struct CreateDmSessionRequest {
-    pub device_id: Uuid,
+    pub owner_device_id: Uuid,
+    pub peer_device_id: Uuid,
+    pub peer_user_id: Uuid,
     #[serde(with = "base64_bytes")]
     #[schema(value_type = String, format = "byte")]
     pub encrypted_ratchet_state: Vec<u8>,
@@ -184,6 +193,9 @@ pub struct CreateDmSessionRequest {
 
 #[derive(Debug, Deserialize, ToSchema)]
 pub struct UpdateDmSessionRequest {
+    pub owner_device_id: Uuid,
+    pub peer_device_id: Uuid,
+    pub peer_user_id: Uuid,
     #[serde(with = "base64_bytes")]
     #[schema(value_type = String, format = "byte")]
     pub encrypted_ratchet_state: Vec<u8>,

@@ -1,7 +1,6 @@
 use axum::{Extension, Json, extract::State};
 use axum_extra::routing::TypedPath;
 use ferriscord_auth::Identity;
-use ferriscord_core::user::domain::user::ports::UserService;
 use ferriscord_entities::crypto::{UploadOneTimePreKeysRequest, UploadSignedPreKeyRequest};
 use ferriscord_error::ApiError;
 use ferriscord_server::http::response::Response;
@@ -37,19 +36,12 @@ pub struct SignedPreKeyResponse {
 pub async fn upload_signed_prekey_handler(
     _: SignedPreKeyRoute,
     State(state): State<AppState>,
-    Extension(identity): Extension<Identity>,
+    Extension(_identity): Extension<Identity>,
     Json(body): Json<UploadSignedPreKeyRequest>,
 ) -> Result<Response<SignedPreKeyResponse>, ApiError> {
-    let user = state
-        .user_service
-        .get_me(identity.id())
-        .await
-        .map_err(|e| ApiError::Unknown { message: e.to_string() })?
-        .ok_or_else(|| ApiError::NotFound { message: "user not found".into() })?;
-
     let id = state
         .crypto_repository
-        .upsert_signed_prekey(user.id.0, body.public_key, body.signature)
+        .upsert_signed_prekey(body.device_id, body.public_key, body.signature)
         .await
         .map_err(map_crypto_error)?;
 
@@ -82,27 +74,20 @@ pub struct OneTimePreKeysResponse {
 pub async fn upload_onetime_prekeys_handler(
     _: OneTimePreKeysRoute,
     State(state): State<AppState>,
-    Extension(identity): Extension<Identity>,
+    Extension(_identity): Extension<Identity>,
     Json(body): Json<UploadOneTimePreKeysRequest>,
 ) -> Result<Response<OneTimePreKeysResponse>, ApiError> {
-    let user = state
-        .user_service
-        .get_me(identity.id())
-        .await
-        .map_err(|e| ApiError::Unknown { message: e.to_string() })?
-        .ok_or_else(|| ApiError::NotFound { message: "user not found".into() })?;
-
     let prekeys: Vec<Vec<u8>> = body.prekeys.into_iter().map(|p| p.public_key).collect();
     let ids = state
         .crypto_repository
-        .upload_onetime_prekeys(user.id.0, prekeys)
+        .upload_onetime_prekeys(body.device_id, prekeys)
         .await
         .map_err(map_crypto_error)?;
 
     let uploaded = ids.len() as u32;
     let available = state
         .crypto_repository
-        .count_available_onetime_prekeys(user.id.0)
+        .count_available_onetime_prekeys(body.device_id)
         .await
         .map_err(map_crypto_error)?;
 

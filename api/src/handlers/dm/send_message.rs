@@ -3,7 +3,9 @@ use std::time::Duration;
 use axum::{Extension, extract::State};
 use axum_extra::routing::TypedPath;
 use ferriscord_auth::Identity;
-use ferriscord_core::user::domain::dm::ports::{DmAttachmentInput, DmEncryptionMeta, DmService};
+use ferriscord_core::user::domain::dm::ports::{
+    DmAttachmentInput, DmDevicePayload, DmEncryptionMeta, DmService,
+};
 use ferriscord_entities::{Id, attachment::AttachmentId, message::Message};
 use ferriscord_error::ApiError;
 use ferriscord_server::http::response::Response;
@@ -13,6 +15,12 @@ use tracing::error;
 use uuid::Uuid;
 
 use crate::state::AppState;
+
+#[derive(Debug, Deserialize)]
+struct DevicePayloadUpload {
+    target_device_id: Uuid,
+    ciphertext: String,
+}
 
 fn dm_room(channel_id: Uuid) -> String {
     format!("dm:{}", channel_id)
@@ -64,6 +72,24 @@ pub async fn send_dm_message_handler(
             "encryption_version" => {
                 let val = field.text().await.unwrap_or_default();
                 encryption.encryption_version = val.parse().unwrap_or(0);
+            }
+            "sender_device_id" => {
+                let val = field.text().await.unwrap_or_default();
+                encryption.sender_device_id = Uuid::parse_str(&val).ok();
+            }
+            "device_payloads" => {
+                let val = field.text().await.unwrap_or_default();
+                let payloads: Vec<DevicePayloadUpload> =
+                    serde_json::from_str(&val).map_err(|e| ApiError::Unknown {
+                        message: format!("failed to parse device_payloads: {}", e),
+                    })?;
+                encryption.device_payloads = payloads
+                    .into_iter()
+                    .map(|payload| DmDevicePayload {
+                        target_device_id: payload.target_device_id,
+                        ciphertext: payload.ciphertext,
+                    })
+                    .collect();
             }
             "files" => {
                 let filename = field

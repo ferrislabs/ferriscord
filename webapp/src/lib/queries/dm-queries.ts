@@ -26,7 +26,10 @@ const DMS_KEY = [{ _id: '/channels/@me' }]
 //   1. By message ID (set after mutation returns the created message)
 //   2. By channel "pending" slot (set before sending, consumed after)
 const sentPlaintextById = new Map<string, string>()
-const pendingPlaintext = new Map<string, string>() // channelId → plaintext
+const pendingPlaintext = new Map<
+  string,
+  { plaintext: string; encryptedContent: string }
+>() // channelId → last sent encrypted payload
 
 async function getCachedPlaintext(
   messageId: string,
@@ -100,10 +103,11 @@ export function useListDms() {
 export function useDmMessages(channelId: string, currentUserId?: string) {
   const enabled = useAuthEnabled()
   const isE2eeSetup = useCryptoStore((s) => s.setupStatus === 'setup')
+  const currentDeviceId = useCryptoStore((s) => s.deviceId)
 
   const baseQuery = api.get('/channels/@me/{channel_id}/messages', {
     path: { channel_id: channelId },
-    query: { limit: 50 },
+    query: { limit: 50, device_id: currentDeviceId ?? undefined },
   })
   const selfUserId = currentUserId ?? useCryptoStore.getState().userId ?? undefined
 
@@ -114,54 +118,95 @@ export function useDmMessages(channelId: string, currentUserId?: string) {
       const messages: import('@/api/api.client').Schemas.Message[] =
         await baseQuery.queryOptions.queryFn(ctx)
 
-      return Promise.all(
-        messages.map(async (msg: import('@/api/api.client').Schemas.Message) => {
-          if (!isEncryptedMessage(msg)) return msg
+      const hydratedMessages: import('@/api/api.client').Schemas.Message[] = []
 
-          const cached = await getCachedPlaintext(msg.id, msg.content)
-          if (cached !== undefined) {
-            return { ...msg, content: cached }
-          }
+      for (const msg of messages) {
+        if (!isEncryptedMessage(msg)) {
+          hydratedMessages.push(msg)
+          continue
+        }
 
-          if (selfUserId && msg.author.id === selfUserId) {
-            // For the latest sent message, also check the pending in-memory slot
-            const pending = pendingPlaintext.get(channelId)
-            if (pending !== undefined) {
-              // Consume pending and promote to the persistent ID cache
-              await cacheSentPlaintext(pending, {
-                messageId: msg.id,
-                encryptedContent: msg.content,
-              })
-              pendingPlaintext.delete(channelId)
-              return { ...msg, content: pending }
-            }
+        const isOwnMessage = !!selfUserId && msg.author.id === selfUserId
+        const isOwnCurrentDeviceMessage =
+          isOwnMessage && (!msg.sender_device_id || msg.sender_device_id === currentDeviceId)
 
-            // No cache at all — cannot decrypt own message
-            return { ...msg, content: '🔒 Encrypted message (sent by you)' }
-          }
+        const cached = await getCachedPlaintext(msg.id, msg.content)
+        if (cached !== undefined) {
+          hydratedMessages.push({ ...msg, content: cached })
+          continue
+        }
 
-          if (!isE2eeSetup) {
-            return { ...msg, content: '🔒 Encrypted message' }
-          }
-
-          // Decrypt other party's messages
-          try {
-            const decrypted = await decryptDmMessage(
-              channelId,
-              msg.author.id,
-              msg.content,
-            )
-            await cacheSentPlaintext(decrypted, {
+        if (isOwnCurrentDeviceMessage) {
+          // For the latest sent message, also check the pending in-memory slot
+          const pending = pendingPlaintext.get(channelId)
+          if (pending !== undefined && pending.encryptedContent === msg.content) {
+            // Consume pending and promote to the persistent ID cache
+            await cacheSentPlaintext(pending.plaintext, {
               messageId: msg.id,
               encryptedContent: msg.content,
             })
-            return { ...msg, content: decrypted }
-          } catch (err) {
-            console.error('[E2EE] Decryption failed for message', msg.id, err)
-            return { ...msg, content: '🔒 Unable to decrypt message' }
+            pendingPlaintext.delete(channelId)
+            hydratedMessages.push({ ...msg, content: pending.plaintext })
+            continue
           }
-        }),
-      )
+
+          // Same account on another browser/device: try to decrypt before
+          // falling back to the sender placeholder.
+          if (isE2eeSetup) {
+            try {
+              const decrypted = await decryptDmMessage(
+                channelId,
+                msg.author.id,
+                msg.sender_device_id,
+                msg.content,
+              )
+              await cacheSentPlaintext(decrypted, {
+                messageId: msg.id,
+                encryptedContent: msg.content,
+              })
+              hydratedMessages.push({ ...msg, content: decrypted })
+              continue
+            } catch {
+              // Fall through to sender placeholder if this really is our own
+              // local send and no decryptable state exists on this browser.
+            }
+          }
+
+          hydratedMessages.push({
+            ...msg,
+            content: '🔒 Encrypted message (sent by you)',
+          })
+          continue
+        }
+
+        if (!isE2eeSetup) {
+          hydratedMessages.push({ ...msg, content: '🔒 Encrypted message' })
+          continue
+        }
+
+        // DM ratchet state is order-dependent: history must be replayed sequentially.
+        try {
+          const decrypted = await decryptDmMessage(
+            channelId,
+            msg.author.id,
+            msg.sender_device_id,
+            msg.content,
+          )
+          await cacheSentPlaintext(decrypted, {
+            messageId: msg.id,
+            encryptedContent: msg.content,
+          })
+          hydratedMessages.push({ ...msg, content: decrypted })
+        } catch (err) {
+          console.error('[E2EE] Decryption failed for message', msg.id, err)
+          hydratedMessages.push({
+            ...msg,
+            content: '🔒 Unable to decrypt message',
+          })
+        }
+      }
+
+      return hydratedMessages
     },
   })
 }
@@ -187,11 +232,23 @@ export function useSendDmMessage(channelId: string, recipientUserId?: string) {
       let wasEncrypted = false
       if (cryptoState.setupStatus === 'setup' && recipient) {
         try {
-          const { encryptedContent, encryptionVersion } =
+          const { encryptedContent, encryptionVersion, devicePayloads } =
             await encryptDmMessage(channelId, recipient, content)
           formData.append('content', encryptedContent)
           formData.append('encrypted', 'true')
           formData.append('encryption_version', String(encryptionVersion))
+          if (cryptoState.deviceId) {
+            formData.append('sender_device_id', cryptoState.deviceId)
+          }
+          formData.append(
+            'device_payloads',
+            JSON.stringify(
+              devicePayloads.map((payload) => ({
+                target_device_id: payload.targetDeviceId,
+                ciphertext: payload.encryptedContent,
+              })),
+            ),
+          )
           await cacheSentPlaintext(content, { encryptedContent })
           wasEncrypted = true
         } catch (err) {
@@ -200,6 +257,9 @@ export function useSendDmMessage(channelId: string, recipientUserId?: string) {
         }
       } else {
         formData.append('content', content)
+        if (cryptoState.deviceId) {
+          formData.append('sender_device_id', cryptoState.deviceId)
+        }
       }
 
       if (files) {
@@ -208,7 +268,10 @@ export function useSendDmMessage(channelId: string, recipientUserId?: string) {
 
       // Cache plaintext BEFORE sending so it's available when the query re-fetches
       if (wasEncrypted) {
-        pendingPlaintext.set(channelId, content)
+        const encryptedContent = formData.get('content')
+        if (typeof encryptedContent === 'string') {
+          pendingPlaintext.set(channelId, { plaintext: content, encryptedContent })
+        }
       }
 
       const result = await mutationOptions.mutationFn({

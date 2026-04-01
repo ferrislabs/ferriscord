@@ -39,6 +39,7 @@ struct DeviceRow {
 
 #[derive(sqlx::FromRow)]
 struct KeyBundleRow {
+    device_id: Uuid,
     identity_key: Vec<u8>,
     signed_prekey: Vec<u8>,
     signed_prekey_signature: Vec<u8>,
@@ -63,6 +64,7 @@ struct KeyBackupRow {
 struct SenderKeyDistRow {
     sender_key_id: Uuid,
     sender_user_id: Uuid,
+    sender_device_id: Uuid,
     channel_id: Uuid,
     generation: i32,
     encrypted_key: Vec<u8>,
@@ -73,7 +75,9 @@ struct SenderKeyDistRow {
 struct DmSessionRow {
     id: Uuid,
     channel_id: Uuid,
-    device_id: Uuid,
+    owner_device_id: Uuid,
+    peer_device_id: Uuid,
+    peer_user_id: Uuid,
     encrypted_ratchet_state: Vec<u8>,
     ephemeral_public_key: Vec<u8>,
     generation: i32,
@@ -211,36 +215,30 @@ impl CryptoKeyRepository for PostgresCryptoKeyRepository {
 
     async fn upsert_signed_prekey(
         &self,
-        user_id: Uuid,
+        device_id: Uuid,
         public_key: Vec<u8>,
         signature: Vec<u8>,
     ) -> Result<Uuid, CryptoError> {
         let id = Uuid::now_v7();
 
-        // Delete old signed pre-keys for this user, keep only the latest
-        let mut tx = self.pool.begin().await.map_err(map_err)?;
-
-        sqlx::query("DELETE FROM user_signed_prekeys WHERE user_id = $1")
-            .bind(user_id)
-            .execute(&mut *tx)
-            .await
-            .map_err(map_err)?;
-
         sqlx::query(
             r#"
-            INSERT INTO user_signed_prekeys (id, user_id, public_key, signature, created_at)
+            INSERT INTO user_signed_prekeys (id, device_id, public_key, signature, created_at)
             VALUES ($1, $2, $3, $4, now())
+            ON CONFLICT (device_id) DO UPDATE SET
+                id = EXCLUDED.id,
+                public_key = EXCLUDED.public_key,
+                signature = EXCLUDED.signature,
+                created_at = now()
             "#,
         )
         .bind(id)
-        .bind(user_id)
+        .bind(device_id)
         .bind(&public_key)
         .bind(&signature)
-        .execute(&mut *tx)
+        .execute(&self.pool)
         .await
         .map_err(map_err)?;
-
-        tx.commit().await.map_err(map_err)?;
         Ok(id)
     }
 
@@ -248,7 +246,7 @@ impl CryptoKeyRepository for PostgresCryptoKeyRepository {
 
     async fn upload_onetime_prekeys(
         &self,
-        user_id: Uuid,
+        device_id: Uuid,
         prekeys: Vec<Vec<u8>>,
     ) -> Result<Vec<Uuid>, CryptoError> {
         let mut tx = self.pool.begin().await.map_err(map_err)?;
@@ -258,12 +256,12 @@ impl CryptoKeyRepository for PostgresCryptoKeyRepository {
             let id = Uuid::now_v7();
             sqlx::query(
                 r#"
-                INSERT INTO user_onetime_prekeys (id, user_id, public_key, consumed, created_at)
+                INSERT INTO user_onetime_prekeys (id, device_id, public_key, consumed, created_at)
                 VALUES ($1, $2, $3, false, now())
                 "#,
             )
             .bind(id)
-            .bind(user_id)
+            .bind(device_id)
             .bind(&pk)
             .execute(&mut *tx)
             .await
@@ -275,11 +273,11 @@ impl CryptoKeyRepository for PostgresCryptoKeyRepository {
         Ok(ids)
     }
 
-    async fn count_available_onetime_prekeys(&self, user_id: Uuid) -> Result<u32, CryptoError> {
+    async fn count_available_onetime_prekeys(&self, device_id: Uuid) -> Result<u32, CryptoError> {
         let row: (i64,) = sqlx::query_as(
-            "SELECT COUNT(*) FROM user_onetime_prekeys WHERE user_id = $1 AND NOT consumed",
+            "SELECT COUNT(*) FROM user_onetime_prekeys WHERE device_id = $1 AND NOT consumed",
         )
-        .bind(user_id)
+        .bind(device_id)
         .fetch_one(&self.pool)
         .await
         .map_err(map_err)?;
@@ -288,55 +286,66 @@ impl CryptoKeyRepository for PostgresCryptoKeyRepository {
 
     // ── Key Bundle ───────────────────────────────────────────────────────
 
-    async fn fetch_key_bundle(&self, user_id: Uuid) -> Result<KeyBundle, CryptoError> {
-        // Fetch identity key + latest signed pre-key
-        let bundle = sqlx::query_as::<_, KeyBundleRow>(
+    async fn fetch_key_bundles(&self, user_id: Uuid) -> Result<Vec<KeyBundle>, CryptoError> {
+        let mut tx = self.pool.begin().await.map_err(map_err)?;
+
+        let bundles = sqlx::query_as::<_, KeyBundleRow>(
             r#"
             SELECT
+                d.id AS device_id,
                 ik.public_key AS identity_key,
                 sp.public_key AS signed_prekey,
                 sp.signature  AS signed_prekey_signature
             FROM user_identity_keys ik
-            JOIN user_signed_prekeys sp ON sp.user_id = ik.user_id
+            JOIN user_devices d ON d.user_id = ik.user_id
+            JOIN user_signed_prekeys sp ON sp.device_id = d.id
             WHERE ik.user_id = $1
-            ORDER BY sp.created_at DESC
-            LIMIT 1
+            ORDER BY d.created_at ASC
             "#,
         )
         .bind(user_id)
-        .fetch_optional(&self.pool)
-        .await
-        .map_err(map_err)?
-        .ok_or(CryptoError::NotFound)?;
-
-        // Try to consume one OTP atomically
-        let otp = sqlx::query_as::<_, OtpRow>(
-            r#"
-            UPDATE user_onetime_prekeys
-            SET consumed = true
-            WHERE id = (
-                SELECT id FROM user_onetime_prekeys
-                WHERE user_id = $1 AND NOT consumed
-                ORDER BY created_at ASC
-                LIMIT 1
-                FOR UPDATE SKIP LOCKED
-            )
-            RETURNING id, public_key
-            "#,
-        )
-        .bind(user_id)
-        .fetch_optional(&self.pool)
+        .fetch_all(&mut *tx)
         .await
         .map_err(map_err)?;
 
-        Ok(KeyBundle {
-            user_id,
-            identity_key: bundle.identity_key,
-            signed_prekey: bundle.signed_prekey,
-            signed_prekey_signature: bundle.signed_prekey_signature,
-            onetime_prekey: otp.as_ref().map(|o| o.public_key.clone()),
-            onetime_prekey_id: otp.map(|o| o.id),
-        })
+        if bundles.is_empty() {
+            return Err(CryptoError::NotFound);
+        }
+
+        let mut result = Vec::with_capacity(bundles.len());
+        for bundle in bundles {
+            let otp = sqlx::query_as::<_, OtpRow>(
+                r#"
+                UPDATE user_onetime_prekeys
+                SET consumed = true
+                WHERE id = (
+                    SELECT id FROM user_onetime_prekeys
+                    WHERE device_id = $1 AND NOT consumed
+                    ORDER BY created_at ASC
+                    LIMIT 1
+                    FOR UPDATE SKIP LOCKED
+                )
+                RETURNING id, public_key
+                "#,
+            )
+            .bind(bundle.device_id)
+            .fetch_optional(&mut *tx)
+            .await
+            .map_err(map_err)?;
+
+            result.push(KeyBundle {
+                user_id,
+                device_id: bundle.device_id,
+                identity_key: bundle.identity_key,
+                signed_prekey: bundle.signed_prekey,
+                signed_prekey_signature: bundle.signed_prekey_signature,
+                onetime_prekey: otp.as_ref().map(|o| o.public_key.clone()),
+                onetime_prekey_id: otp.map(|o| o.id),
+            });
+        }
+
+        tx.commit().await.map_err(map_err)?;
+        Ok(result)
     }
 
     // ── Key Backup ───────────────────────────────────────────────────────
@@ -398,6 +407,7 @@ impl CryptoKeyRepository for PostgresCryptoKeyRepository {
         &self,
         channel_id: Uuid,
         sender_user_id: Uuid,
+        sender_device_id: Uuid,
         generation: i32,
         distributions: Vec<(Uuid, Vec<u8>, Vec<u8>)>,
     ) -> Result<(), CryptoError> {
@@ -407,14 +417,15 @@ impl CryptoKeyRepository for PostgresCryptoKeyRepository {
         let sender_key_id = Uuid::now_v7();
         sqlx::query(
             r#"
-            INSERT INTO channel_sender_keys (id, channel_id, sender_user_id, generation, created_at)
-            VALUES ($1, $2, $3, $4, now())
-            ON CONFLICT (channel_id, sender_user_id, generation) DO NOTHING
+            INSERT INTO channel_sender_keys (id, channel_id, sender_user_id, sender_device_id, generation, created_at)
+            VALUES ($1, $2, $3, $4, $5, now())
+            ON CONFLICT (channel_id, sender_device_id, generation) DO NOTHING
             "#,
         )
         .bind(sender_key_id)
         .bind(channel_id)
         .bind(sender_user_id)
+        .bind(sender_device_id)
         .bind(generation)
         .execute(&mut *tx)
         .await
@@ -422,10 +433,10 @@ impl CryptoKeyRepository for PostgresCryptoKeyRepository {
 
         // Get the actual sender_key_id (might already exist)
         let (actual_sk_id,): (Uuid,) = sqlx::query_as(
-            "SELECT id FROM channel_sender_keys WHERE channel_id = $1 AND sender_user_id = $2 AND generation = $3",
+            "SELECT id FROM channel_sender_keys WHERE channel_id = $1 AND sender_device_id = $2 AND generation = $3",
         )
         .bind(channel_id)
-        .bind(sender_user_id)
+        .bind(sender_device_id)
         .bind(generation)
         .fetch_one(&mut *tx)
         .await
@@ -467,6 +478,7 @@ impl CryptoKeyRepository for PostgresCryptoKeyRepository {
             SELECT
                 sk.id AS sender_key_id,
                 sk.sender_user_id,
+                sk.sender_device_id,
                 sk.channel_id,
                 sk.generation,
                 skd.encrypted_key,
@@ -488,6 +500,7 @@ impl CryptoKeyRepository for PostgresCryptoKeyRepository {
             .map(|r| SenderKeyDistribution {
                 sender_key_id: r.sender_key_id,
                 sender_user_id: r.sender_user_id,
+                sender_device_id: r.sender_device_id,
                 channel_id: r.channel_id,
                 generation: r.generation,
                 encrypted_key: r.encrypted_key,
@@ -501,7 +514,9 @@ impl CryptoKeyRepository for PostgresCryptoKeyRepository {
     async fn upsert_dm_session(
         &self,
         channel_id: Uuid,
-        device_id: Uuid,
+        owner_device_id: Uuid,
+        peer_device_id: Uuid,
+        peer_user_id: Uuid,
         encrypted_ratchet_state: Vec<u8>,
         ephemeral_public_key: Vec<u8>,
     ) -> Result<DmSessionInfo, CryptoError> {
@@ -509,19 +524,22 @@ impl CryptoKeyRepository for PostgresCryptoKeyRepository {
 
         let row = sqlx::query_as::<_, DmSessionRow>(
             r#"
-            INSERT INTO dm_sessions (id, channel_id, device_id, encrypted_ratchet_state, ephemeral_public_key, generation, updated_at)
-            VALUES ($1, $2, $3, $4, $5, 0, now())
-            ON CONFLICT (channel_id, device_id) DO UPDATE SET
-                encrypted_ratchet_state = $4,
-                ephemeral_public_key = $5,
+            INSERT INTO dm_sessions (id, channel_id, owner_device_id, peer_device_id, peer_user_id, encrypted_ratchet_state, ephemeral_public_key, generation, updated_at)
+            VALUES ($1, $2, $3, $4, $5, $6, $7, 0, now())
+            ON CONFLICT (channel_id, owner_device_id, peer_device_id) DO UPDATE SET
+                peer_user_id = $5,
+                encrypted_ratchet_state = $6,
+                ephemeral_public_key = $7,
                 generation = dm_sessions.generation + 1,
                 updated_at = now()
-            RETURNING id, channel_id, device_id, encrypted_ratchet_state, ephemeral_public_key, generation
+            RETURNING id, channel_id, owner_device_id, peer_device_id, peer_user_id, encrypted_ratchet_state, ephemeral_public_key, generation
             "#,
         )
         .bind(id)
         .bind(channel_id)
-        .bind(device_id)
+        .bind(owner_device_id)
+        .bind(peer_device_id)
+        .bind(peer_user_id)
         .bind(&encrypted_ratchet_state)
         .bind(&ephemeral_public_key)
         .fetch_one(&self.pool)
@@ -531,7 +549,9 @@ impl CryptoKeyRepository for PostgresCryptoKeyRepository {
         Ok(DmSessionInfo {
             id: row.id,
             channel_id: row.channel_id,
-            device_id: row.device_id,
+            owner_device_id: row.owner_device_id,
+            peer_device_id: row.peer_device_id,
+            peer_user_id: row.peer_user_id,
             encrypted_ratchet_state: row.encrypted_ratchet_state,
             ephemeral_public_key: row.ephemeral_public_key,
             generation: row.generation,
@@ -541,17 +561,19 @@ impl CryptoKeyRepository for PostgresCryptoKeyRepository {
     async fn get_dm_session(
         &self,
         channel_id: Uuid,
-        device_id: Uuid,
+        owner_device_id: Uuid,
+        peer_device_id: Uuid,
     ) -> Result<DmSessionInfo, CryptoError> {
         let row = sqlx::query_as::<_, DmSessionRow>(
             r#"
-            SELECT id, channel_id, device_id, encrypted_ratchet_state, ephemeral_public_key, generation
+            SELECT id, channel_id, owner_device_id, peer_device_id, peer_user_id, encrypted_ratchet_state, ephemeral_public_key, generation
             FROM dm_sessions
-            WHERE channel_id = $1 AND device_id = $2
+            WHERE channel_id = $1 AND owner_device_id = $2 AND peer_device_id = $3
             "#,
         )
         .bind(channel_id)
-        .bind(device_id)
+        .bind(owner_device_id)
+        .bind(peer_device_id)
         .fetch_optional(&self.pool)
         .await
         .map_err(map_err)?
@@ -560,7 +582,9 @@ impl CryptoKeyRepository for PostgresCryptoKeyRepository {
         Ok(DmSessionInfo {
             id: row.id,
             channel_id: row.channel_id,
-            device_id: row.device_id,
+            owner_device_id: row.owner_device_id,
+            peer_device_id: row.peer_device_id,
+            peer_user_id: row.peer_user_id,
             encrypted_ratchet_state: row.encrypted_ratchet_state,
             ephemeral_public_key: row.ephemeral_public_key,
             generation: row.generation,

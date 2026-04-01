@@ -4,15 +4,12 @@ import { useUserStore } from '@/stores/user.store'
 import { useAuthStore } from '@/stores/auth.store'
 import { useCryptoStore } from '@/stores/crypto.store'
 import { useGetMe } from '@/lib/queries/user-queries'
+import { autoSetupPasswordKey } from '@/lib/crypto/auto-setup-password'
 import {
   checkCryptoSetup,
   performFirstTimeSetup,
   restoreFromBackup,
 } from '@/lib/crypto/device-manager'
-
-function autoSetupPasswordKey(userId: string): string {
-  return `ferriscord_e2ee_auto_password_${userId}`
-}
 
 /**
  * CryptoSync: initializes E2EE after authentication.

@@ -26,6 +26,7 @@ pub struct EncryptionMeta {
     pub encrypted: bool,
     pub encryption_version: i32,
     pub sender_key_generation: Option<i32>,
+    pub sender_device_id: Option<Uuid>,
 }
 
 pub trait MessagePort: Send + Sync {

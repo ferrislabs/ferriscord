@@ -11,7 +11,7 @@
  *   - Ciphertext (from Double Ratchet)
  */
 
-import { toBase64, fromBase64, concatBytes } from './keys'
+import { toBase64, fromBase64 } from './keys'
 import { keyStore } from './key-store'
 import { cryptoApi } from './api'
 import { useCryptoStore } from '@/stores/crypto.store'
@@ -67,29 +67,52 @@ async function getOrCreateSenderSession(
   userId: string,
   channelId: string,
   recipientUserId: string,
-): Promise<{ state: RatchetState; ad: Uint8Array; isNew: boolean; x3dhHeader?: X3dhHeader }> {
-  const existing = await keyStore.getDmSession(userId, channelId)
+  recipientBundle: Awaited<ReturnType<typeof cryptoApi.getKeyBundle>>[number],
+) : Promise<{
+  state: RatchetState
+  ad: Uint8Array
+  isNew: boolean
+  peerDeviceId: string
+  x3dhHeader?: X3dhHeader
+}> {
+  const existingSessions = await keyStore.listDmSessions(userId)
+  const existing = existingSessions.find(
+    (session) =>
+      session.channelId === channelId &&
+      session.peerUserId === recipientUserId &&
+      session.peerDeviceId === recipientBundle.device_id,
+  )
   if (existing) {
     const state = deserializeState(existing.ratchetState)
     const ad = new Uint8Array(64)
-    return { state, ad, isNew: false }
+    return { state, ad, isNew: false, peerDeviceId: existing.peerDeviceId }
   }
 
   const identityKeys = await keyStore.getIdentityKeys(userId)
   if (!identityKeys) throw new Error('No identity keys — run E2EE setup first')
 
-  const bundle = await cryptoApi.getKeyBundle(recipientUserId)
-  const x3dhResult = x3dhInitiate(identityKeys.privateKey, identityKeys.publicKey, bundle)
-  const remoteDhPublic = fromBase64(bundle.signed_prekey)
+  const deviceId = useCryptoStore.getState().deviceId
+  if (!deviceId) throw new Error('No active device ID — run E2EE setup first')
+
+  const x3dhResult = x3dhInitiate(identityKeys.privateKey, identityKeys.publicKey, recipientBundle)
+  const remoteDhPublic = fromBase64(recipientBundle.signed_prekey)
   const state = ratchetInitSender(x3dhResult.sharedSecret, remoteDhPublic)
 
   const x3dhHeader = buildX3dhHeader(
     identityKeys.publicKey,
+    deviceId,
+    recipientBundle.device_id,
     x3dhResult.ephemeralPublicKey,
-    bundle.onetime_prekey_id,
+    recipientBundle.onetime_prekey_id ?? null,
   )
 
-  return { state, ad: x3dhResult.associatedData, isNew: true, x3dhHeader }
+  return {
+    state,
+    ad: x3dhResult.associatedData,
+    isNew: true,
+    peerDeviceId: recipientBundle.device_id,
+    x3dhHeader,
+  }
 }
 
 /**
@@ -147,38 +170,76 @@ export async function encryptDmMessage(
   channelId: string,
   recipientUserId: string,
   plaintext: string,
-): Promise<{ encryptedContent: string; encryptionVersion: number }> {
+): Promise<{
+  encryptedContent: string
+  encryptionVersion: number
+  devicePayloads: Array<{ targetDeviceId: string; encryptedContent: string }>
+}> {
   const userId = useCryptoStore.getState().userId
   if (!userId) throw new Error('User not authenticated for E2EE')
+  const currentDeviceId = useCryptoStore.getState().deviceId
+  if (!currentDeviceId) throw new Error('No active device ID — run E2EE setup first')
 
-  const { state, ad, isNew, x3dhHeader } = await getOrCreateSenderSession(
-    userId,
-    channelId,
-    recipientUserId,
-  )
+  const recipientBundles = await cryptoApi.getKeyBundle(recipientUserId)
+  if (recipientBundles.length === 0) {
+    throw new Error('Recipient has no registered E2EE device bundle')
+  }
+
+  const ownOtherDeviceBundles = (
+    await cryptoApi.getKeyBundle(userId)
+  ).filter((bundle) => bundle.device_id !== currentDeviceId)
+
+  const bundleByDevice = new Map<string, (typeof recipientBundles)[number]>()
+  for (const bundle of [...recipientBundles, ...ownOtherDeviceBundles]) {
+    bundleByDevice.set(bundle.device_id, bundle)
+  }
 
   const plaintextBytes = new TextEncoder().encode(plaintext)
-  const result = ratchetEncrypt(state, plaintextBytes, ad)
+  const devicePayloads: Array<{ targetDeviceId: string; encryptedContent: string }> = []
 
-  const wireHeader: WireHeader = {
-    dh: toBase64(result.header.dh),
-    pn: result.header.pn,
-    n: result.header.n,
-  }
-  if (isNew && x3dhHeader) {
-    wireHeader.x3dh = x3dhHeader
+  for (const bundle of bundleByDevice.values()) {
+    const peerUserId = bundle.user_id
+    const { state, ad, isNew, peerDeviceId, x3dhHeader } = await getOrCreateSenderSession(
+      userId,
+      channelId,
+      peerUserId,
+      bundle,
+    )
+
+    const result = ratchetEncrypt(state, plaintextBytes, ad)
+
+    const wireHeader: WireHeader = {
+      dh: toBase64(result.header.dh),
+      pn: result.header.pn,
+      n: result.header.n,
+    }
+    if (isNew && x3dhHeader) {
+      wireHeader.x3dh = x3dhHeader
+    }
+
+    await keyStore.saveDmSession(userId, {
+      id: `${channelId}:${peerDeviceId}`,
+      channelId,
+      peerDeviceId,
+      peerUserId,
+      ratchetState: serializeState(result.state),
+      generation: 0,
+    })
+
+    devicePayloads.push({
+      targetDeviceId: peerDeviceId,
+      encryptedContent: encodeWireMessage(wireHeader, result.ciphertext),
+    })
   }
 
-  // Persist updated ratchet state
-  await keyStore.saveDmSession(userId, {
-    id: channelId,
-    ratchetState: serializeState(result.state),
-    generation: 0,
-  })
+  if (devicePayloads.length === 0) {
+    throw new Error('No device payload generated for DM message')
+  }
 
   return {
-    encryptedContent: encodeWireMessage(wireHeader, result.ciphertext),
+    encryptedContent: devicePayloads[0].encryptedContent,
     encryptionVersion: ENCRYPTION_VERSION,
+    devicePayloads,
   }
 }
 
@@ -188,28 +249,21 @@ export async function encryptDmMessage(
 export async function decryptDmMessage(
   channelId: string,
   senderUserId: string,
+  senderDeviceId: string | null | undefined,
   encryptedContent: string,
 ): Promise<string> {
   const userId = useCryptoStore.getState().userId
   if (!userId) throw new Error('User not authenticated for E2EE')
+  const currentDeviceId = useCryptoStore.getState().deviceId
+  if (!currentDeviceId) throw new Error('No active device ID — run E2EE setup first')
 
   const { header: wireHeader, ciphertext } = decodeWireMessage(encryptedContent)
-
-  let state: RatchetState
-  let ad: Uint8Array
-  const existing = await keyStore.getDmSession(userId, channelId)
-
-  if (existing) {
-    state = deserializeState(existing.ratchetState)
-    ad = new Uint8Array(64)
-  } else if (wireHeader.x3dh) {
-    // First message from the initiator — we are the responder
-    const session = await createReceiverSession(userId, wireHeader.x3dh)
-    state = session.state
-    ad = session.ad
-  } else {
-    throw new Error('No session found and no X3DH header in message')
+  const peerDeviceId = senderDeviceId ?? wireHeader.x3dh?.sender_device_id
+  if (!peerDeviceId) {
+    throw new Error('No sender device ID found in message')
   }
+
+  const existing = await keyStore.getDmSession(userId, channelId, peerDeviceId)
 
   const ratchetHeader = {
     dh: fromBase64(wireHeader.dh),
@@ -217,16 +271,52 @@ export async function decryptDmMessage(
     n: wireHeader.n,
   }
 
-  const result = ratchetDecrypt(state, ratchetHeader, ciphertext, ad)
+  async function decryptWithState(
+    state: RatchetState,
+    ad: Uint8Array,
+  ): Promise<string> {
+    const result = ratchetDecrypt(state, ratchetHeader, ciphertext, ad)
 
-  // Persist updated state
-  await keyStore.saveDmSession(userId, {
-    id: channelId,
-    ratchetState: serializeState(result.state),
-    generation: 0,
-  })
+    await keyStore.saveDmSession(userId, {
+      id: `${channelId}:${peerDeviceId}`,
+      channelId,
+      peerDeviceId,
+      peerUserId: senderUserId,
+      ratchetState: serializeState(result.state),
+      generation: 0,
+    })
 
-  return new TextDecoder().decode(result.plaintext)
+    return new TextDecoder().decode(result.plaintext)
+  }
+
+  if (existing) {
+    try {
+      return await decryptWithState(
+        deserializeState(existing.ratchetState),
+        new Uint8Array(64),
+      )
+    } catch (err) {
+      // Another browser/device may have restarted the DM session and sent a fresh
+      // X3DH bootstrap message. In that case, fall back to rebuilding the
+      // receiver session from the wire header.
+      if (!wireHeader.x3dh) {
+        throw err
+      }
+    }
+  }
+
+  if (!wireHeader.x3dh) {
+    throw new Error('No session found and no X3DH header in message')
+  }
+
+  // First message from the initiator, or a session reset from another browser.
+  if (wireHeader.x3dh.recipient_device_id !== currentDeviceId) {
+    throw new Error(
+      `Message targets device ${wireHeader.x3dh.recipient_device_id}, current device is ${currentDeviceId}`,
+    )
+  }
+  const session = await createReceiverSession(userId, wireHeader.x3dh)
+  return decryptWithState(session.state, session.ad)
 }
 
 /**

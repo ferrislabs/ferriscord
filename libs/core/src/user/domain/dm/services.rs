@@ -28,10 +28,11 @@ impl<D: DmRepository> DmService for DmServiceImpl<D> {
         &self,
         caller_sub: &str,
         channel_id: Uuid,
+        device_id: Option<Uuid>,
         before: Option<Uuid>,
         limit: u32,
     ) -> Result<Vec<Message>, CoreError> {
-        self.dm_repository.get_messages(caller_sub, channel_id, before, limit).await
+        self.dm_repository.get_messages(caller_sub, channel_id, device_id, before, limit).await
     }
 
     async fn send_message(

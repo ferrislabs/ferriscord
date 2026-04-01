@@ -96,12 +96,14 @@ export async function performFirstTimeSetup(
 
   // 3. Upload signed pre-key
   await cryptoApi.uploadSignedPreKey(
+    device.id,
     toBase64(signedPreKey.keyPair.publicKey),
     toBase64(signedPreKey.signature),
   )
 
   // 4. Upload OTPs — server returns assigned IDs
   const otpResponse = await cryptoApi.uploadOneTimePreKeys(
+    device.id,
     oneTimePreKeys.map((kp) => ({ public_key: toBase64(kp.publicKey) })),
   )
 
@@ -188,6 +190,7 @@ export async function restoreFromBackup(
   )
   const signedPreKey = generateSignedPreKey(payload.identityPrivateKey)
   await cryptoApi.uploadSignedPreKey(
+    device.id,
     toBase64(signedPreKey.keyPair.publicKey),
     toBase64(signedPreKey.signature),
   )
@@ -199,6 +202,7 @@ export async function restoreFromBackup(
 
   const oneTimePreKeys = generateOneTimePreKeys(ONE_TIME_PREKEY_COUNT)
   const otpResponse = await cryptoApi.uploadOneTimePreKeys(
+    device.id,
     oneTimePreKeys.map((kp) => ({ public_key: toBase64(kp.publicKey) })),
   )
   for (let i = 0; i < oneTimePreKeys.length; i++) {
@@ -266,6 +270,34 @@ export async function restoreFromRecoveryCode(
   const identityPublicKey = fromBase64(
     (await cryptoApi.getIdentityKey(userId)).public_key,
   )
+
+  const signedPreKey = generateSignedPreKey(payload.identityPrivateKey)
+  await cryptoApi.uploadSignedPreKey(
+    device.id,
+    toBase64(signedPreKey.keyPair.publicKey),
+    toBase64(signedPreKey.signature),
+  )
+  await keyStore.saveSignedPreKey(userId, {
+    id: 'current',
+    publicKey: signedPreKey.keyPair.publicKey,
+    privateKey: signedPreKey.keyPair.privateKey,
+  })
+
+  const oneTimePreKeys = generateOneTimePreKeys(ONE_TIME_PREKEY_COUNT)
+  const otpResponse = await cryptoApi.uploadOneTimePreKeys(
+    device.id,
+    oneTimePreKeys.map((kp) => ({ public_key: toBase64(kp.publicKey) })),
+  )
+  for (let i = 0; i < oneTimePreKeys.length; i++) {
+    const serverId = otpResponse.ids[i]
+    if (serverId) {
+      await keyStore.saveOneTimePreKey(userId, {
+        id: serverId,
+        publicKey: oneTimePreKeys[i].publicKey,
+        privateKey: oneTimePreKeys[i].privateKey,
+      })
+    }
+  }
 
   await keyStore.saveIdentityKeys(userId, {
     id: 'current',

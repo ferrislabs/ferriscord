@@ -92,6 +92,9 @@ pub async fn send_message_handler(
         } else if field_name == "sender_key_generation" {
             let val = field.text().await.unwrap_or_default();
             encryption.sender_key_generation = val.parse().ok();
+        } else if field_name == "sender_device_id" {
+            let val = field.text().await.unwrap_or_default();
+            encryption.sender_device_id = Uuid::parse_str(&val).ok();
         } else if field_name == "files" {
             let filename = field.file_name().unwrap_or("file").to_string();
             let content_type = field

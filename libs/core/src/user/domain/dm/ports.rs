@@ -17,11 +17,19 @@ pub struct DmAttachmentInput {
     pub storage_key: String,
 }
 
+#[derive(Debug, Clone)]
+pub struct DmDevicePayload {
+    pub target_device_id: Uuid,
+    pub ciphertext: String,
+}
+
 /// E2EE encryption metadata attached to a DM message.
 #[derive(Debug, Clone, Default)]
 pub struct DmEncryptionMeta {
     pub encrypted: bool,
     pub encryption_version: i32,
+    pub sender_device_id: Option<Uuid>,
+    pub device_payloads: Vec<DmDevicePayload>,
 }
 
 pub trait DmRepository: Send + Sync {
@@ -40,6 +48,7 @@ pub trait DmRepository: Send + Sync {
         &self,
         caller_sub: &str,
         channel_id: Uuid,
+        device_id: Option<Uuid>,
         before: Option<Uuid>,
         limit: u32,
     ) -> impl Future<Output = Result<Vec<Message>, CoreError>> + Send;
@@ -77,6 +86,7 @@ pub trait DmService: Send + Sync {
         &self,
         caller_sub: &str,
         channel_id: Uuid,
+        device_id: Option<Uuid>,
         before: Option<Uuid>,
         limit: u32,
     ) -> impl Future<Output = Result<Vec<Message>, CoreError>> + Send;

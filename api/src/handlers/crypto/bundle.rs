@@ -24,11 +24,11 @@ pub struct GetKeyBundleRoute {
     path = "/keys/bundle/{user_id}",
     tag = "crypto",
     summary = "Fetch a user's key bundle for initiating E2EE session",
-    description = "Returns the user's identity key, signed pre-key, and consumes one one-time pre-key (if available). Used by clients to initiate X3DH key exchange.",
+    description = "Returns one key bundle per device for the target user and consumes one one-time pre-key per device when available.",
     params(("user_id" = Uuid, Path, description = "Target user ID")),
     security(("Authorization" = ["Bearer"])),
     responses(
-        (status = 200, body = KeyBundle),
+        (status = 200, body = Vec<KeyBundle>),
         (status = 404, description = "User has no keys", body = ApiError),
     )
 )]
@@ -36,12 +36,12 @@ pub async fn get_key_bundle_handler(
     GetKeyBundleRoute { user_id }: GetKeyBundleRoute,
     State(state): State<AppState>,
     Extension(_identity): Extension<Identity>,
-) -> Result<Response<KeyBundle>, ApiError> {
-    let bundle = state
+) -> Result<Response<Vec<KeyBundle>>, ApiError> {
+    let bundles = state
         .crypto_repository
-        .fetch_key_bundle(user_id)
+        .fetch_key_bundles(user_id)
         .await
         .map_err(map_crypto_error)?;
 
-    Ok(Response::OK(bundle))
+    Ok(Response::OK(bundles))
 }

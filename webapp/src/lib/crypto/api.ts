@@ -3,6 +3,7 @@
  * These endpoints are not in the auto-generated OpenAPI client.
  */
 
+import type { Schemas } from '@/api/api.client'
 import { useAuthStore } from '@/stores/auth.store'
 
 async function cryptoFetch<T>(
@@ -43,64 +44,14 @@ async function cryptoFetch<T>(
 
 // ─── Types (matching backend entities) ───────────────────────────────────────
 
-export interface DeviceInfo {
-  id: string
-  device_name: string
-  public_key: string // base64
-  created_at: string
-  last_seen_at: string
-}
-
-export interface IdentityKeyInfo {
-  user_id: string
-  public_key: string // base64
-  created_at: string
-}
-
-export interface KeyBundle {
-  user_id: string
-  identity_key: string // base64
-  signed_prekey: string // base64
-  signed_prekey_signature: string // base64
-  onetime_prekey: string | null // base64
-  onetime_prekey_id: string | null
-}
-
-export interface KeyBackup {
-  encrypted_blob: string // base64
-  salt: string // base64
-  nonce: string // base64
-  recovery_codes: string // base64
-  version: number
-}
-
-export interface SenderKeyDistribution {
-  sender_key_id: string
-  sender_user_id: string
-  channel_id: string
-  generation: number
-  encrypted_key: string // base64
-  nonce: string // base64
-}
-
-export interface DmSessionInfo {
-  id: string
-  channel_id: string
-  device_id: string
-  encrypted_ratchet_state: string // base64
-  ephemeral_public_key: string // base64
-  generation: number
-}
-
-export interface SignedPreKeyResponse {
-  id: string
-}
-
-export interface OneTimePreKeysResponse {
-  uploaded: number
-  available: number
-  ids: string[]
-}
+export type DeviceInfo = Schemas.DeviceInfo
+export type IdentityKeyInfo = Schemas.IdentityKeyInfo
+export type KeyBundle = Schemas.KeyBundle
+export type KeyBackup = Schemas.KeyBackup
+export type SenderKeyDistribution = Schemas.SenderKeyDistribution
+export type DmSessionInfo = Schemas.DmSessionInfo
+export type SignedPreKeyResponse = Schemas.SignedPreKeyResponse
+export type OneTimePreKeysResponse = Schemas.OneTimePreKeysResponse
 
 // ─── API Functions ───────────────────────────────────────────────────────────
 
@@ -129,21 +80,21 @@ export const cryptoApi = {
     cryptoFetch<void>(`/keys/devices/${deviceId}`, { method: 'DELETE' }),
 
   // Pre-keys
-  uploadSignedPreKey: (publicKey: string, signature: string) =>
+  uploadSignedPreKey: (deviceId: string, publicKey: string, signature: string) =>
     cryptoFetch<SignedPreKeyResponse>('/keys/signed-prekey', {
       method: 'POST',
-      body: JSON.stringify({ public_key: publicKey, signature }),
+      body: JSON.stringify({ device_id: deviceId, public_key: publicKey, signature }),
     }),
 
-  uploadOneTimePreKeys: (prekeys: Array<{ public_key: string }>) =>
+  uploadOneTimePreKeys: (deviceId: string, prekeys: Array<{ public_key: string }>) =>
     cryptoFetch<OneTimePreKeysResponse>('/keys/onetime-prekeys', {
       method: 'POST',
-      body: JSON.stringify({ prekeys }),
+      body: JSON.stringify({ device_id: deviceId, prekeys }),
     }),
 
   // Key bundle
   getKeyBundle: (userId: string) =>
-    cryptoFetch<KeyBundle>(`/keys/bundle/${userId}`),
+    cryptoFetch<KeyBundle[]>(`/keys/bundle/${userId}`),
 
   // Backup
   uploadKeyBackup: (data: {
@@ -163,6 +114,7 @@ export const cryptoApi = {
   // Sender keys
   distributeSenderKeys: (
     channelId: string,
+    senderDeviceId: string,
     generation: number,
     distributions: Array<{
       recipient_device_id: string
@@ -172,7 +124,11 @@ export const cryptoApi = {
   ) =>
     cryptoFetch<void>(`/channels/${channelId}/sender-keys`, {
       method: 'POST',
-      body: JSON.stringify({ generation, distributions }),
+      body: JSON.stringify({
+        sender_device_id: senderDeviceId,
+        generation,
+        distributions,
+      }),
     }),
 
   getSenderKeys: (channelId: string) =>
@@ -181,30 +137,40 @@ export const cryptoApi = {
   // DM sessions
   createDmSession: (
     channelId: string,
-    deviceId: string,
+    ownerDeviceId: string,
+    peerDeviceId: string,
+    peerUserId: string,
     encryptedRatchetState: string,
     ephemeralPublicKey: string,
   ) =>
     cryptoFetch<DmSessionInfo>(`/dm/${channelId}/session`, {
       method: 'POST',
       body: JSON.stringify({
-        device_id: deviceId,
+        owner_device_id: ownerDeviceId,
+        peer_device_id: peerDeviceId,
+        peer_user_id: peerUserId,
         encrypted_ratchet_state: encryptedRatchetState,
         ephemeral_public_key: ephemeralPublicKey,
       }),
     }),
 
-  getDmSession: (channelId: string, deviceId: string) =>
-    cryptoFetch<DmSessionInfo>(`/dm/${channelId}/session/${deviceId}`),
+  getDmSession: (channelId: string, ownerDeviceId: string, peerDeviceId: string) =>
+    cryptoFetch<DmSessionInfo>(`/dm/${channelId}/session/${ownerDeviceId}/${peerDeviceId}`),
 
   updateDmSession: (
     channelId: string,
+    ownerDeviceId: string,
+    peerDeviceId: string,
+    peerUserId: string,
     encryptedRatchetState: string,
     ephemeralPublicKey: string,
   ) =>
     cryptoFetch<DmSessionInfo>(`/dm/${channelId}/session`, {
       method: 'PUT',
       body: JSON.stringify({
+        owner_device_id: ownerDeviceId,
+        peer_device_id: peerDeviceId,
+        peer_user_id: peerUserId,
         encrypted_ratchet_state: encryptedRatchetState,
         ephemeral_public_key: ephemeralPublicKey,
       }),

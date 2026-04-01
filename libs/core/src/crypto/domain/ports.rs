@@ -65,7 +65,7 @@ pub trait CryptoKeyRepository: Send + Sync {
 
     fn upsert_signed_prekey(
         &self,
-        user_id: Uuid,
+        device_id: Uuid,
         public_key: Vec<u8>,
         signature: Vec<u8>,
     ) -> impl Future<Output = Result<Uuid, CryptoError>> + Send;
@@ -75,22 +75,23 @@ pub trait CryptoKeyRepository: Send + Sync {
     /// Returns the server-assigned IDs for each uploaded prekey, in order.
     fn upload_onetime_prekeys(
         &self,
-        user_id: Uuid,
+        device_id: Uuid,
         prekeys: Vec<Vec<u8>>,
     ) -> impl Future<Output = Result<Vec<Uuid>, CryptoError>> + Send;
 
     fn count_available_onetime_prekeys(
         &self,
-        user_id: Uuid,
+        device_id: Uuid,
     ) -> impl Future<Output = Result<u32, CryptoError>> + Send;
 
     // ── Key Bundle ───────────────────────────────────────────────────────
 
-    /// Fetches identity key + signed pre-key + consumes one OTP (if available).
-    fn fetch_key_bundle(
+    /// Fetches one bundle per device for the target user and consumes one OTP
+    /// per device when available.
+    fn fetch_key_bundles(
         &self,
         user_id: Uuid,
-    ) -> impl Future<Output = Result<KeyBundle, CryptoError>> + Send;
+    ) -> impl Future<Output = Result<Vec<KeyBundle>, CryptoError>> + Send;
 
     // ── Key Backup ───────────────────────────────────────────────────────
 
@@ -114,6 +115,7 @@ pub trait CryptoKeyRepository: Send + Sync {
         &self,
         channel_id: Uuid,
         sender_user_id: Uuid,
+        sender_device_id: Uuid,
         generation: i32,
         distributions: Vec<(Uuid, Vec<u8>, Vec<u8>)>, // (recipient_device_id, encrypted_key, nonce)
     ) -> impl Future<Output = Result<(), CryptoError>> + Send;
@@ -129,7 +131,9 @@ pub trait CryptoKeyRepository: Send + Sync {
     fn upsert_dm_session(
         &self,
         channel_id: Uuid,
-        device_id: Uuid,
+        owner_device_id: Uuid,
+        peer_device_id: Uuid,
+        peer_user_id: Uuid,
         encrypted_ratchet_state: Vec<u8>,
         ephemeral_public_key: Vec<u8>,
     ) -> impl Future<Output = Result<DmSessionInfo, CryptoError>> + Send;
@@ -137,6 +141,7 @@ pub trait CryptoKeyRepository: Send + Sync {
     fn get_dm_session(
         &self,
         channel_id: Uuid,
-        device_id: Uuid,
+        owner_device_id: Uuid,
+        peer_device_id: Uuid,
     ) -> impl Future<Output = Result<DmSessionInfo, CryptoError>> + Send;
 }

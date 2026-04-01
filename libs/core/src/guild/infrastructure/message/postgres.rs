@@ -40,6 +40,7 @@ struct MessageRow {
     encrypted: bool,
     encryption_version: i32,
     sender_key_generation: Option<i32>,
+    sender_device_id: Option<Uuid>,
     edited_at: Option<DateTime<Utc>>,
     created_at: DateTime<Utc>,
 }
@@ -87,6 +88,7 @@ const SELECT_MESSAGES_SQL: &str = r#"
         m.encrypted,
         m.encryption_version,
         m.sender_key_generation,
+        m.sender_device_id,
         m.edited_at,
         m.created_at
     FROM messages m
@@ -107,6 +109,7 @@ fn row_to_message(row: MessageRow, attachments: Vec<Attachment>) -> Message {
         encrypted: row.encrypted,
         encryption_version: row.encryption_version,
         sender_key_generation: row.sender_key_generation,
+        sender_device_id: row.sender_device_id,
         edited_at: row.edited_at,
         created_at: row.created_at,
     }
@@ -154,8 +157,8 @@ impl MessagePort for PostgresMessageRepository {
         // Resolve oauth_sub → users.id in a single INSERT … SELECT
         let rows_affected = sqlx::query(
             r#"
-            INSERT INTO messages (id, channel_id, author_id, content, encrypted, encryption_version, sender_key_generation, created_at)
-            SELECT $1, $2, id, $3, $6, $7, $8, $4 FROM users WHERE oauth_sub = $5
+            INSERT INTO messages (id, channel_id, author_id, content, encrypted, encryption_version, sender_key_generation, sender_device_id, created_at)
+            SELECT $1, $2, id, $3, $6, $7, $8, $9, $4 FROM users WHERE oauth_sub = $5
             "#,
         )
         .bind(id)
@@ -166,6 +169,7 @@ impl MessagePort for PostgresMessageRepository {
         .bind(encryption.encrypted)
         .bind(encryption.encryption_version)
         .bind(encryption.sender_key_generation)
+        .bind(encryption.sender_device_id)
         .execute(&mut *tx)
         .await
         .map_err(|e| {

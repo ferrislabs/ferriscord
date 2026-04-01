@@ -7,13 +7,13 @@
  *   - device_keys:     { id: 'current', deviceId, publicKey, privateKey }
  *   - signed_prekey:   { id: 'current', publicKey, privateKey }
  *   - onetime_prekeys: { id: serverId, publicKey, privateKey }
- *   - dm_sessions:     { id: channelId, ratchetState, generation }
+ *   - dm_sessions:     { id: channelId:peerDeviceId, channelId, peerDeviceId, peerUserId, ratchetState, generation }
  *   - sender_keys:     { id: channelId:userId, senderKey, generation }
  *   - recovery_codes:  { id: 'current', codes: string[] }
  *   - sent_messages:   { id: messageId, plaintext }
  */
 
-const DB_VERSION = 3
+const DB_VERSION = 4
 
 const STORES = [
   'identity_keys',
@@ -132,7 +132,10 @@ export interface StoredOneTimePreKey {
 }
 
 export interface StoredDmSession {
-  id: string // channelId
+  id: string // `${channelId}:${peerDeviceId}`
+  channelId: string
+  peerDeviceId: string
+  peerUserId: string
   ratchetState: Uint8Array
   generation: number
 }
@@ -151,6 +154,10 @@ export interface StoredRecoveryCodes {
 export interface StoredSentMessage {
   id: string // messageId or `ciphertext:${base64}`
   plaintext: string
+}
+
+function dmSessionKey(channelId: string, peerDeviceId: string): string {
+  return `${channelId}:${peerDeviceId}`
 }
 
 // ─── Public API ──────────────────────────────────────────────────────────────
@@ -188,14 +195,17 @@ export const keyStore = {
     del(userId, 'onetime_prekeys', serverId),
 
   // DM sessions
-  getDmSession: (userId: string, channelId: string) =>
-    get<StoredDmSession>(userId, 'dm_sessions', channelId),
+  getDmSession: (userId: string, channelId: string, peerDeviceId: string) =>
+    get<StoredDmSession>(userId, 'dm_sessions', dmSessionKey(channelId, peerDeviceId)),
 
   saveDmSession: (userId: string, session: StoredDmSession) =>
     put(userId, 'dm_sessions', session),
 
-  deleteDmSession: (userId: string, channelId: string) =>
-    del(userId, 'dm_sessions', channelId),
+  listDmSessions: (userId: string) =>
+    getAll<StoredDmSession>(userId, 'dm_sessions'),
+
+  deleteDmSession: (userId: string, channelId: string, peerDeviceId: string) =>
+    del(userId, 'dm_sessions', dmSessionKey(channelId, peerDeviceId)),
 
   // Sender keys
   getSenderKey: (userId: string, channelId: string, senderUserId: string) =>

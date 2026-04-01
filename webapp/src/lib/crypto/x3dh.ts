@@ -151,6 +151,10 @@ export function x3dhRespond(
 export interface X3dhHeader {
   /** Sender's Ed25519 identity public key (base64) */
   identity_key: string
+  /** Sender's device ID */
+  sender_device_id: string
+  /** Recipient device ID */
+  recipient_device_id: string
   /** Sender's X25519 ephemeral public key (base64) */
   ephemeral_key: string
   /** ID of the consumed one-time pre-key (null if none available) */
@@ -159,11 +163,15 @@ export interface X3dhHeader {
 
 export function buildX3dhHeader(
   identityPublicKey: Uint8Array,
+  senderDeviceId: string,
+  recipientDeviceId: string,
   ephemeralPublicKey: Uint8Array,
   onetimePreKeyId: string | null,
 ): X3dhHeader {
   return {
     identity_key: toBase64(identityPublicKey),
+    sender_device_id: senderDeviceId,
+    recipient_device_id: recipientDeviceId,
     ephemeral_key: toBase64(ephemeralPublicKey),
     onetime_prekey_id: onetimePreKeyId,
   }

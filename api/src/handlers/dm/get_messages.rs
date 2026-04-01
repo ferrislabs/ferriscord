@@ -23,6 +23,7 @@ pub struct GetDmMessagesRoute {
 
 #[derive(Debug, Deserialize, IntoParams)]
 pub struct GetDmMessagesQuery {
+    pub device_id: Option<Uuid>,
     pub before: Option<Uuid>,
     pub limit: Option<u32>,
 }
@@ -53,7 +54,7 @@ pub async fn get_dm_messages_handler(
 
     let mut messages = state
         .dm_service
-        .get_messages(identity.id(), channel_id, query.before, limit)
+        .get_messages(identity.id(), channel_id, query.device_id, query.before, limit)
         .await
         .map_err(|e| ApiError::Unknown { message: e.to_string() })?;
 

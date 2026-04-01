@@ -11,8 +11,8 @@ export const cryptoKeys = {
   keyBundle: (userId: string) => ['crypto', 'bundle', userId] as const,
   keyBackup: ['crypto', 'backup'] as const,
   senderKeys: (channelId: string) => ['crypto', 'sender-keys', channelId] as const,
-  dmSession: (channelId: string, deviceId: string) =>
-    ['crypto', 'dm-session', channelId, deviceId] as const,
+  dmSession: (channelId: string, ownerDeviceId: string, peerDeviceId: string) =>
+    ['crypto', 'dm-session', channelId, ownerDeviceId, peerDeviceId] as const,
 }
 
 // ─── Device Queries ──────────────────────────────────────────────────────────
@@ -71,15 +71,15 @@ export function useUploadIdentityKey() {
 
 export function useUploadSignedPreKey() {
   return useMutation({
-    mutationFn: (params: { publicKey: string; signature: string }) =>
-      cryptoApi.uploadSignedPreKey(params.publicKey, params.signature),
+    mutationFn: (params: { deviceId: string; publicKey: string; signature: string }) =>
+      cryptoApi.uploadSignedPreKey(params.deviceId, params.publicKey, params.signature),
   })
 }
 
 export function useUploadOneTimePreKeys() {
   return useMutation({
-    mutationFn: (prekeys: Array<{ public_key: string }>) =>
-      cryptoApi.uploadOneTimePreKeys(prekeys),
+    mutationFn: (params: { deviceId: string; prekeys: Array<{ public_key: string }> }) =>
+      cryptoApi.uploadOneTimePreKeys(params.deviceId, params.prekeys),
   })
 }
 
@@ -142,6 +142,7 @@ export function useDistributeSenderKeys() {
   return useMutation({
     mutationFn: (params: {
       channelId: string
+      senderDeviceId: string
       generation: number
       distributions: Array<{
         recipient_device_id: string
@@ -151,6 +152,7 @@ export function useDistributeSenderKeys() {
     }) =>
       cryptoApi.distributeSenderKeys(
         params.channelId,
+        params.senderDeviceId,
         params.generation,
         params.distributions,
       ),
@@ -164,11 +166,15 @@ export function useDistributeSenderKeys() {
 
 // ─── DM Sessions ─────────────────────────────────────────────────────────────
 
-export function useGetDmSession(channelId: string | null, deviceId: string | null) {
+export function useGetDmSession(
+  channelId: string | null,
+  ownerDeviceId: string | null,
+  peerDeviceId: string | null,
+) {
   return useQuery({
-    queryKey: cryptoKeys.dmSession(channelId ?? '', deviceId ?? ''),
-    queryFn: () => cryptoApi.getDmSession(channelId!, deviceId!),
-    enabled: !!channelId && !!deviceId,
+    queryKey: cryptoKeys.dmSession(channelId ?? '', ownerDeviceId ?? '', peerDeviceId ?? ''),
+    queryFn: () => cryptoApi.getDmSession(channelId!, ownerDeviceId!, peerDeviceId!),
+    enabled: !!channelId && !!ownerDeviceId && !!peerDeviceId,
     retry: false,
   })
 }
@@ -177,13 +183,17 @@ export function useCreateDmSession() {
   return useMutation({
     mutationFn: (params: {
       channelId: string
-      deviceId: string
+      ownerDeviceId: string
+      peerDeviceId: string
+      peerUserId: string
       encryptedRatchetState: string
       ephemeralPublicKey: string
     }) =>
       cryptoApi.createDmSession(
         params.channelId,
-        params.deviceId,
+        params.ownerDeviceId,
+        params.peerDeviceId,
+        params.peerUserId,
         params.encryptedRatchetState,
         params.ephemeralPublicKey,
       ),
@@ -194,11 +204,17 @@ export function useUpdateDmSession() {
   return useMutation({
     mutationFn: (params: {
       channelId: string
+      ownerDeviceId: string
+      peerDeviceId: string
+      peerUserId: string
       encryptedRatchetState: string
       ephemeralPublicKey: string
     }) =>
       cryptoApi.updateDmSession(
         params.channelId,
+        params.ownerDeviceId,
+        params.peerDeviceId,
+        params.peerUserId,
         params.encryptedRatchetState,
         params.ephemeralPublicKey,
       ),

@@ -65,8 +65,15 @@ struct MessageRow {
     encrypted: bool,
     encryption_version: i32,
     sender_key_generation: Option<i32>,
+    sender_device_id: Option<Uuid>,
     edited_at: Option<DateTime<Utc>>,
     created_at: DateTime<Utc>,
+}
+
+#[derive(sqlx::FromRow)]
+struct MessagePayloadRow {
+    message_id: Uuid,
+    ciphertext: String,
 }
 
 #[derive(sqlx::FromRow)]
@@ -95,6 +102,7 @@ fn row_to_message(row: MessageRow, attachments: Vec<Attachment>) -> Message {
         encrypted: row.encrypted,
         encryption_version: row.encryption_version,
         sender_key_generation: row.sender_key_generation,
+        sender_device_id: row.sender_device_id,
         edited_at: row.edited_at,
         created_at: row.created_at,
     }
@@ -111,11 +119,34 @@ const SELECT_MESSAGES_SQL: &str = r#"
         m.encrypted,
         m.encryption_version,
         m.sender_key_generation,
+        m.sender_device_id,
         m.edited_at,
         m.created_at
     FROM messages m
     JOIN users u ON u.id = m.author_id
 "#;
+
+async fn fetch_message_payloads(
+    pool: &PgPool,
+    message_ids: &[Uuid],
+    target_device_id: Uuid,
+) -> Result<Vec<MessagePayloadRow>, sqlx::Error> {
+    if message_ids.is_empty() {
+        return Ok(vec![]);
+    }
+
+    sqlx::query_as::<_, MessagePayloadRow>(
+        r#"
+        SELECT message_id, ciphertext
+        FROM dm_message_device_payloads
+        WHERE message_id = ANY($1) AND target_device_id = $2
+        "#,
+    )
+    .bind(message_ids)
+    .bind(target_device_id)
+    .fetch_all(pool)
+    .await
+}
 
 async fn fetch_attachments(
     pool: &PgPool,
@@ -293,6 +324,7 @@ impl DmRepository for PostgresDmRepository {
         &self,
         caller_sub: &str,
         channel_id: Uuid,
+        device_id: Option<Uuid>,
         before: Option<Uuid>,
         limit: u32,
     ) -> Result<Vec<Message>, CoreError> {
@@ -351,6 +383,15 @@ impl DmRepository for PostgresDmRepository {
         rows.reverse();
 
         let message_ids: Vec<Uuid> = rows.iter().map(|r| r.id).collect();
+        let payload_map: std::collections::HashMap<Uuid, String> = match device_id {
+            Some(device_id) => fetch_message_payloads(&self.pool, &message_ids, device_id)
+                .await
+                .map_err(|e| CoreError::InternalServerError { message: e.to_string() })?
+                .into_iter()
+                .map(|row| (row.message_id, row.ciphertext))
+                .collect(),
+            None => std::collections::HashMap::new(),
+        };
         let att_rows = fetch_attachments(&self.pool, &message_ids)
             .await
             .map_err(|e| CoreError::InternalServerError { message: e.to_string() })?;
@@ -373,7 +414,12 @@ impl DmRepository for PostgresDmRepository {
 
         Ok(rows
             .into_iter()
-            .map(|r| {
+            .map(|mut r| {
+                if r.encrypted {
+                    if let Some(ciphertext) = payload_map.get(&r.id) {
+                        r.content = ciphertext.clone();
+                    }
+                }
                 let atts = att_map.remove(&r.id).unwrap_or_default();
                 row_to_message(r, atts)
             })
@@ -416,8 +462,8 @@ impl DmRepository for PostgresDmRepository {
 
         let rows_affected = sqlx::query(
             r#"
-            INSERT INTO messages (id, channel_id, author_id, content, encrypted, encryption_version, created_at)
-            SELECT $1, $2, id, $3, $6, $7, $4 FROM users WHERE oauth_sub = $5
+            INSERT INTO messages (id, channel_id, author_id, content, encrypted, encryption_version, sender_device_id, created_at)
+            SELECT $1, $2, id, $3, $6, $7, $8, $4 FROM users WHERE oauth_sub = $5
             "#,
         )
         .bind(id)
@@ -427,6 +473,7 @@ impl DmRepository for PostgresDmRepository {
         .bind(caller_sub)
         .bind(encryption.encrypted)
         .bind(encryption.encryption_version)
+        .bind(encryption.sender_device_id)
         .execute(&mut *tx)
         .await
         .map_err(|e| {
@@ -436,6 +483,27 @@ impl DmRepository for PostgresDmRepository {
 
         if rows_affected.rows_affected() == 0 {
             return Err(CoreError::NotFound);
+        }
+
+        if encryption.encrypted {
+            for payload in &encryption.device_payloads {
+                sqlx::query(
+                    r#"
+                    INSERT INTO dm_message_device_payloads (message_id, target_device_id, ciphertext, created_at)
+                    VALUES ($1, $2, $3, $4)
+                    "#,
+                )
+                .bind(id)
+                .bind(payload.target_device_id)
+                .bind(&payload.ciphertext)
+                .bind(now)
+                .execute(&mut *tx)
+                .await
+                .map_err(|e| {
+                    error!("failed to insert DM message device payload: {}", e);
+                    CoreError::InternalServerError { message: e.to_string() }
+                })?;
+            }
         }
 
         for att in &attachments {
