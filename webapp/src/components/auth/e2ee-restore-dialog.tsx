@@ -12,6 +12,7 @@ import {
 } from '@/components/ui/dialog'
 import { restoreFromBackup, restoreFromRecoveryCode } from '@/lib/crypto/device-manager'
 import { autoSetupPasswordKey } from '@/lib/crypto/auto-setup-password'
+import { markIncomingHistorySyncWindow } from '@/lib/crypto/history-sync'
 import { toast } from '@/lib/toast'
 
 type RestoreMode = 'password' | 'recovery'
@@ -42,6 +43,7 @@ export function E2eeRestoreDialog() {
     try {
       await restoreFromBackup(userId, securityPassword.trim())
       localStorage.setItem(autoSetupPasswordKey(userId), securityPassword.trim())
+      markIncomingHistorySyncWindow(userId)
       await refreshEncryptedData()
       toast.success('E2EE keys restored on this browser')
       setSecurityPassword('')
@@ -78,6 +80,7 @@ export function E2eeRestoreDialog() {
         autoSetupPasswordKey(userId),
         newSecurityPassword.trim(),
       )
+      markIncomingHistorySyncWindow(userId)
       await refreshEncryptedData()
       toast.success('E2EE keys restored with recovery code')
       setRecoveryCode('')

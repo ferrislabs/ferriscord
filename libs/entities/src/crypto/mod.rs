@@ -103,6 +103,31 @@ pub struct DmSessionInfo {
     pub generation: i32,
 }
 
+// ─── DM History Sync ────────────────────────────────────────────────────────
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, ToSchema)]
+#[serde(rename_all = "snake_case")]
+pub enum DmHistorySyncStatus {
+    Pending,
+    InProgress,
+    Completed,
+    Failed,
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, ToSchema)]
+pub struct DmHistorySyncJobInfo {
+    pub id: Uuid,
+    pub owner_user_id: Uuid,
+    pub source_device_id: Uuid,
+    pub target_device_id: Uuid,
+    pub channel_id: Option<Uuid>,
+    pub status: DmHistorySyncStatus,
+    pub cursor_message_id: Option<Uuid>,
+    pub last_error: Option<String>,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+}
+
 // ─── Request types ───────────────────────────────────────────────────────────
 
 #[derive(Debug, Deserialize, ToSchema)]
@@ -202,6 +227,34 @@ pub struct UpdateDmSessionRequest {
     #[serde(with = "base64_bytes")]
     #[schema(value_type = String, format = "byte")]
     pub ephemeral_public_key: Vec<u8>,
+}
+
+#[derive(Debug, Deserialize, ToSchema)]
+pub struct CreateDmHistorySyncJobRequest {
+    pub source_device_id: Uuid,
+    pub target_device_id: Uuid,
+    pub channel_id: Option<Uuid>,
+}
+
+#[derive(Debug, Deserialize, ToSchema)]
+pub struct DmHistorySyncPayloadUpload {
+    pub message_id: Uuid,
+    pub ciphertext: String,
+}
+
+#[derive(Debug, Deserialize, ToSchema)]
+pub struct UploadDmHistorySyncPayloadsRequest {
+    pub payloads: Vec<DmHistorySyncPayloadUpload>,
+}
+
+#[derive(Debug, PartialEq, Serialize, ToSchema)]
+pub struct UploadDmHistorySyncPayloadsResponse {
+    pub uploaded: u32,
+}
+
+#[derive(Debug, Deserialize, ToSchema)]
+pub struct FailDmHistorySyncJobRequest {
+    pub error_message: String,
 }
 
 // ─── base64 serde helpers ────────────────────────────────────────────────────

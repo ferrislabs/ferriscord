@@ -22,6 +22,14 @@ use super::handlers::{
         create_or_get::__path_create_or_get_dm_handler,
         delete_message::__path_delete_dm_message_handler,
         get_messages::__path_get_dm_messages_handler, list_dms::__path_list_dms_handler,
+        history_sync::{
+            __path_complete_dm_history_sync_job_handler,
+            __path_create_dm_history_sync_job_handler,
+            __path_fail_dm_history_sync_job_handler,
+            __path_get_dm_history_sync_job_handler,
+            __path_list_dm_history_sync_messages_handler,
+            __path_upload_dm_history_sync_payloads_handler,
+        },
         send_message::__path_send_dm_message_handler,
     },
     guild::{
@@ -105,6 +113,12 @@ use super::handlers::{
         get_dm_messages_handler,
         send_dm_message_handler,
         delete_dm_message_handler,
+        create_dm_history_sync_job_handler,
+        get_dm_history_sync_job_handler,
+        list_dm_history_sync_messages_handler,
+        upload_dm_history_sync_payloads_handler,
+        complete_dm_history_sync_job_handler,
+        fail_dm_history_sync_job_handler,
         // Friends handlers
         list_friends_handler,
         list_incoming_handler,

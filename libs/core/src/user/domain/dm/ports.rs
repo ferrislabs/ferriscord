@@ -1,5 +1,6 @@
 use std::future::Future;
 
+use chrono::{DateTime, Utc};
 use ferriscord_entities::{
     attachment::AttachmentId,
     friendship::DmChannel,
@@ -20,6 +21,34 @@ pub struct DmAttachmentInput {
 #[derive(Debug, Clone)]
 pub struct DmDevicePayload {
     pub target_device_id: Uuid,
+    pub ciphertext: String,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum DmHistorySyncStatus {
+    Pending,
+    InProgress,
+    Completed,
+    Failed,
+}
+
+#[derive(Debug, Clone)]
+pub struct DmHistorySyncJob {
+    pub id: Uuid,
+    pub owner_user_id: Uuid,
+    pub source_device_id: Uuid,
+    pub target_device_id: Uuid,
+    pub channel_id: Option<Uuid>,
+    pub status: DmHistorySyncStatus,
+    pub cursor_message_id: Option<Uuid>,
+    pub last_error: Option<String>,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+}
+
+#[derive(Debug, Clone)]
+pub struct DmHistorySyncPayloadInput {
+    pub message_id: Uuid,
     pub ciphertext: String,
 }
 
@@ -68,6 +97,48 @@ pub trait DmRepository: Send + Sync {
         channel_id: Uuid,
         message_id: Uuid,
     ) -> impl Future<Output = Result<bool, CoreError>> + Send;
+
+    fn create_history_sync_job(
+        &self,
+        caller_sub: &str,
+        source_device_id: Uuid,
+        target_device_id: Uuid,
+        channel_id: Option<Uuid>,
+    ) -> impl Future<Output = Result<DmHistorySyncJob, CoreError>> + Send;
+
+    fn get_history_sync_job(
+        &self,
+        caller_sub: &str,
+        job_id: Uuid,
+    ) -> impl Future<Output = Result<DmHistorySyncJob, CoreError>> + Send;
+
+    fn list_history_sync_messages(
+        &self,
+        caller_sub: &str,
+        job_id: Uuid,
+        before: Option<Uuid>,
+        limit: u32,
+    ) -> impl Future<Output = Result<Vec<Message>, CoreError>> + Send;
+
+    fn upload_history_sync_payloads(
+        &self,
+        caller_sub: &str,
+        job_id: Uuid,
+        payloads: Vec<DmHistorySyncPayloadInput>,
+    ) -> impl Future<Output = Result<u32, CoreError>> + Send;
+
+    fn complete_history_sync_job(
+        &self,
+        caller_sub: &str,
+        job_id: Uuid,
+    ) -> impl Future<Output = Result<DmHistorySyncJob, CoreError>> + Send;
+
+    fn fail_history_sync_job(
+        &self,
+        caller_sub: &str,
+        job_id: Uuid,
+        error_message: String,
+    ) -> impl Future<Output = Result<DmHistorySyncJob, CoreError>> + Send;
 }
 
 pub trait DmService: Send + Sync {
@@ -106,4 +177,46 @@ pub trait DmService: Send + Sync {
         channel_id: Uuid,
         message_id: Uuid,
     ) -> impl Future<Output = Result<bool, CoreError>> + Send;
+
+    fn create_history_sync_job(
+        &self,
+        caller_sub: &str,
+        source_device_id: Uuid,
+        target_device_id: Uuid,
+        channel_id: Option<Uuid>,
+    ) -> impl Future<Output = Result<DmHistorySyncJob, CoreError>> + Send;
+
+    fn get_history_sync_job(
+        &self,
+        caller_sub: &str,
+        job_id: Uuid,
+    ) -> impl Future<Output = Result<DmHistorySyncJob, CoreError>> + Send;
+
+    fn list_history_sync_messages(
+        &self,
+        caller_sub: &str,
+        job_id: Uuid,
+        before: Option<Uuid>,
+        limit: u32,
+    ) -> impl Future<Output = Result<Vec<Message>, CoreError>> + Send;
+
+    fn upload_history_sync_payloads(
+        &self,
+        caller_sub: &str,
+        job_id: Uuid,
+        payloads: Vec<DmHistorySyncPayloadInput>,
+    ) -> impl Future<Output = Result<u32, CoreError>> + Send;
+
+    fn complete_history_sync_job(
+        &self,
+        caller_sub: &str,
+        job_id: Uuid,
+    ) -> impl Future<Output = Result<DmHistorySyncJob, CoreError>> + Send;
+
+    fn fail_history_sync_job(
+        &self,
+        caller_sub: &str,
+        job_id: Uuid,
+        error_message: String,
+    ) -> impl Future<Output = Result<DmHistorySyncJob, CoreError>> + Send;
 }

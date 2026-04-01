@@ -10,6 +10,11 @@ import {
   performFirstTimeSetup,
   restoreFromBackup,
 } from '@/lib/crypto/device-manager'
+import {
+  markIncomingHistorySyncWindow,
+  startIncomingHistoryRefresh,
+  syncDmHistoryToOtherDevices,
+} from '@/lib/crypto/history-sync'
 
 /**
  * CryptoSync: initializes E2EE after authentication.
@@ -61,6 +66,7 @@ export function CryptoSync() {
           if (savedPassword) {
             console.info('[E2EE] Keys locked — attempting automatic restore')
             await restoreFromBackup(userId, savedPassword)
+            markIncomingHistorySyncWindow(userId)
             console.info('[E2EE] Automatic restore completed — encryption active')
             queryClient.invalidateQueries({
               queryKey: [{ _id: '/channels/@me/{channel_id}/messages' }],
@@ -81,6 +87,40 @@ export function CryptoSync() {
         initRef.current = false
       }
     })()
+  }, [isAuthenticated, accessToken, me?.id, queryClient])
+
+  useEffect(() => {
+    if (!isAuthenticated || !accessToken || !me?.id) return
+    if (useCryptoStore.getState().setupStatus !== 'setup') return
+
+    let cancelled = false
+
+    const runSync = async () => {
+      try {
+        await syncDmHistoryToOtherDevices()
+      } catch (err) {
+        if (!cancelled) {
+          console.error('[E2EE] Background history sync failed:', err)
+        }
+      }
+    }
+
+    void runSync()
+    const interval = window.setInterval(() => {
+      void runSync()
+    }, 30000)
+
+    return () => {
+      cancelled = true
+      window.clearInterval(interval)
+    }
+  }, [isAuthenticated, accessToken, me?.id])
+
+  useEffect(() => {
+    if (!isAuthenticated || !accessToken || !me?.id) return
+    if (useCryptoStore.getState().setupStatus !== 'setup') return
+
+    return startIncomingHistoryRefresh(queryClient, me.id)
   }, [isAuthenticated, accessToken, me?.id, queryClient])
 
   // Reset when user logs out

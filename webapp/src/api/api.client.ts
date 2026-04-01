@@ -103,6 +103,11 @@ export namespace Schemas {
     topic?: (string | null) | undefined
     user_limit?: (number | null) | undefined
   }
+  export type CreateDmHistorySyncJobRequest = {
+    channel_id?: (string | null) | undefined
+    source_device_id: string
+    target_device_id: string
+  }
   export type CreateDmSessionRequest = {
     encrypted_ratchet_state: string
     ephemeral_public_key: string
@@ -150,6 +155,27 @@ export namespace Schemas {
     username: string
   }
   export type DmChannel = { created_at: string; id: Id; recipient: FriendUser }
+  export type DmHistorySyncStatus =
+    | 'pending'
+    | 'in_progress'
+    | 'completed'
+    | 'failed'
+  export type DmHistorySyncJobInfo = {
+    channel_id?: (string | null) | undefined
+    created_at: string
+    cursor_message_id?: (string | null) | undefined
+    id: string
+    last_error?: (string | null) | undefined
+    owner_user_id: string
+    source_device_id: string
+    status: DmHistorySyncStatus
+    target_device_id: string
+    updated_at: string
+  }
+  export type DmHistorySyncPayloadUpload = {
+    ciphertext: string
+    message_id: string
+  }
   export type DmSessionInfo = {
     channel_id: string
     encrypted_ratchet_state: string
@@ -160,6 +186,7 @@ export namespace Schemas {
     peer_device_id: string
     peer_user_id: string
   }
+  export type FailDmHistorySyncJobRequest = { error_message: string }
   export type FriendshipStatus = 'pending' | 'accepted' | 'declined'
   export type Friendship = {
     created_at: string
@@ -312,6 +339,10 @@ export namespace Schemas {
     name: string
     permissions: number
   }
+  export type UploadDmHistorySyncPayloadsRequest = {
+    payloads: Array<DmHistorySyncPayloadUpload>
+  }
+  export type UploadDmHistorySyncPayloadsResponse = { uploaded: number }
   export type UploadIdentityKeyRequest = { public_key: string }
   export type UploadKeyBackupRequest = {
     encrypted_blob: string
@@ -430,6 +461,88 @@ export namespace Endpoints {
       path: { channel_id: string }
     }
     responses: { 200: Array<Schemas.SenderKeyDistribution> }
+  }
+  export type post_Create_dm_history_sync_job_handler = {
+    method: 'POST'
+    path: '/dm/history-sync/jobs'
+    requestFormat: 'json'
+    parameters: {
+      body: Schemas.CreateDmHistorySyncJobRequest
+    }
+    responses: {
+      201: Schemas.DmHistorySyncJobInfo
+      401: Schemas.ApiError
+      404: Schemas.ApiError
+    }
+  }
+  export type get_Get_dm_history_sync_job_handler = {
+    method: 'GET'
+    path: '/dm/history-sync/jobs/{job_id}'
+    requestFormat: 'json'
+    parameters: {
+      path: { job_id: string }
+    }
+    responses: {
+      200: Schemas.DmHistorySyncJobInfo
+      401: Schemas.ApiError
+      404: Schemas.ApiError
+    }
+  }
+  export type put_Complete_dm_history_sync_job_handler = {
+    method: 'PUT'
+    path: '/dm/history-sync/jobs/{job_id}/complete'
+    requestFormat: 'json'
+    parameters: {
+      path: { job_id: string }
+    }
+    responses: {
+      200: Schemas.DmHistorySyncJobInfo
+      401: Schemas.ApiError
+      404: Schemas.ApiError
+    }
+  }
+  export type put_Fail_dm_history_sync_job_handler = {
+    method: 'PUT'
+    path: '/dm/history-sync/jobs/{job_id}/fail'
+    requestFormat: 'json'
+    parameters: {
+      path: { job_id: string }
+
+      body: Schemas.FailDmHistorySyncJobRequest
+    }
+    responses: {
+      200: Schemas.DmHistorySyncJobInfo
+      401: Schemas.ApiError
+      404: Schemas.ApiError
+    }
+  }
+  export type get_List_dm_history_sync_messages_handler = {
+    method: 'GET'
+    path: '/dm/history-sync/jobs/{job_id}/messages'
+    requestFormat: 'json'
+    parameters: {
+      path: { job_id: string; before: string | null; limit: number | null }
+    }
+    responses: {
+      200: Array<Schemas.Message>
+      401: Schemas.ApiError
+      404: Schemas.ApiError
+    }
+  }
+  export type post_Upload_dm_history_sync_payloads_handler = {
+    method: 'POST'
+    path: '/dm/history-sync/jobs/{job_id}/payloads'
+    requestFormat: 'json'
+    parameters: {
+      path: { job_id: string }
+
+      body: Schemas.UploadDmHistorySyncPayloadsRequest
+    }
+    responses: {
+      200: Schemas.UploadDmHistorySyncPayloadsResponse
+      401: Schemas.ApiError
+      404: Schemas.ApiError
+    }
   }
   export type put_Update_dm_session_handler = {
     method: 'PUT'
@@ -1039,6 +1152,8 @@ export type EndpointByMethod = {
     '/channels/@me': Endpoints.get_List_dms_handler
     '/channels/@me/{channel_id}/messages': Endpoints.get_Get_dm_messages_handler
     '/channels/{channel_id}/sender-keys/@me': Endpoints.get_Get_sender_keys_handler
+    '/dm/history-sync/jobs/{job_id}': Endpoints.get_Get_dm_history_sync_job_handler
+    '/dm/history-sync/jobs/{job_id}/messages': Endpoints.get_List_dm_history_sync_messages_handler
     '/dm/{channel_id}/session/{owner_device_id}/{peer_device_id}': Endpoints.get_Get_dm_session_handler
     '/friends': Endpoints.get_List_friends_handler
     '/friends/requests/incoming': Endpoints.get_List_incoming_handler
@@ -1062,6 +1177,8 @@ export type EndpointByMethod = {
     '/channels/@me': Endpoints.post_Create_or_get_dm_handler
     '/channels/@me/{channel_id}/messages': Endpoints.post_Send_dm_message_handler
     '/channels/{channel_id}/sender-keys': Endpoints.post_Distribute_sender_keys_handler
+    '/dm/history-sync/jobs': Endpoints.post_Create_dm_history_sync_job_handler
+    '/dm/history-sync/jobs/{job_id}/payloads': Endpoints.post_Upload_dm_history_sync_payloads_handler
     '/dm/{channel_id}/session': Endpoints.post_Create_dm_session_handler
     '/friends/requests': Endpoints.post_Send_friend_request_handler
     '/guilds': Endpoints.post_Create_guild_handler
@@ -1088,6 +1205,8 @@ export type EndpointByMethod = {
     '/keys/devices/{device_id}': Endpoints.delete_Delete_device_handler
   }
   put: {
+    '/dm/history-sync/jobs/{job_id}/complete': Endpoints.put_Complete_dm_history_sync_job_handler
+    '/dm/history-sync/jobs/{job_id}/fail': Endpoints.put_Fail_dm_history_sync_job_handler
     '/dm/{channel_id}/session': Endpoints.put_Update_dm_session_handler
     '/guilds/{guild_id}/members/{user_id}/roles/{role_id}': Endpoints.put_Assign_member_role_handler
     '/keys/backup': Endpoints.put_Upsert_key_backup_handler

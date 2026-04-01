@@ -161,6 +161,50 @@ async function createReceiverSession(
   return { state, ad: x3dhResult.associatedData }
 }
 
+async function encryptInitialMessageForBundle(
+  userId: string,
+  channelId: string,
+  peerUserId: string,
+  bundle: Awaited<ReturnType<typeof cryptoApi.getKeyBundle>>[number],
+  plaintext: string,
+  options: { persistSession: boolean },
+): Promise<{ peerDeviceId: string; encryptedContent: string }> {
+  const { state, ad, isNew, peerDeviceId, x3dhHeader } = await getOrCreateSenderSession(
+    userId,
+    channelId,
+    peerUserId,
+    bundle,
+  )
+
+  const plaintextBytes = new TextEncoder().encode(plaintext)
+  const result = ratchetEncrypt(state, plaintextBytes, ad)
+
+  const wireHeader: WireHeader = {
+    dh: toBase64(result.header.dh),
+    pn: result.header.pn,
+    n: result.header.n,
+  }
+  if (isNew && x3dhHeader) {
+    wireHeader.x3dh = x3dhHeader
+  }
+
+  if (options.persistSession) {
+    await keyStore.saveDmSession(userId, {
+      id: `${channelId}:${peerDeviceId}`,
+      channelId,
+      peerDeviceId,
+      peerUserId,
+      ratchetState: serializeState(result.state),
+      generation: 0,
+    })
+  }
+
+  return {
+    peerDeviceId,
+    encryptedContent: encodeWireMessage(wireHeader, result.ciphertext),
+  }
+}
+
 // ─── Public API ──────────────────────────────────────────────────────────────
 
 /**
@@ -194,41 +238,22 @@ export async function encryptDmMessage(
     bundleByDevice.set(bundle.device_id, bundle)
   }
 
-  const plaintextBytes = new TextEncoder().encode(plaintext)
   const devicePayloads: Array<{ targetDeviceId: string; encryptedContent: string }> = []
 
   for (const bundle of bundleByDevice.values()) {
     const peerUserId = bundle.user_id
-    const { state, ad, isNew, peerDeviceId, x3dhHeader } = await getOrCreateSenderSession(
+    const { peerDeviceId, encryptedContent } = await encryptInitialMessageForBundle(
       userId,
       channelId,
       peerUserId,
       bundle,
+      plaintext,
+      { persistSession: true },
     )
-
-    const result = ratchetEncrypt(state, plaintextBytes, ad)
-
-    const wireHeader: WireHeader = {
-      dh: toBase64(result.header.dh),
-      pn: result.header.pn,
-      n: result.header.n,
-    }
-    if (isNew && x3dhHeader) {
-      wireHeader.x3dh = x3dhHeader
-    }
-
-    await keyStore.saveDmSession(userId, {
-      id: `${channelId}:${peerDeviceId}`,
-      channelId,
-      peerDeviceId,
-      peerUserId,
-      ratchetState: serializeState(result.state),
-      generation: 0,
-    })
 
     devicePayloads.push({
       targetDeviceId: peerDeviceId,
-      encryptedContent: encodeWireMessage(wireHeader, result.ciphertext),
+      encryptedContent,
     })
   }
 
@@ -241,6 +266,32 @@ export async function encryptDmMessage(
     encryptionVersion: ENCRYPTION_VERSION,
     devicePayloads,
   }
+}
+
+export async function encryptHistorySyncMessageForDevice(
+  channelId: string,
+  targetDeviceId: string,
+  plaintext: string,
+): Promise<string> {
+  const userId = useCryptoStore.getState().userId
+  if (!userId) throw new Error('User not authenticated for E2EE')
+
+  const bundles = await cryptoApi.getKeyBundle(userId)
+  const bundle = bundles.find((item) => item.device_id === targetDeviceId)
+  if (!bundle) {
+    throw new Error(`No key bundle found for target device ${targetDeviceId}`)
+  }
+
+  const result = await encryptInitialMessageForBundle(
+    userId,
+    channelId,
+    userId,
+    bundle,
+    plaintext,
+    { persistSession: false },
+  )
+
+  return result.encryptedContent
 }
 
 /**
@@ -258,7 +309,7 @@ export async function decryptDmMessage(
   if (!currentDeviceId) throw new Error('No active device ID — run E2EE setup first')
 
   const { header: wireHeader, ciphertext } = decodeWireMessage(encryptedContent)
-  const peerDeviceId = senderDeviceId ?? wireHeader.x3dh?.sender_device_id
+  const peerDeviceId = wireHeader.x3dh?.sender_device_id ?? senderDeviceId
   if (!peerDeviceId) {
     throw new Error('No sender device ID found in message')
   }

@@ -13,7 +13,10 @@ use uuid::Uuid;
 
 use crate::user::domain::{
     common::CoreError,
-    dm::ports::{DmAttachmentInput, DmEncryptionMeta, DmRepository},
+    dm::ports::{
+        DmAttachmentInput, DmEncryptionMeta, DmHistorySyncJob, DmHistorySyncPayloadInput,
+        DmHistorySyncStatus, DmRepository,
+    },
 };
 
 #[derive(Clone)]
@@ -88,6 +91,20 @@ struct AttachmentRow {
     created_at: DateTime<Utc>,
 }
 
+#[derive(sqlx::FromRow)]
+struct DmHistorySyncJobRow {
+    id: Uuid,
+    owner_user_id: Uuid,
+    source_device_id: Uuid,
+    target_device_id: Uuid,
+    channel_id: Option<Uuid>,
+    status: String,
+    cursor_message_id: Option<Uuid>,
+    last_error: Option<String>,
+    created_at: DateTime<Utc>,
+    updated_at: DateTime<Utc>,
+}
+
 fn row_to_message(row: MessageRow, attachments: Vec<Attachment>) -> Message {
     Message {
         id: MessageId(Id(row.id)),
@@ -106,6 +123,42 @@ fn row_to_message(row: MessageRow, attachments: Vec<Attachment>) -> Message {
         edited_at: row.edited_at,
         created_at: row.created_at,
     }
+}
+
+fn parse_history_sync_status(status: &str) -> Result<DmHistorySyncStatus, CoreError> {
+    match status {
+        "pending" => Ok(DmHistorySyncStatus::Pending),
+        "in_progress" => Ok(DmHistorySyncStatus::InProgress),
+        "completed" => Ok(DmHistorySyncStatus::Completed),
+        "failed" => Ok(DmHistorySyncStatus::Failed),
+        other => Err(CoreError::InternalServerError {
+            message: format!("unknown dm history sync status: {}", other),
+        }),
+    }
+}
+
+fn history_sync_status_sql(status: DmHistorySyncStatus) -> &'static str {
+    match status {
+        DmHistorySyncStatus::Pending => "pending",
+        DmHistorySyncStatus::InProgress => "in_progress",
+        DmHistorySyncStatus::Completed => "completed",
+        DmHistorySyncStatus::Failed => "failed",
+    }
+}
+
+fn row_to_history_sync_job(row: DmHistorySyncJobRow) -> Result<DmHistorySyncJob, CoreError> {
+    Ok(DmHistorySyncJob {
+        id: row.id,
+        owner_user_id: row.owner_user_id,
+        source_device_id: row.source_device_id,
+        target_device_id: row.target_device_id,
+        channel_id: row.channel_id,
+        status: parse_history_sync_status(&row.status)?,
+        cursor_message_id: row.cursor_message_id,
+        last_error: row.last_error,
+        created_at: row.created_at,
+        updated_at: row.updated_at,
+    })
 }
 
 const SELECT_MESSAGES_SQL: &str = r#"
@@ -581,5 +634,361 @@ impl DmRepository for PostgresDmRepository {
         })?;
 
         Ok(result.rows_affected() > 0)
+    }
+
+    async fn create_history_sync_job(
+        &self,
+        caller_sub: &str,
+        source_device_id: Uuid,
+        target_device_id: Uuid,
+        channel_id: Option<Uuid>,
+    ) -> Result<DmHistorySyncJob, CoreError> {
+        let row = sqlx::query_as::<_, DmHistorySyncJobRow>(
+            r#"
+            WITH owner_user AS (
+                SELECT id
+                FROM users
+                WHERE oauth_sub = $1
+            )
+            INSERT INTO dm_history_sync_jobs (
+                id, owner_user_id, source_device_id, target_device_id, channel_id, status, created_at, updated_at
+            )
+            SELECT
+                $2,
+                ou.id,
+                $3,
+                $4,
+                $5,
+                'pending',
+                now(),
+                now()
+            FROM owner_user ou
+            WHERE EXISTS (
+                SELECT 1 FROM user_devices sd
+                WHERE sd.id = $3 AND sd.user_id = ou.id
+            )
+            AND EXISTS (
+                SELECT 1 FROM user_devices td
+                WHERE td.id = $4 AND td.user_id = ou.id
+            )
+            AND (
+                $5::uuid IS NULL OR EXISTS (
+                    SELECT 1
+                    FROM dm_participants dp
+                    WHERE dp.channel_id = $5 AND dp.user_id = ou.id
+                )
+            )
+            RETURNING
+                id, owner_user_id, source_device_id, target_device_id, channel_id,
+                status, cursor_message_id, last_error, created_at, updated_at
+            "#,
+        )
+        .bind(caller_sub)
+        .bind(Uuid::now_v7())
+        .bind(source_device_id)
+        .bind(target_device_id)
+        .bind(channel_id)
+        .fetch_optional(&self.pool)
+        .await
+        .map_err(|e| CoreError::InternalServerError { message: e.to_string() })?
+        .ok_or(CoreError::NotFound)?;
+
+        row_to_history_sync_job(row)
+    }
+
+    async fn get_history_sync_job(
+        &self,
+        caller_sub: &str,
+        job_id: Uuid,
+    ) -> Result<DmHistorySyncJob, CoreError> {
+        let row = sqlx::query_as::<_, DmHistorySyncJobRow>(
+            r#"
+            SELECT
+                j.id, j.owner_user_id, j.source_device_id, j.target_device_id, j.channel_id,
+                j.status, j.cursor_message_id, j.last_error, j.created_at, j.updated_at
+            FROM dm_history_sync_jobs j
+            JOIN users u ON u.id = j.owner_user_id
+            WHERE j.id = $1 AND u.oauth_sub = $2
+            "#,
+        )
+        .bind(job_id)
+        .bind(caller_sub)
+        .fetch_optional(&self.pool)
+        .await
+        .map_err(|e| CoreError::InternalServerError { message: e.to_string() })?
+        .ok_or(CoreError::NotFound)?;
+
+        row_to_history_sync_job(row)
+    }
+
+    async fn list_history_sync_messages(
+        &self,
+        caller_sub: &str,
+        job_id: Uuid,
+        before: Option<Uuid>,
+        limit: u32,
+    ) -> Result<Vec<Message>, CoreError> {
+        let job = self.get_history_sync_job(caller_sub, job_id).await?;
+
+        let rows = match before {
+            Some(before_id) => {
+                sqlx::query_as::<_, MessageRow>(
+                    r#"
+                    SELECT
+                        m.id,
+                        m.channel_id,
+                        m.author_id,
+                        u.username AS author_username,
+                        u.avatar_url AS author_avatar_url,
+                        sp.ciphertext AS content,
+                        m.encrypted,
+                        m.encryption_version,
+                        m.sender_key_generation,
+                        m.sender_device_id,
+                        m.edited_at,
+                        m.created_at
+                    FROM dm_history_sync_jobs j
+                    JOIN messages m ON j.channel_id IS NULL OR m.channel_id = j.channel_id
+                    JOIN users u ON u.id = m.author_id
+                    JOIN dm_participants dp ON dp.channel_id = m.channel_id AND dp.user_id = j.owner_user_id
+                    JOIN dm_message_device_payloads sp
+                        ON sp.message_id = m.id AND sp.target_device_id = j.source_device_id
+                    LEFT JOIN dm_message_device_payloads tp
+                        ON tp.message_id = m.id AND tp.target_device_id = j.target_device_id
+                    WHERE j.id = $1
+                      AND tp.message_id IS NULL
+                      AND m.encrypted = true
+                      AND m.created_at < (SELECT created_at FROM messages WHERE id = $2)
+                    ORDER BY m.created_at DESC
+                    LIMIT $3
+                    "#,
+                )
+                .bind(job.id)
+                .bind(before_id)
+                .bind(limit.min(100) as i64)
+                .fetch_all(&self.pool)
+                .await
+            }
+            None => {
+                sqlx::query_as::<_, MessageRow>(
+                    r#"
+                    SELECT
+                        m.id,
+                        m.channel_id,
+                        m.author_id,
+                        u.username AS author_username,
+                        u.avatar_url AS author_avatar_url,
+                        sp.ciphertext AS content,
+                        m.encrypted,
+                        m.encryption_version,
+                        m.sender_key_generation,
+                        m.sender_device_id,
+                        m.edited_at,
+                        m.created_at
+                    FROM dm_history_sync_jobs j
+                    JOIN messages m ON j.channel_id IS NULL OR m.channel_id = j.channel_id
+                    JOIN users u ON u.id = m.author_id
+                    JOIN dm_participants dp ON dp.channel_id = m.channel_id AND dp.user_id = j.owner_user_id
+                    JOIN dm_message_device_payloads sp
+                        ON sp.message_id = m.id AND sp.target_device_id = j.source_device_id
+                    LEFT JOIN dm_message_device_payloads tp
+                        ON tp.message_id = m.id AND tp.target_device_id = j.target_device_id
+                    WHERE j.id = $1
+                      AND tp.message_id IS NULL
+                      AND m.encrypted = true
+                    ORDER BY m.created_at DESC
+                    LIMIT $2
+                    "#,
+                )
+                .bind(job.id)
+                .bind(limit.min(100) as i64)
+                .fetch_all(&self.pool)
+                .await
+            }
+        }
+        .map_err(|e| {
+            error!("failed to list DM history sync messages: {}", e);
+            CoreError::InternalServerError { message: e.to_string() }
+        })?;
+
+        let mut rows = rows;
+        rows.reverse();
+
+        let message_ids: Vec<Uuid> = rows.iter().map(|r| r.id).collect();
+        let att_rows = fetch_attachments(&self.pool, &message_ids)
+            .await
+            .map_err(|e| CoreError::InternalServerError { message: e.to_string() })?;
+
+        let mut att_map: std::collections::HashMap<Uuid, Vec<Attachment>> =
+            std::collections::HashMap::new();
+        for ar in att_rows {
+            let att = Attachment {
+                id: AttachmentId(Id(ar.id)),
+                filename: ar.filename,
+                content_type: ar.content_type,
+                size_bytes: ar.size_bytes,
+                storage_key: ar.storage_key,
+                url: String::new(),
+                encrypted: ar.encrypted,
+                created_at: ar.created_at,
+            };
+            att_map.entry(ar.message_id).or_default().push(att);
+        }
+
+        Ok(rows
+            .into_iter()
+            .map(|r| {
+                let atts = att_map.remove(&r.id).unwrap_or_default();
+                row_to_message(r, atts)
+            })
+            .collect())
+    }
+
+    async fn upload_history_sync_payloads(
+        &self,
+        caller_sub: &str,
+        job_id: Uuid,
+        payloads: Vec<DmHistorySyncPayloadInput>,
+    ) -> Result<u32, CoreError> {
+        let job = self.get_history_sync_job(caller_sub, job_id).await?;
+        let mut tx = self.pool.begin().await.map_err(|e| {
+            CoreError::InternalServerError { message: e.to_string() }
+        })?;
+
+        sqlx::query(
+            r#"
+            UPDATE dm_history_sync_jobs
+            SET status = 'in_progress', updated_at = now(), last_error = NULL
+            WHERE id = $1
+            "#,
+        )
+        .bind(job.id)
+        .execute(&mut *tx)
+        .await
+        .map_err(|e| CoreError::InternalServerError { message: e.to_string() })?;
+
+        let mut uploaded = 0u32;
+        let mut last_message_id = job.cursor_message_id;
+
+        for payload in payloads {
+            sqlx::query(
+                r#"
+                INSERT INTO dm_history_sync_payloads (job_id, message_id, target_device_id, ciphertext, created_at)
+                VALUES ($1, $2, $3, $4, now())
+                ON CONFLICT (job_id, message_id, target_device_id)
+                DO UPDATE SET ciphertext = EXCLUDED.ciphertext
+                "#,
+            )
+            .bind(job.id)
+            .bind(payload.message_id)
+            .bind(job.target_device_id)
+            .bind(&payload.ciphertext)
+            .execute(&mut *tx)
+            .await
+            .map_err(|e| CoreError::InternalServerError { message: e.to_string() })?;
+
+            sqlx::query(
+                r#"
+                INSERT INTO dm_message_device_payloads (
+                    message_id, target_device_id, ciphertext, source_device_id, sync_kind, created_at
+                )
+                VALUES ($1, $2, $3, $4, 'history_sync', now())
+                ON CONFLICT (message_id, target_device_id)
+                DO UPDATE SET
+                    ciphertext = EXCLUDED.ciphertext,
+                    source_device_id = EXCLUDED.source_device_id,
+                    sync_kind = EXCLUDED.sync_kind
+                "#,
+            )
+            .bind(payload.message_id)
+            .bind(job.target_device_id)
+            .bind(&payload.ciphertext)
+            .bind(job.source_device_id)
+            .execute(&mut *tx)
+            .await
+            .map_err(|e| CoreError::InternalServerError { message: e.to_string() })?;
+
+            uploaded += 1;
+            last_message_id = Some(payload.message_id);
+        }
+
+        sqlx::query(
+            r#"
+            UPDATE dm_history_sync_jobs
+            SET cursor_message_id = $2, updated_at = now()
+            WHERE id = $1
+            "#,
+        )
+        .bind(job.id)
+        .bind(last_message_id)
+        .execute(&mut *tx)
+        .await
+        .map_err(|e| CoreError::InternalServerError { message: e.to_string() })?;
+
+        tx.commit().await.map_err(|e| {
+            CoreError::InternalServerError { message: e.to_string() }
+        })?;
+
+        Ok(uploaded)
+    }
+
+    async fn complete_history_sync_job(
+        &self,
+        caller_sub: &str,
+        job_id: Uuid,
+    ) -> Result<DmHistorySyncJob, CoreError> {
+        self.get_history_sync_job(caller_sub, job_id).await?;
+
+        let row = sqlx::query_as::<_, DmHistorySyncJobRow>(
+            r#"
+            UPDATE dm_history_sync_jobs j
+            SET status = $2, updated_at = now(), last_error = NULL
+            FROM users u
+            WHERE j.owner_user_id = u.id AND j.id = $1 AND u.oauth_sub = $3
+            RETURNING
+                j.id, j.owner_user_id, j.source_device_id, j.target_device_id, j.channel_id,
+                j.status, j.cursor_message_id, j.last_error, j.created_at, j.updated_at
+            "#,
+        )
+        .bind(job_id)
+        .bind(history_sync_status_sql(DmHistorySyncStatus::Completed))
+        .bind(caller_sub)
+        .fetch_optional(&self.pool)
+        .await
+        .map_err(|e| CoreError::InternalServerError { message: e.to_string() })?
+        .ok_or(CoreError::NotFound)?;
+
+        row_to_history_sync_job(row)
+    }
+
+    async fn fail_history_sync_job(
+        &self,
+        caller_sub: &str,
+        job_id: Uuid,
+        error_message: String,
+    ) -> Result<DmHistorySyncJob, CoreError> {
+        self.get_history_sync_job(caller_sub, job_id).await?;
+
+        let row = sqlx::query_as::<_, DmHistorySyncJobRow>(
+            r#"
+            UPDATE dm_history_sync_jobs j
+            SET status = $2, updated_at = now(), last_error = $3
+            FROM users u
+            WHERE j.owner_user_id = u.id AND j.id = $1 AND u.oauth_sub = $4
+            RETURNING
+                j.id, j.owner_user_id, j.source_device_id, j.target_device_id, j.channel_id,
+                j.status, j.cursor_message_id, j.last_error, j.created_at, j.updated_at
+            "#,
+        )
+        .bind(job_id)
+        .bind(history_sync_status_sql(DmHistorySyncStatus::Failed))
+        .bind(&error_message)
+        .bind(caller_sub)
+        .fetch_optional(&self.pool)
+        .await
+        .map_err(|e| CoreError::InternalServerError { message: e.to_string() })?
+        .ok_or(CoreError::NotFound)?;
+
+        row_to_history_sync_job(row)
     }
 }
