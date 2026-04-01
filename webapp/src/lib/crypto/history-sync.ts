@@ -16,6 +16,7 @@ const HISTORY_SYNC_REFRESH_WINDOW_MS = 120000
 const HISTORY_SYNC_MARKER_PREFIX = 'ferriscord:e2ee:incoming-history-sync-until:'
 
 let activeSyncPromise: Promise<void> | null = null
+const prewarmedChannels = new Set<string>()
 
 function incomingHistorySyncKey(userId: string): string {
   return `${HISTORY_SYNC_MARKER_PREFIX}${userId}`
@@ -112,6 +113,65 @@ async function resolveHistoryMessagePlaintext(
   }
 }
 
+async function prewarmChannelHistory(
+  userId: string,
+  sourceDeviceId: string,
+  channelId: string,
+): Promise<void> {
+  if (prewarmedChannels.has(`${sourceDeviceId}:${channelId}`)) {
+    return
+  }
+  prewarmedChannels.add(`${sourceDeviceId}:${channelId}`)
+
+  let before: string | undefined
+
+  while (true) {
+    const params = new URLSearchParams()
+    params.set('device_id', sourceDeviceId)
+    params.set('limit', String(HISTORY_SYNC_BATCH_SIZE))
+    if (before) {
+      params.set('before', before)
+    }
+
+    const messages = await dmFetch<Schemas.Message[]>(
+      `/channels/@me/${channelId}/messages?${params.toString()}`,
+    )
+
+    if (messages.length === 0) {
+      break
+    }
+
+    for (const message of messages) {
+      const cached = await getCachedPlaintext(userId, message.id, message.content)
+      if (cached !== undefined) {
+        continue
+      }
+
+      if (!isEncryptedMessage(message)) {
+        await cachePlaintext(userId, message.id, message.content, message.content)
+        continue
+      }
+
+      try {
+        const plaintext = await decryptDmMessage(
+          message.channel_id,
+          message.author.id,
+          message.sender_device_id,
+          message.content,
+        )
+        await cachePlaintext(userId, message.id, message.content, plaintext)
+      } catch {
+        // Some historical messages still cannot be reconstructed locally.
+      }
+    }
+
+    before = messages[0]?.id
+    if (messages.length < HISTORY_SYNC_BATCH_SIZE) {
+      break
+    }
+  }
+}
+
 async function syncHistoryForTargetDevice(
   userId: string,
   sourceDeviceId: string,
@@ -147,6 +207,7 @@ async function syncHistoryForTargetDevice(
       const payloads: Schemas.DmHistorySyncPayloadUpload[] = []
 
       for (const message of messages) {
+        await prewarmChannelHistory(userId, sourceDeviceId, message.channel_id)
         const plaintext = await resolveHistoryMessagePlaintext(userId, message)
         if (!plaintext) {
           continue

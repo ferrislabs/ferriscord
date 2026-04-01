@@ -110,6 +110,7 @@ fn row_to_message(row: MessageRow, attachments: Vec<Attachment>) -> Message {
         encryption_version: row.encryption_version,
         sender_key_generation: row.sender_key_generation,
         sender_device_id: row.sender_device_id,
+        payload_sync_kind: None,
         edited_at: row.edited_at,
         created_at: row.created_at,
     }

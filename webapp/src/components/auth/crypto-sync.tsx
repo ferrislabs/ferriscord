@@ -28,6 +28,7 @@ import {
 export function CryptoSync() {
   const isAuthenticated = useUserStore((s) => s.isAuthenticated)
   const accessToken = useAuthStore((s) => s.accessToken)
+  const setupStatus = useCryptoStore((s) => s.setupStatus)
   const { data: me } = useGetMe()
   const queryClient = useQueryClient()
   const initRef = useRef(false)
@@ -91,7 +92,7 @@ export function CryptoSync() {
 
   useEffect(() => {
     if (!isAuthenticated || !accessToken || !me?.id) return
-    if (useCryptoStore.getState().setupStatus !== 'setup') return
+    if (setupStatus !== 'setup') return
 
     let cancelled = false
 
@@ -114,14 +115,14 @@ export function CryptoSync() {
       cancelled = true
       window.clearInterval(interval)
     }
-  }, [isAuthenticated, accessToken, me?.id])
+  }, [isAuthenticated, accessToken, me?.id, setupStatus])
 
   useEffect(() => {
     if (!isAuthenticated || !accessToken || !me?.id) return
-    if (useCryptoStore.getState().setupStatus !== 'setup') return
+    if (setupStatus !== 'setup') return
 
     return startIncomingHistoryRefresh(queryClient, me.id)
-  }, [isAuthenticated, accessToken, me?.id, queryClient])
+  }, [isAuthenticated, accessToken, me?.id, queryClient, setupStatus])
 
   // Reset when user logs out
   useEffect(() => {

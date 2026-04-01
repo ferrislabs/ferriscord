@@ -17,6 +17,40 @@ function useAuthEnabled() {
 
 const DMS_KEY = [{ _id: '/channels/@me' }]
 
+async function fetchDmMessages(
+  channelId: string,
+  options: { deviceId?: string | null; before?: string; limit?: number } = {},
+): Promise<import('@/api/api.client').Schemas.Message[]> {
+  const accessToken = useAuthStore.getState().accessToken
+  const params = new URLSearchParams()
+
+  if (options.deviceId) {
+    params.set('device_id', options.deviceId)
+  }
+  if (options.before) {
+    params.set('before', options.before)
+  }
+  params.set('limit', String(options.limit ?? 50))
+
+  const response = await fetch(
+    `${window.apiUrl}/channels/@me/${channelId}/messages?${params.toString()}`,
+    {
+      headers: accessToken
+        ? {
+            Authorization: `Bearer ${accessToken}`,
+          }
+        : undefined,
+      credentials: 'include',
+    },
+  )
+
+  if (!response.ok) {
+    throw new Error(`Failed to fetch DM messages: ${response.status} ${response.statusText}`)
+  }
+
+  return response.json()
+}
+
 // ─── Sent message plaintext cache ────────────────────────────────────────────
 // The Double Ratchet is forward-only: the sender cannot decrypt their own
 // messages because the chain key has already advanced. We cache the plaintext
@@ -105,22 +139,25 @@ export function useDmMessages(channelId: string, currentUserId?: string) {
   const isE2eeSetup = useCryptoStore((s) => s.setupStatus === 'setup')
   const currentDeviceId = useCryptoStore((s) => s.deviceId)
 
-  const baseQuery = api.get('/channels/@me/{channel_id}/messages', {
-    path: { channel_id: channelId },
-    query: { limit: 50, device_id: currentDeviceId ?? undefined },
-  })
   const selfUserId = currentUserId ?? useCryptoStore.getState().userId ?? undefined
 
   return useQuery<import('@/api/api.client').Schemas.Message[]>({
-    ...baseQuery.queryOptions,
+    queryKey: [
+      { _id: '/channels/@me/{channel_id}/messages', path: { channel_id: channelId } },
+      { device_id: currentDeviceId ?? null, limit: 50 },
+    ],
     enabled,
-    queryFn: async (ctx: { queryKey: unknown[]; signal: AbortSignal }) => {
-      const messages: import('@/api/api.client').Schemas.Message[] =
-        await baseQuery.queryOptions.queryFn(ctx)
+    queryFn: async () => {
+      const messages = await fetchDmMessages(channelId, {
+        deviceId: currentDeviceId,
+        limit: 50,
+      })
 
       const hydratedMessages: import('@/api/api.client').Schemas.Message[] = []
 
       for (const msg of messages) {
+        const payloadSyncKind = (msg as { payload_sync_kind?: string | null }).payload_sync_kind
+
         if (!isEncryptedMessage(msg)) {
           hydratedMessages.push(msg)
           continue
@@ -159,6 +196,10 @@ export function useDmMessages(channelId: string, currentUserId?: string) {
                 msg.author.id,
                 msg.sender_device_id,
                 msg.content,
+                {
+                  forceNewSession: payloadSyncKind === 'history_sync',
+                  persistSession: payloadSyncKind !== 'history_sync',
+                },
               )
               await cacheSentPlaintext(decrypted, {
                 messageId: msg.id,
@@ -191,6 +232,10 @@ export function useDmMessages(channelId: string, currentUserId?: string) {
             msg.author.id,
             msg.sender_device_id,
             msg.content,
+            {
+              forceNewSession: payloadSyncKind === 'history_sync',
+              persistSession: payloadSyncKind !== 'history_sync',
+            },
           )
           await cacheSentPlaintext(decrypted, {
             messageId: msg.id,

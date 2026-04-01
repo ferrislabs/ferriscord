@@ -68,6 +68,7 @@ async function getOrCreateSenderSession(
   channelId: string,
   recipientUserId: string,
   recipientBundle: Awaited<ReturnType<typeof cryptoApi.getKeyBundle>>[number],
+  options: { forceNewSession?: boolean } = {},
 ) : Promise<{
   state: RatchetState
   ad: Uint8Array
@@ -75,17 +76,19 @@ async function getOrCreateSenderSession(
   peerDeviceId: string
   x3dhHeader?: X3dhHeader
 }> {
-  const existingSessions = await keyStore.listDmSessions(userId)
-  const existing = existingSessions.find(
-    (session) =>
-      session.channelId === channelId &&
-      session.peerUserId === recipientUserId &&
-      session.peerDeviceId === recipientBundle.device_id,
-  )
-  if (existing) {
-    const state = deserializeState(existing.ratchetState)
-    const ad = new Uint8Array(64)
-    return { state, ad, isNew: false, peerDeviceId: existing.peerDeviceId }
+  if (!options.forceNewSession) {
+    const existingSessions = await keyStore.listDmSessions(userId)
+    const existing = existingSessions.find(
+      (session) =>
+        session.channelId === channelId &&
+        session.peerUserId === recipientUserId &&
+        session.peerDeviceId === recipientBundle.device_id,
+    )
+    if (existing) {
+      const state = deserializeState(existing.ratchetState)
+      const ad = new Uint8Array(64)
+      return { state, ad, isNew: false, peerDeviceId: existing.peerDeviceId }
+    }
   }
 
   const identityKeys = await keyStore.getIdentityKeys(userId)
@@ -167,13 +170,14 @@ async function encryptInitialMessageForBundle(
   peerUserId: string,
   bundle: Awaited<ReturnType<typeof cryptoApi.getKeyBundle>>[number],
   plaintext: string,
-  options: { persistSession: boolean },
+  options: { persistSession: boolean; forceNewSession?: boolean },
 ): Promise<{ peerDeviceId: string; encryptedContent: string }> {
   const { state, ad, isNew, peerDeviceId, x3dhHeader } = await getOrCreateSenderSession(
     userId,
     channelId,
     peerUserId,
     bundle,
+    { forceNewSession: options.forceNewSession },
   )
 
   const plaintextBytes = new TextEncoder().encode(plaintext)
@@ -288,7 +292,7 @@ export async function encryptHistorySyncMessageForDevice(
     userId,
     bundle,
     plaintext,
-    { persistSession: false },
+    { persistSession: false, forceNewSession: true },
   )
 
   return result.encryptedContent
@@ -302,6 +306,7 @@ export async function decryptDmMessage(
   senderUserId: string,
   senderDeviceId: string | null | undefined,
   encryptedContent: string,
+  options: { forceNewSession?: boolean; persistSession?: boolean } = {},
 ): Promise<string> {
   const userId = useCryptoStore.getState().userId
   if (!userId) throw new Error('User not authenticated for E2EE')
@@ -328,19 +333,21 @@ export async function decryptDmMessage(
   ): Promise<string> {
     const result = ratchetDecrypt(state, ratchetHeader, ciphertext, ad)
 
-    await keyStore.saveDmSession(userId, {
-      id: `${channelId}:${peerDeviceId}`,
-      channelId,
-      peerDeviceId,
-      peerUserId: senderUserId,
-      ratchetState: serializeState(result.state),
-      generation: 0,
-    })
+    if (options.persistSession !== false) {
+      await keyStore.saveDmSession(userId, {
+        id: `${channelId}:${peerDeviceId}`,
+        channelId,
+        peerDeviceId,
+        peerUserId: senderUserId,
+        ratchetState: serializeState(result.state),
+        generation: 0,
+      })
+    }
 
     return new TextDecoder().decode(result.plaintext)
   }
 
-  if (existing) {
+  if (existing && !options.forceNewSession) {
     try {
       return await decryptWithState(
         deserializeState(existing.ratchetState),

@@ -69,6 +69,7 @@ struct MessageRow {
     encryption_version: i32,
     sender_key_generation: Option<i32>,
     sender_device_id: Option<Uuid>,
+    payload_sync_kind: Option<String>,
     edited_at: Option<DateTime<Utc>>,
     created_at: DateTime<Utc>,
 }
@@ -77,6 +78,8 @@ struct MessageRow {
 struct MessagePayloadRow {
     message_id: Uuid,
     ciphertext: String,
+    source_device_id: Option<Uuid>,
+    sync_kind: String,
 }
 
 #[derive(sqlx::FromRow)]
@@ -120,6 +123,7 @@ fn row_to_message(row: MessageRow, attachments: Vec<Attachment>) -> Message {
         encryption_version: row.encryption_version,
         sender_key_generation: row.sender_key_generation,
         sender_device_id: row.sender_device_id,
+        payload_sync_kind: row.payload_sync_kind,
         edited_at: row.edited_at,
         created_at: row.created_at,
     }
@@ -173,6 +177,7 @@ const SELECT_MESSAGES_SQL: &str = r#"
         m.encryption_version,
         m.sender_key_generation,
         m.sender_device_id,
+        NULL::TEXT AS payload_sync_kind,
         m.edited_at,
         m.created_at
     FROM messages m
@@ -190,7 +195,7 @@ async fn fetch_message_payloads(
 
     sqlx::query_as::<_, MessagePayloadRow>(
         r#"
-        SELECT message_id, ciphertext
+        SELECT message_id, ciphertext, source_device_id, sync_kind
         FROM dm_message_device_payloads
         WHERE message_id = ANY($1) AND target_device_id = $2
         "#,
@@ -436,12 +441,12 @@ impl DmRepository for PostgresDmRepository {
         rows.reverse();
 
         let message_ids: Vec<Uuid> = rows.iter().map(|r| r.id).collect();
-        let payload_map: std::collections::HashMap<Uuid, String> = match device_id {
+        let payload_map: std::collections::HashMap<Uuid, MessagePayloadRow> = match device_id {
             Some(device_id) => fetch_message_payloads(&self.pool, &message_ids, device_id)
                 .await
                 .map_err(|e| CoreError::InternalServerError { message: e.to_string() })?
                 .into_iter()
-                .map(|row| (row.message_id, row.ciphertext))
+                .map(|row| (row.message_id, row))
                 .collect(),
             None => std::collections::HashMap::new(),
         };
@@ -468,9 +473,11 @@ impl DmRepository for PostgresDmRepository {
         Ok(rows
             .into_iter()
             .map(|mut r| {
-                if r.encrypted {
-                    if let Some(ciphertext) = payload_map.get(&r.id) {
-                        r.content = ciphertext.clone();
+                if r.encrypted && let Some(payload) = payload_map.get(&r.id) {
+                    r.content = payload.ciphertext.clone();
+                    r.payload_sync_kind = Some(payload.sync_kind.clone());
+                    if payload.sync_kind == "history_sync" {
+                        r.sender_device_id = payload.source_device_id;
                     }
                 }
                 let atts = att_map.remove(&r.id).unwrap_or_default();
@@ -740,23 +747,24 @@ impl DmRepository for PostgresDmRepository {
                         m.author_id,
                         u.username AS author_username,
                         u.avatar_url AS author_avatar_url,
-                        sp.ciphertext AS content,
+                        COALESCE(sp.ciphertext, m.content) AS content,
                         m.encrypted,
                         m.encryption_version,
                         m.sender_key_generation,
                         m.sender_device_id,
+                        NULL::TEXT AS payload_sync_kind,
                         m.edited_at,
                         m.created_at
                     FROM dm_history_sync_jobs j
                     JOIN messages m ON j.channel_id IS NULL OR m.channel_id = j.channel_id
                     JOIN users u ON u.id = m.author_id
                     JOIN dm_participants dp ON dp.channel_id = m.channel_id AND dp.user_id = j.owner_user_id
-                    JOIN dm_message_device_payloads sp
+                    LEFT JOIN dm_message_device_payloads sp
                         ON sp.message_id = m.id AND sp.target_device_id = j.source_device_id
                     LEFT JOIN dm_message_device_payloads tp
                         ON tp.message_id = m.id AND tp.target_device_id = j.target_device_id
                     WHERE j.id = $1
-                      AND tp.message_id IS NULL
+                      AND (tp.message_id IS NULL OR tp.sync_kind = 'history_sync')
                       AND m.encrypted = true
                       AND m.created_at < (SELECT created_at FROM messages WHERE id = $2)
                     ORDER BY m.created_at DESC
@@ -778,23 +786,24 @@ impl DmRepository for PostgresDmRepository {
                         m.author_id,
                         u.username AS author_username,
                         u.avatar_url AS author_avatar_url,
-                        sp.ciphertext AS content,
+                        COALESCE(sp.ciphertext, m.content) AS content,
                         m.encrypted,
                         m.encryption_version,
                         m.sender_key_generation,
                         m.sender_device_id,
+                        NULL::TEXT AS payload_sync_kind,
                         m.edited_at,
                         m.created_at
                     FROM dm_history_sync_jobs j
                     JOIN messages m ON j.channel_id IS NULL OR m.channel_id = j.channel_id
                     JOIN users u ON u.id = m.author_id
                     JOIN dm_participants dp ON dp.channel_id = m.channel_id AND dp.user_id = j.owner_user_id
-                    JOIN dm_message_device_payloads sp
+                    LEFT JOIN dm_message_device_payloads sp
                         ON sp.message_id = m.id AND sp.target_device_id = j.source_device_id
                     LEFT JOIN dm_message_device_payloads tp
                         ON tp.message_id = m.id AND tp.target_device_id = j.target_device_id
                     WHERE j.id = $1
-                      AND tp.message_id IS NULL
+                      AND (tp.message_id IS NULL OR tp.sync_kind = 'history_sync')
                       AND m.encrypted = true
                     ORDER BY m.created_at DESC
                     LIMIT $2
