@@ -310,6 +310,7 @@ export async function decryptDmMessage(
 ): Promise<string> {
   const userId = useCryptoStore.getState().userId
   if (!userId) throw new Error('User not authenticated for E2EE')
+  const resolvedUserId = userId
   const currentDeviceId = useCryptoStore.getState().deviceId
   if (!currentDeviceId) throw new Error('No active device ID — run E2EE setup first')
 
@@ -318,8 +319,9 @@ export async function decryptDmMessage(
   if (!peerDeviceId) {
     throw new Error('No sender device ID found in message')
   }
+  const resolvedPeerDeviceId = peerDeviceId
 
-  const existing = await keyStore.getDmSession(userId, channelId, peerDeviceId)
+  const existing = await keyStore.getDmSession(resolvedUserId, channelId, resolvedPeerDeviceId)
 
   const ratchetHeader = {
     dh: fromBase64(wireHeader.dh),
@@ -334,10 +336,10 @@ export async function decryptDmMessage(
     const result = ratchetDecrypt(state, ratchetHeader, ciphertext, ad)
 
     if (options.persistSession !== false) {
-      await keyStore.saveDmSession(userId, {
-        id: `${channelId}:${peerDeviceId}`,
+      await keyStore.saveDmSession(resolvedUserId, {
+        id: `${channelId}:${resolvedPeerDeviceId}`,
         channelId,
-        peerDeviceId,
+        peerDeviceId: resolvedPeerDeviceId,
         peerUserId: senderUserId,
         ratchetState: serializeState(result.state),
         generation: 0,

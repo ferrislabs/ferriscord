@@ -21,9 +21,6 @@
 import {
   generateX25519KeyPair,
   x25519SharedSecret,
-  deriveKey,
-  aesEncrypt,
-  aesDecrypt,
   concatBytes,
   type X25519KeyPair,
 } from './keys'
