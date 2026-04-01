@@ -29,4 +29,6 @@ pub struct CreateChannelInput {
 pub struct UpdateChannelInput {
     pub parent_id: Option<ChannelId>, // None = uncategorized
     pub position: i32,
+    pub name: Option<String>,
+    pub permission_overwrites: Option<Vec<PermissionOverwrite>>,
 }

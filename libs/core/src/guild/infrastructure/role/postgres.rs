@@ -124,6 +124,57 @@ impl RoleRepository for PostgresRoleRepository {
         Ok(())
     }
 
+    async fn update_by_id(
+        &self,
+        guild_id: &GuildId,
+        id: RoleId,
+        name: &str,
+        color: u32,
+        permissions: u64,
+    ) -> Result<Role, CoreError> {
+        let row = sqlx::query!(
+            r#"
+            UPDATE roles
+            SET name = $3, color = $4, permissions = $5
+            WHERE id = $1 AND guild_id = $2
+            RETURNING id, guild_id, name, position, color, permissions, created_at
+            "#,
+            id.0.get_uuid(),
+            guild_id.get_uuid(),
+            name,
+            color as i32,
+            permissions as i64,
+        )
+        .fetch_optional(&self.pool)
+        .await
+        .map_err(|e| CoreError::Unknown {
+            message: format!("failed to update role by id: {:?}", e),
+        })?;
+
+        let Some(row) = row else {
+            return Err(CoreError::Unknown {
+                message: format!("role with id {} not found", id),
+            });
+        };
+
+        let permissions =
+            Permissions::from_bits(row.permissions as u64).ok_or(CoreError::Unknown {
+                message: "invalid permissions bits".to_string(),
+            })?;
+
+        Ok(Role {
+            id: RoleId(Id(row.id)),
+            guild_id: GuildId(Id(row.guild_id)),
+            name: row.name,
+            position: row.position,
+            color: row.color.unwrap_or(0) as u32,
+            hoist: false,
+            mentionable: false,
+            permissions,
+            created_at: row.created_at,
+        })
+    }
+
     async fn find_by_guild_id(
         &self,
         guild_id: GuildId,

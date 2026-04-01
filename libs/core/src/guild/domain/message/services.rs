@@ -4,31 +4,39 @@ use ferriscord_entities::{
     guild::GuildId,
     message::{Message, MessageId},
 };
-use uuid::Uuid;
 use ferriscord_permission::{Permissions, require_permission};
+use uuid::Uuid;
 
 use crate::guild::domain::{
-    common::build_permission_context,
-    errors::CoreError,
-    guild::ports::GuildPort,
+    channel::ports::ChannelPort, common::build_channel_permission_context, errors::CoreError,
+    guild::ports::GuildPort, member::ports::MemberRepository, role::ports::RoleRepository,
 };
 
 use super::ports::{AttachmentInput, MessagePort, MessageService};
 
 #[derive(Clone)]
-pub struct MessageServiceImpl<G, Msg>
+pub struct MessageServiceImpl<G, Msg, R, M, C>
 where
     G: GuildPort,
     Msg: MessagePort,
+    R: RoleRepository,
+    M: MemberRepository,
+    C: ChannelPort,
 {
     pub(crate) guild_repository: G,
     pub(crate) message_repository: Msg,
+    pub(crate) role_repository: R,
+    pub(crate) member_repository: M,
+    pub(crate) channel_repository: C,
 }
 
-impl<G, Msg> MessageService for MessageServiceImpl<G, Msg>
+impl<G, Msg, R, M, C> MessageService for MessageServiceImpl<G, Msg, R, M, C>
 where
     G: GuildPort,
     Msg: MessagePort,
+    R: RoleRepository,
+    M: MemberRepository,
+    C: ChannelPort,
 {
     async fn get_channel_messages(
         &self,
@@ -38,12 +46,22 @@ where
         before: Option<MessageId>,
         limit: u32,
     ) -> Result<Vec<Message>, CoreError> {
-        let mut permission_context =
-            build_permission_context(&self.guild_repository, &identity, &guild_id).await?;
+        let mut permission_context = build_channel_permission_context(
+            &self.guild_repository,
+            &self.member_repository,
+            &self.role_repository,
+            &self.channel_repository,
+            &identity,
+            &guild_id,
+            &channel_id,
+        )
+        .await?;
 
         require_permission!(permission_context, Permissions::VIEW_CHANNEL);
 
-        self.message_repository.list_by_channel(&channel_id, before, limit.min(100)).await
+        self.message_repository
+            .list_by_channel(&channel_id, before, limit.min(100))
+            .await
     }
 
     async fn send_message(
@@ -54,8 +72,16 @@ where
         content: String,
         attachments: Vec<AttachmentInput>,
     ) -> Result<Message, CoreError> {
-        let mut permission_context =
-            build_permission_context(&self.guild_repository, &identity, &guild_id).await?;
+        let mut permission_context = build_channel_permission_context(
+            &self.guild_repository,
+            &self.member_repository,
+            &self.role_repository,
+            &self.channel_repository,
+            &identity,
+            &guild_id,
+            &channel_id,
+        )
+        .await?;
 
         require_permission!(permission_context, Permissions::SEND_MESSAGES);
 
@@ -71,12 +97,23 @@ where
         _channel_id: ChannelId,
         message_id: Uuid,
     ) -> Result<(), CoreError> {
-        let mut permission_context =
-            build_permission_context(&self.guild_repository, &identity, &guild_id).await?;
+        let mut permission_context = build_channel_permission_context(
+            &self.guild_repository,
+            &self.member_repository,
+            &self.role_repository,
+            &self.channel_repository,
+            &identity,
+            &guild_id,
+            &_channel_id,
+        )
+        .await?;
 
         require_permission!(permission_context, Permissions::VIEW_CHANNEL);
 
-        let deleted = self.message_repository.delete(message_id, identity.id()).await?;
+        let deleted = self
+            .message_repository
+            .delete(message_id, identity.id())
+            .await?;
         if !deleted {
             return Err(CoreError::InsufficientPermissions);
         }

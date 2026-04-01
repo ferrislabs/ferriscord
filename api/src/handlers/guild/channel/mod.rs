@@ -1,4 +1,5 @@
 pub mod create_channel;
+pub mod delete_channel;
 pub mod delete_message;
 pub mod get_channels;
 pub mod get_messages;

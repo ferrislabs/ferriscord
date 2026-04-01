@@ -4,13 +4,10 @@ use axum_extra::routing::RouterExt;
 use crate::{
     handlers::guild::{
         assign_member_role::assign_member_role_handler,
-        update_guild::update_guild_handler,
         channel::{
-            create_channel::create_channel_handler,
-            delete_message::delete_message_handler,
-            get_channels::get_channels_handler,
-            get_messages::get_messages_handler,
-            send_message::send_message_handler,
+            create_channel::create_channel_handler, delete_channel::delete_channel_handler,
+            delete_message::delete_message_handler, get_channels::get_channels_handler,
+            get_messages::get_messages_handler, send_message::send_message_handler,
             update_channel::update_channel_handler,
         },
         create_guild::create_guild_handler,
@@ -18,17 +15,17 @@ use crate::{
         delete_guild::delete_guild_handler,
         delete_role::delete_role_handler,
         get_members::get_members_handler,
-        leave_guild::leave_guild_handler,
         get_role::get_role_handler,
         get_roles::get_roles_handler,
         invite::{
-            create_invite::create_invite_handler,
-            delete_invite::delete_invite_handler,
-            join_guild::join_guild_handler,
-            list_invites::list_invites_handler,
+            create_invite::create_invite_handler, delete_invite::delete_invite_handler,
+            join_guild::join_guild_handler, list_invites::list_invites_handler,
             preview_invite::preview_invite_handler,
         },
+        leave_guild::leave_guild_handler,
         remove_member_role::remove_member_role_handler,
+        update_guild::update_guild_handler,
+        update_role::update_role_handler,
     },
     state::AppState,
 };
@@ -40,13 +37,14 @@ pub mod create_role;
 pub mod delete_guild;
 pub mod delete_role;
 pub mod get_members;
-pub mod leave_guild;
 pub mod get_role;
 pub mod get_roles;
 pub mod internal;
 pub mod invite;
+pub mod leave_guild;
 pub mod remove_member_role;
 pub mod update_guild;
+pub mod update_role;
 
 pub fn guild_routes(_state: AppState) -> Router<AppState> {
     Router::new()
@@ -54,10 +52,12 @@ pub fn guild_routes(_state: AppState) -> Router<AppState> {
         .typed_get(get_roles_handler)
         .typed_get(get_role_handler)
         .typed_post(create_role_handler)
+        .typed_patch(update_role_handler)
         .typed_delete(delete_role_handler)
         .typed_delete(delete_guild_handler)
         .typed_get(get_channels_handler)
         .typed_post(create_channel_handler)
+        .typed_delete(delete_channel_handler)
         .typed_get(get_messages_handler)
         .typed_post(send_message_handler)
         .typed_delete(delete_message_handler)

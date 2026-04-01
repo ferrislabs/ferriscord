@@ -20,6 +20,7 @@ import { Route as AppChannelsAtmeRouteImport } from './routes/_app.channels.@me'
 import { Route as AppChannelsAtmeChannelIdRouteImport } from './routes/_app.channels.@me.$channelId'
 import { Route as AppChannelsServerIdSettingsRouteImport } from './routes/_app.channels.$serverId.settings'
 import { Route as AppChannelsServerIdChannelIdRouteImport } from './routes/_app.channels.$serverId.$channelId'
+import { Route as AppChannelsServerIdChannelSettingsChannelIdRouteImport } from './routes/_app.channels.$serverId.channel-settings.$channelId'
 
 const AppRoute = AppRouteImport.update({
   id: '/_app',
@@ -78,6 +79,12 @@ const AppChannelsServerIdChannelIdRoute =
     path: '/channels/$serverId/$channelId',
     getParentRoute: () => AppRoute,
   } as any)
+const AppChannelsServerIdChannelSettingsChannelIdRoute =
+  AppChannelsServerIdChannelSettingsChannelIdRouteImport.update({
+    id: '/channels/$serverId/channel-settings/$channelId',
+    path: '/channels/$serverId/channel-settings/$channelId',
+    getParentRoute: () => AppRoute,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -90,6 +97,7 @@ export interface FileRoutesByFullPath {
   '/channels/$serverId/$channelId': typeof AppChannelsServerIdChannelIdRoute
   '/channels/$serverId/settings': typeof AppChannelsServerIdSettingsRoute
   '/channels/@me/$channelId': typeof AppChannelsAtmeChannelIdRoute
+  '/channels/$serverId/channel-settings/$channelId': typeof AppChannelsServerIdChannelSettingsChannelIdRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -102,6 +110,7 @@ export interface FileRoutesByTo {
   '/channels/$serverId/$channelId': typeof AppChannelsServerIdChannelIdRoute
   '/channels/$serverId/settings': typeof AppChannelsServerIdSettingsRoute
   '/channels/@me/$channelId': typeof AppChannelsAtmeChannelIdRoute
+  '/channels/$serverId/channel-settings/$channelId': typeof AppChannelsServerIdChannelSettingsChannelIdRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -116,6 +125,7 @@ export interface FileRoutesById {
   '/_app/channels/$serverId/$channelId': typeof AppChannelsServerIdChannelIdRoute
   '/_app/channels/$serverId/settings': typeof AppChannelsServerIdSettingsRoute
   '/_app/channels/@me/$channelId': typeof AppChannelsAtmeChannelIdRoute
+  '/_app/channels/$serverId/channel-settings/$channelId': typeof AppChannelsServerIdChannelSettingsChannelIdRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -130,6 +140,7 @@ export interface FileRouteTypes {
     | '/channels/$serverId/$channelId'
     | '/channels/$serverId/settings'
     | '/channels/@me/$channelId'
+    | '/channels/$serverId/channel-settings/$channelId'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -142,6 +153,7 @@ export interface FileRouteTypes {
     | '/channels/$serverId/$channelId'
     | '/channels/$serverId/settings'
     | '/channels/@me/$channelId'
+    | '/channels/$serverId/channel-settings/$channelId'
   id:
     | '__root__'
     | '/'
@@ -155,6 +167,7 @@ export interface FileRouteTypes {
     | '/_app/channels/$serverId/$channelId'
     | '/_app/channels/$serverId/settings'
     | '/_app/channels/@me/$channelId'
+    | '/_app/channels/$serverId/channel-settings/$channelId'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -244,6 +257,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppChannelsServerIdChannelIdRouteImport
       parentRoute: typeof AppRoute
     }
+    '/_app/channels/$serverId/channel-settings/$channelId': {
+      id: '/_app/channels/$serverId/channel-settings/$channelId'
+      path: '/channels/$serverId/channel-settings/$channelId'
+      fullPath: '/channels/$serverId/channel-settings/$channelId'
+      preLoaderRoute: typeof AppChannelsServerIdChannelSettingsChannelIdRouteImport
+      parentRoute: typeof AppRoute
+    }
   }
 }
 
@@ -265,6 +285,7 @@ interface AppRouteChildren {
   AppChannelsAtmeRoute: typeof AppChannelsAtmeRouteWithChildren
   AppChannelsServerIdChannelIdRoute: typeof AppChannelsServerIdChannelIdRoute
   AppChannelsServerIdSettingsRoute: typeof AppChannelsServerIdSettingsRoute
+  AppChannelsServerIdChannelSettingsChannelIdRoute: typeof AppChannelsServerIdChannelSettingsChannelIdRoute
 }
 
 const AppRouteChildren: AppRouteChildren = {
@@ -273,6 +294,8 @@ const AppRouteChildren: AppRouteChildren = {
   AppChannelsAtmeRoute: AppChannelsAtmeRouteWithChildren,
   AppChannelsServerIdChannelIdRoute: AppChannelsServerIdChannelIdRoute,
   AppChannelsServerIdSettingsRoute: AppChannelsServerIdSettingsRoute,
+  AppChannelsServerIdChannelSettingsChannelIdRoute:
+    AppChannelsServerIdChannelSettingsChannelIdRoute,
 }
 
 const AppRouteWithChildren = AppRoute._addFileChildren(AppRouteChildren)

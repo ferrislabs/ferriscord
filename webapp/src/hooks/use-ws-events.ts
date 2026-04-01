@@ -178,6 +178,18 @@ export function useWsEvents() {
           break
         }
 
+        case 'channel.updated': {
+          queryClient.invalidateQueries({
+            queryKey: [{ _id: '/guilds/{guild_id}/channels' }],
+          })
+          queryClient.invalidateQueries({
+            queryKey: [
+              { _id: '/guilds/{guild_id}/channels/{channel_id}/messages' },
+            ],
+          })
+          break
+        }
+
         case 'typing.update': {
           const data = event.data as {
             user_id: string

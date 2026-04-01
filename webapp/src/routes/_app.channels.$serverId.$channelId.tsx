@@ -27,7 +27,7 @@ import {
   useSendMessage,
   useDeleteMessage,
 } from '@/lib/queries/message-queries'
-import { useGuildMembers } from '@/lib/queries/member-queries'
+import { useGuildMembers, useGuildRoles } from '@/lib/queries/member-queries'
 import { useGetMe } from '@/lib/queries/user-queries'
 import { useWsRoom } from '@/hooks/use-ws-events'
 import { MemberList } from '@/components/guild/member-list'
@@ -45,6 +45,7 @@ import {
 } from '@/components/ui/dropdown-menu'
 import { Input } from '@/components/ui/input'
 import { cn } from '@/lib/utils'
+import { canSendMessagesInChannel } from '@/lib/channel-permissions'
 import { useSidebar } from '@/components/ui/sidebar'
 import { useNotificationStore } from '@/stores/notification.store'
 import { useTypingStore } from '@/stores/typing.store'
@@ -112,6 +113,7 @@ function ChannelPage() {
   const { data: channels = [], isLoading: isLoadingChannels } =
     useGuildChannels(serverId)
   const { data: guildMembers = [] } = useGuildMembers(serverId)
+  const { data: guildRolesData = { data: [] } } = useGuildRoles(serverId)
   const { data: messages = [], isLoading: isLoadingMessages } =
     useChannelMessages(serverId, channelId)
   const { mutate: sendMessage, isPending: isSending } = useSendMessage(
@@ -130,6 +132,13 @@ function ChannelPage() {
   }
 
   const selectedChannel = channels.find((ch) => ch.id === channelId)
+  const currentMember = guildMembers.find((member) => member.user_id === me?.id)
+  const canSendMessages = canSendMessagesInChannel({
+    channel: selectedChannel,
+    channels,
+    roles: guildRolesData.data,
+    member: currentMember,
+  })
   const parentTextChannel = selectedChannel?.parent_id
     ? channels.find(
         (channel) =>
@@ -502,6 +511,12 @@ function ChannelPage() {
                 <MessageInput
                   onSendMessage={handleSendMessage}
                   isLoading={isSending}
+                  disabled={!canSendMessages}
+                  placeholder={
+                    canSendMessages
+                      ? undefined
+                      : 'You do not have permission to send messages in this channel'
+                  }
                   channelName={selectedChannel.name}
                   channelType='text'
                   mentionCandidates={mentionCandidates}

@@ -133,7 +133,7 @@ function ServerButton({
         <button
           onClick={handleServerClick}
           className={cn(
-            'relative flex h-10 w-10 cursor-pointer items-center justify-center rounded-lg border text-sm font-semibold transition-all duration-150 active:scale-95',
+            'relative flex h-10 w-10 cursor-pointer items-center justify-center overflow-hidden rounded-lg border text-sm font-semibold transition-all duration-150 active:scale-95',
             isActive
               ? 'border-primary/60 bg-primary/10 text-foreground'
               : 'border-border/50 bg-muted/50 text-foreground hover:border-primary/40 hover:bg-muted/80',
@@ -143,7 +143,7 @@ function ServerButton({
             <img
               src={guild.icon_url}
               alt={guild.name}
-              className='h-full w-full object-cover'
+              className='block h-full w-full rounded-[inherit] bg-background/30 p-0.5 object-contain'
             />
           ) : (
             guild.name.charAt(0).toUpperCase()

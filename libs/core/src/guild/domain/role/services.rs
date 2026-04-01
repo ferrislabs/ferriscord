@@ -9,7 +9,10 @@ use crate::guild::domain::{
     guild::ports::GuildPort,
     member::ports::MemberRepository,
     role::{
-        entities::{AssignRoleInput, CreateRoleInput, DeleteRoleInput, FindRoleInput, FindRolesInput, RemoveRoleInput},
+        entities::{
+            AssignRoleInput, CreateRoleInput, DeleteRoleInput, FindRoleInput, FindRolesInput,
+            RemoveRoleInput, UpdateRoleInput,
+        },
         ports::{RoleRepository, RoleService},
     },
 };
@@ -38,13 +41,24 @@ where
         input: CreateRoleInput,
         guild_id: GuildId,
     ) -> Result<Role, CoreError> {
-        let mut permission_context =
-            build_permission_context(&self.guild_repository, &identity, &guild_id).await?;
+        let mut permission_context = build_permission_context(
+            &self.guild_repository,
+            &self.member_repository,
+            &self.role_repository,
+            &identity,
+            &guild_id,
+        )
+        .await?;
 
         require_permission!(permission_context, Permissions::MANAGE_ROLES);
 
         self.role_repository
-            .insert(&input.name, input.color.unwrap_or_default(), input.permissions, &guild_id)
+            .insert(
+                &input.name,
+                input.color.unwrap_or_default(),
+                input.permissions,
+                &guild_id,
+            )
             .await
     }
 
@@ -65,6 +79,33 @@ where
         Ok(())
     }
 
+    async fn update_role(
+        &self,
+        identity: Identity,
+        input: UpdateRoleInput,
+    ) -> Result<Role, CoreError> {
+        let mut permission_context = build_permission_context(
+            &self.guild_repository,
+            &self.member_repository,
+            &self.role_repository,
+            &identity,
+            &input.guild_id,
+        )
+        .await?;
+
+        require_permission!(permission_context, Permissions::MANAGE_ROLES);
+
+        self.role_repository
+            .update_by_id(
+                &input.guild_id,
+                input.role_id,
+                &input.name,
+                input.color.unwrap_or_default(),
+                input.permissions,
+            )
+            .await
+    }
+
     async fn find_roles(
         &self,
         _identity: Identity,
@@ -72,10 +113,15 @@ where
     ) -> Result<PaginatedResponse<Vec<Role>>, CoreError> {
         let page = input.page.unwrap_or(1);
         let per_page = input.per_page.unwrap_or(50);
-        let params = PaginationParams { page: page as u32, per_page: per_page as u32 };
+        let params = PaginationParams {
+            page: page as u32,
+            per_page: per_page as u32,
+        };
 
-        let (roles, total) =
-            self.role_repository.find_by_guild_id(input.guild_id, params).await?;
+        let (roles, total) = self
+            .role_repository
+            .find_by_guild_id(input.guild_id, params)
+            .await?;
 
         let response = PaginationBuilder::new("test").build(roles, params, total);
 
@@ -87,8 +133,14 @@ where
         identity: Identity,
         input: AssignRoleInput,
     ) -> Result<(), CoreError> {
-        let mut permission_context =
-            build_permission_context(&self.guild_repository, &identity, &input.guild_id).await?;
+        let mut permission_context = build_permission_context(
+            &self.guild_repository,
+            &self.member_repository,
+            &self.role_repository,
+            &identity,
+            &input.guild_id,
+        )
+        .await?;
 
         require_permission!(permission_context, Permissions::MANAGE_ROLES);
 
@@ -102,8 +154,14 @@ where
         identity: Identity,
         input: RemoveRoleInput,
     ) -> Result<(), CoreError> {
-        let mut permission_context =
-            build_permission_context(&self.guild_repository, &identity, &input.guild_id).await?;
+        let mut permission_context = build_permission_context(
+            &self.guild_repository,
+            &self.member_repository,
+            &self.role_repository,
+            &identity,
+            &input.guild_id,
+        )
+        .await?;
 
         require_permission!(permission_context, Permissions::MANAGE_ROLES);
 

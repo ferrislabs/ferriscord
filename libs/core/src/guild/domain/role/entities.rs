@@ -11,6 +11,14 @@ pub struct DeleteRoleInput {
     pub guild_id: GuildId,
 }
 
+pub struct UpdateRoleInput {
+    pub guild_id: GuildId,
+    pub role_id: RoleId,
+    pub name: String,
+    pub permissions: u64,
+    pub color: Option<u32>,
+}
+
 pub struct FindRoleInput {
     pub role_id: RoleId,
     pub guild_id: GuildId,

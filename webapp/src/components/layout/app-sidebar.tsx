@@ -9,6 +9,7 @@ import {
   Plus,
   FolderOpen,
   Copy,
+  Shield,
 } from 'lucide-react'
 import {
   Link,
@@ -16,6 +17,7 @@ import {
   useNavigate,
   useMatchRoute,
 } from '@tanstack/react-router'
+import { useQueryClient } from '@tanstack/react-query'
 import { cn } from '@/lib/utils'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Button } from '@/components/ui/button'
@@ -34,6 +36,7 @@ import {
 import { useUserGuilds, useLeaveGuild } from '@/lib/queries/guild-queries'
 import { useOidcUser } from '@axa-fr/react-oidc'
 import { useAuth } from '@/hooks/use-auth'
+import { useAuthStore } from '@/stores/auth.store'
 import { useMobile } from '@/hooks/use-mobile'
 import { useSidebar } from '@/components/ui/sidebar'
 import {
@@ -340,6 +343,7 @@ interface SortableChannelItemProps {
   canManageServer?: boolean
   canLeaveGuild?: boolean
   onLeaveGuild?: () => void
+  onOpenPermissions?: (channel: Schemas.Channel) => void
 }
 
 function SortableChannelItem({
@@ -355,6 +359,7 @@ function SortableChannelItem({
   canManageServer,
   canLeaveGuild,
   onLeaveGuild,
+  onOpenPermissions,
 }: SortableChannelItemProps) {
   const navigate = useNavigate()
   const {
@@ -427,6 +432,12 @@ function SortableChannelItem({
             Invite people
           </ContextMenuItem>
         )}
+        {onOpenPermissions && channel.kind !== 'Voice' && (
+          <ContextMenuItem onSelect={() => onOpenPermissions(channel)}>
+            <Shield className='mr-2 h-4 w-4' />
+            Permissions
+          </ContextMenuItem>
+        )}
         <ContextMenuItem onSelect={() => onCopyChannelId?.(channel)}>
           <Copy className='mr-2 h-4 w-4' />
           Copy channel ID
@@ -465,6 +476,9 @@ interface SortableCategoryProps {
   isChannelOver?: boolean
   onCopyCategoryId?: (category: Schemas.Channel) => void
   onCopyChannelId?: (channel: Schemas.Channel) => void
+  onOpenPermissions?: (channel: Schemas.Channel) => void
+  onEditCategory?: (category: Schemas.Channel) => void
+  onDeleteCategory?: (category: Schemas.Channel) => void
 }
 
 function SortableCategory({
@@ -480,6 +494,9 @@ function SortableCategory({
   isChannelOver,
   onCopyCategoryId,
   onCopyChannelId,
+  onOpenPermissions,
+  onEditCategory,
+  onDeleteCategory,
 }: SortableCategoryProps) {
   const {
     attributes,
@@ -543,6 +560,25 @@ function SortableCategory({
           <ContextMenuItem onSelect={onCreateClick}>
             Create channel in category
           </ContextMenuItem>
+          {onOpenPermissions && (
+            <ContextMenuItem onSelect={() => onOpenPermissions(category)}>
+              <Shield className='mr-2 h-4 w-4' />
+              Permissions
+            </ContextMenuItem>
+          )}
+          {onEditCategory && (
+            <ContextMenuItem onSelect={() => onEditCategory(category)}>
+              Edit Category
+            </ContextMenuItem>
+          )}
+          {onDeleteCategory && (
+            <ContextMenuItem
+              className='text-destructive focus:text-destructive'
+              onSelect={() => onDeleteCategory(category)}
+            >
+              Delete Category
+            </ContextMenuItem>
+          )}
           <ContextMenuItem onSelect={() => onCopyCategoryId?.(category)}>
             <Copy className='mr-2 h-4 w-4' />
             Copy category ID
@@ -563,6 +599,7 @@ function SortableCategory({
                 onChannelClick={onChannelClick}
                 onCopyChannelId={onCopyChannelId}
                 onCreateClick={() => onCreateClick()}
+                onOpenPermissions={onOpenPermissions}
               />
             )
           })}
@@ -575,6 +612,7 @@ function SortableCategory({
 // ─── AppSidebar ───────────────────────────────────────────────────────────────
 
 export function AppSidebar() {
+  const queryClient = useQueryClient()
   const params = useParams({ strict: false })
   const navigate = useNavigate()
   const matchRoute = useMatchRoute()
@@ -858,6 +896,51 @@ export function AppSidebar() {
     navigate({ to: '/channels/$serverId/settings', params: { serverId } })
   }
 
+  const openPermissionsDialog = (channel: Schemas.Channel) => {
+    if (!serverId) return
+    navigate({
+      to: '/channels/$serverId/channel-settings/$channelId',
+      params: { serverId, channelId: channel.id },
+      search: { tab: 'permissions' },
+    })
+  }
+
+  const openCategorySettings = (channel: Schemas.Channel) => {
+    if (!serverId) return
+    navigate({
+      to: '/channels/$serverId/channel-settings/$channelId',
+      params: { serverId, channelId: channel.id },
+      search: { tab: 'overview' },
+    })
+  }
+
+  const handleDeleteCategory = async (channel: Schemas.Channel) => {
+    if (!serverId) return
+
+    try {
+      const accessToken = useAuthStore.getState().accessToken
+      const response = await fetch(
+        `${window.apiUrl}/guilds/${serverId}/channels/${channel.id}`,
+        {
+          method: 'DELETE',
+          headers: accessToken
+            ? { Authorization: `Bearer ${accessToken}` }
+            : undefined,
+          credentials: 'include',
+        },
+      )
+
+      if (!response.ok) throw new Error()
+
+      await queryClient.invalidateQueries({
+        queryKey: [{ _id: '/guilds/{guild_id}/channels' }],
+      })
+      toast.success('Category deleted')
+    } catch {
+      toast.error('Failed to delete category')
+    }
+  }
+
   const handleCopyUserId = () => {
     if (!profile?.id) return
     void handleCopyToClipboard(profile.id, 'User ID')
@@ -1127,7 +1210,7 @@ export function AppSidebar() {
                     <img
                       src={guild.icon_url}
                       alt={guild.name}
-                      className='h-6 w-6 rounded-full object-cover shrink-0 ring-2 ring-black/25 bg-black/30'
+                      className='h-6 w-6 rounded-full object-contain shrink-0 ring-2 ring-black/25 bg-black/30 p-0.5'
                     />
                   ) : (
                     <div className='h-6 w-6 rounded-full bg-black/35 flex items-center justify-center shrink-0 ring-2 ring-black/20'>
@@ -1261,6 +1344,7 @@ export function AppSidebar() {
                                 onLeaveGuild={
                                   !isGuildOwner ? handleLeaveGuild : undefined
                                 }
+                                onOpenPermissions={openPermissionsDialog}
                               />
                             )
                           })}
@@ -1297,6 +1381,9 @@ export function AppSidebar() {
                                 'Channel ID',
                               )
                             }
+                            onOpenPermissions={openPermissionsDialog}
+                            onEditCategory={openCategorySettings}
+                            onDeleteCategory={handleDeleteCategory}
                             isChannelOver={
                               !isCategoryDragging &&
                               !!activeId &&

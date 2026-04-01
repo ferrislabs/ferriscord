@@ -10,9 +10,6 @@ import {
 } from '@/lib/mentions'
 import {
   Send,
-  Smile,
-  Gift,
-  Sticker,
   Mic,
   Image,
   Plus,
@@ -567,32 +564,7 @@ export function MessageInput({
             </div>
 
             {/* Action buttons */}
-            <div className='flex items-center pr-3 pb-3 space-x-1'>
-              <button
-                type='button'
-                disabled={disabled}
-                className='p-1.5 text-muted-foreground hover:text-foreground hover:bg-accent rounded transition-colors disabled:cursor-not-allowed'
-                aria-label='Send gift'
-              >
-                <Gift className='w-5 h-5' />
-              </button>
-              <button
-                type='button'
-                disabled={disabled}
-                className='p-1.5 text-muted-foreground hover:text-foreground hover:bg-accent rounded transition-colors disabled:cursor-not-allowed'
-                aria-label='Send sticker'
-              >
-                <Sticker className='w-5 h-5' />
-              </button>
-              <button
-                type='button'
-                disabled={disabled}
-                className='p-1.5 text-muted-foreground hover:text-foreground hover:bg-accent rounded transition-colors disabled:cursor-not-allowed'
-                aria-label='Add emoji'
-              >
-                <Smile className='w-5 h-5' />
-              </button>
-
+            <div className='flex items-center pr-3 pb-3'>
               {(canSend || isLoading) && (
                 <Button
                   type='button'

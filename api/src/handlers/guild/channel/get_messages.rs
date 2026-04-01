@@ -3,6 +3,7 @@ use std::time::Duration;
 use axum::{Extension, extract::State};
 use axum_extra::routing::TypedPath;
 use ferriscord_auth::Identity;
+use ferriscord_core::guild::domain::message::ports::MessageService;
 use ferriscord_entities::{
     Id,
     channel::ChannelId,
@@ -11,13 +12,13 @@ use ferriscord_entities::{
 };
 use ferriscord_error::ApiError;
 use ferriscord_server::http::response::Response;
-use ferriscord_core::guild::domain::message::ports::MessageService;
 use ferriscord_storage::StoragePort;
 use serde::Deserialize;
 use tracing::error;
 use utoipa::IntoParams;
 use uuid::Uuid;
 
+use crate::handlers::map_core_error;
 use crate::state::AppState;
 
 #[derive(TypedPath, Deserialize)]
@@ -58,7 +59,10 @@ pub struct GetMessagesQuery {
     )
 )]
 pub async fn get_messages_handler(
-    GetMessagesRoute { guild_id, channel_id }: GetMessagesRoute,
+    GetMessagesRoute {
+        guild_id,
+        channel_id,
+    }: GetMessagesRoute,
     State(state): State<AppState>,
     Extension(identity): Extension<Identity>,
     axum::extract::Query(query): axum::extract::Query<GetMessagesQuery>,
@@ -72,9 +76,7 @@ pub async fn get_messages_handler(
         .message_service
         .get_channel_messages(identity, guild_id, channel_id, before, limit)
         .await
-        .map_err(|e| ApiError::Unknown {
-            message: e.to_string(),
-        })?;
+        .map_err(map_core_error)?;
 
     // Populate presigned URLs for attachments
     let bucket = &state.args.storage.bucket;

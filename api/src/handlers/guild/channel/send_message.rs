@@ -14,6 +14,7 @@ use serde::Deserialize;
 use tracing::error;
 use uuid::Uuid;
 
+use crate::handlers::map_core_error;
 use crate::state::AppState;
 
 fn channel_room(channel_id: &ChannelId) -> String {
@@ -127,9 +128,7 @@ pub async fn send_message_handler(
             attachment_inputs,
         )
         .await
-        .map_err(|e| ApiError::Unknown {
-            message: e.to_string(),
-        })?;
+        .map_err(map_core_error)?;
 
     // Populate presigned URLs for all attachments
     for attachment in &mut message.attachments {

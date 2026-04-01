@@ -8,6 +8,9 @@ pub enum ApiError {
     #[error("unknown error: {message}")]
     Unknown { message: String },
 
+    #[error("forbidden: {message}")]
+    Forbidden { message: String },
+
     #[error("token not found")]
     TokenNotFound,
 
@@ -31,6 +34,16 @@ impl IntoResponse for ApiError {
                     code: "E_INTERNAL_SERVER_ERROR".to_string(),
                     status: 500,
                     message: format!("internal server error: {message}"),
+                }),
+            )
+                .into_response(),
+
+            ApiError::Forbidden { message } => (
+                StatusCode::FORBIDDEN,
+                Json(ApiErrorResponse {
+                    code: "E_FORBIDDEN".to_string(),
+                    status: 403,
+                    message,
                 }),
             )
                 .into_response(),

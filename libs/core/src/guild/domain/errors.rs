@@ -42,8 +42,11 @@ pub enum CoreError {
 
 impl From<&str> for CoreError {
     fn from(message: &str) -> Self {
-        CoreError::Unknown {
-            message: message.to_string(),
+        match message {
+            "Insufficient permissions" => CoreError::InsufficientPermissions,
+            _ => CoreError::Unknown {
+                message: message.to_string(),
+            },
         }
     }
 }

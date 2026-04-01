@@ -30,6 +30,11 @@ pub trait ChannelPort: Send + Sync {
         channel_id: &ChannelId,
         input: UpdateChannelInput,
     ) -> impl Future<Output = Result<Channel, CoreError>> + Send;
+
+    fn delete_channel(
+        &self,
+        channel_id: &ChannelId,
+    ) -> impl Future<Output = Result<(), CoreError>> + Send;
 }
 
 pub trait ChannelService: Send + Sync {
@@ -53,4 +58,11 @@ pub trait ChannelService: Send + Sync {
         channel_id: ChannelId,
         input: UpdateChannelInput,
     ) -> impl Future<Output = Result<Channel, CoreError>> + Send;
+
+    fn delete_channel(
+        &self,
+        identity: Identity,
+        guild_id: GuildId,
+        channel_id: ChannelId,
+    ) -> impl Future<Output = Result<(), CoreError>> + Send;
 }

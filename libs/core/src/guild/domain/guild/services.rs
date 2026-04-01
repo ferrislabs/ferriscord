@@ -42,24 +42,32 @@ where
         let owner_user_id = input.owner_user_id.clone();
         let guild = self.guild_repository.insert(input).await?;
 
-        self.role_repository.insert("everyone", 0, 0, &guild.id).await?;
+        self.role_repository
+            .insert("@everyone", 0, 0, &guild.id)
+            .await?;
 
-        self.member_repository.insert(&guild.id, &owner_user_id).await?;
+        self.member_repository
+            .insert(&guild.id, &owner_user_id)
+            .await?;
 
         Ok(guild)
     }
 
     async fn delete_guild(&self, identity: Identity, guild_id: &GuildId) -> Result<(), CoreError> {
-        let guild = self
-            .guild_repository
-            .find_by_id(guild_id)
-            .await?
-            .ok_or(CoreError::GuildNotFound { guild_id: guild_id.clone() })?;
+        let guild =
+            self.guild_repository
+                .find_by_id(guild_id)
+                .await?
+                .ok_or(CoreError::GuildNotFound {
+                    guild_id: guild_id.clone(),
+                })?;
 
         let owner_id: OwnerId = identity.id().into();
 
         if guild.owner_id != owner_id {
-            return Err(CoreError::Unknown { message: "no owner".to_string() });
+            return Err(CoreError::Unknown {
+                message: "no owner".to_string(),
+            });
         }
 
         self.guild_repository.delete(guild_id).await?;
@@ -81,11 +89,13 @@ where
         guild_id: &GuildId,
         user_id: UserId,
     ) -> Result<(), CoreError> {
-        let guild = self
-            .guild_repository
-            .find_by_id(guild_id)
-            .await?
-            .ok_or(CoreError::GuildNotFound { guild_id: guild_id.clone() })?;
+        let guild =
+            self.guild_repository
+                .find_by_id(guild_id)
+                .await?
+                .ok_or(CoreError::GuildNotFound {
+                    guild_id: guild_id.clone(),
+                })?;
 
         let owner_id: OwnerId = identity.id().into();
 
@@ -95,7 +105,9 @@ where
             });
         }
 
-        self.member_repository.delete_member(guild_id, &user_id).await?;
+        self.member_repository
+            .delete_member(guild_id, &user_id)
+            .await?;
 
         Ok(())
     }
@@ -109,12 +121,16 @@ where
             .guild_repository
             .find_by_id(&input.guild_id)
             .await?
-            .ok_or(CoreError::GuildNotFound { guild_id: input.guild_id.clone() })?;
+            .ok_or(CoreError::GuildNotFound {
+                guild_id: input.guild_id.clone(),
+            })?;
 
         let owner_id: OwnerId = identity.id().into();
 
         if guild.owner_id != owner_id {
-            return Err(CoreError::Unknown { message: "not guild owner".to_string() });
+            return Err(CoreError::Unknown {
+                message: "not guild owner".to_string(),
+            });
         }
 
         self.guild_repository.update(input).await

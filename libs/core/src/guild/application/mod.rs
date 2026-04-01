@@ -3,50 +3,39 @@ use sqlx::PgPool;
 
 use crate::guild::{
     domain::{
-        channel::ChannelServiceImpl,
-        errors::CoreError,
-        guild::GuildServiceImpl,
-        invite::InviteServiceImpl,
-        message::MessageServiceImpl,
-        role::RoleServiceImpl,
+        channel::ChannelServiceImpl, errors::CoreError, guild::GuildServiceImpl,
+        invite::InviteServiceImpl, message::MessageServiceImpl, role::RoleServiceImpl,
     },
     infrastructure::{
-        channel::postgres::PostgresChannelRepository,
-        guild::postgres::PostgresGuildRepository,
-        invite::postgres::PostgresInviteRepository,
-        member::postgres::PostgresMemberRepository,
-        message::postgres::PostgresMessageRepository,
-        role::postgres::PostgresRoleRepository,
+        channel::postgres::PostgresChannelRepository, guild::postgres::PostgresGuildRepository,
+        invite::postgres::PostgresInviteRepository, member::postgres::PostgresMemberRepository,
+        message::postgres::PostgresMessageRepository, role::postgres::PostgresRoleRepository,
     },
 };
 
-pub type GuildFerrisCordService = GuildServiceImpl<
-    PostgresGuildRepository,
-    PostgresRoleRepository,
-    PostgresMemberRepository,
->;
+pub type GuildFerrisCordService =
+    GuildServiceImpl<PostgresGuildRepository, PostgresRoleRepository, PostgresMemberRepository>;
 
-pub type RoleFerrisCordService = RoleServiceImpl<
-    PostgresGuildRepository,
-    PostgresRoleRepository,
-    PostgresMemberRepository,
->;
+pub type RoleFerrisCordService =
+    RoleServiceImpl<PostgresGuildRepository, PostgresRoleRepository, PostgresMemberRepository>;
 
 pub type ChannelFerrisCordService = ChannelServiceImpl<
     PostgresGuildRepository,
     PostgresChannelRepository,
+    PostgresRoleRepository,
+    PostgresMemberRepository,
 >;
 
 pub type MessageFerrisCordService = MessageServiceImpl<
     PostgresGuildRepository,
     PostgresMessageRepository,
+    PostgresRoleRepository,
+    PostgresMemberRepository,
+    PostgresChannelRepository,
 >;
 
-pub type InviteFerrisCordService = InviteServiceImpl<
-    PostgresInviteRepository,
-    PostgresGuildRepository,
-    PostgresMemberRepository,
->;
+pub type InviteFerrisCordService =
+    InviteServiceImpl<PostgresInviteRepository, PostgresGuildRepository, PostgresMemberRepository>;
 
 pub type MemberFerrisCordRepository = PostgresMemberRepository;
 
@@ -54,7 +43,13 @@ pub fn create_guild_services(
     pool: PgPool,
     _issuer: impl Into<String>,
 ) -> Result<
-    (GuildFerrisCordService, RoleFerrisCordService, ChannelFerrisCordService, MessageFerrisCordService, InviteFerrisCordService),
+    (
+        GuildFerrisCordService,
+        RoleFerrisCordService,
+        ChannelFerrisCordService,
+        MessageFerrisCordService,
+        InviteFerrisCordService,
+    ),
     CoreError,
 > {
     let guild_repo = PostgresGuildRepository::new(pool.clone());
@@ -72,16 +67,21 @@ pub fn create_guild_services(
         },
         RoleServiceImpl {
             guild_repository: guild_repo.clone(),
-            role_repository: role_repo,
+            role_repository: role_repo.clone(),
             member_repository: member_repo.clone(),
         },
         ChannelServiceImpl {
             guild_repository: guild_repo.clone(),
-            channel_repository: channel_repo,
+            channel_repository: channel_repo.clone(),
+            role_repository: role_repo.clone(),
+            member_repository: member_repo.clone(),
         },
         MessageServiceImpl {
             guild_repository: guild_repo.clone(),
             message_repository: message_repo,
+            role_repository: role_repo.clone(),
+            member_repository: member_repo.clone(),
+            channel_repository: channel_repo.clone(),
         },
         InviteServiceImpl {
             invite_repository: invite_repo,

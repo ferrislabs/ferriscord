@@ -6,13 +6,26 @@ use axum::{
     response::Response,
 };
 use ferriscord_auth::AuthRepository;
+use ferriscord_core::guild::domain::errors::CoreError;
 use ferriscord_core::user::domain::user::ports::UserService;
+use ferriscord_error::ApiError;
 use ferriscord_server::http::extract_token_from_bearer;
 use tracing::error;
 
 pub mod dm;
 pub mod guild;
 pub mod user;
+
+pub(crate) fn map_core_error(error: CoreError) -> ApiError {
+    match error {
+        CoreError::InsufficientPermissions => ApiError::Forbidden {
+            message: error.to_string(),
+        },
+        _ => ApiError::Unknown {
+            message: error.to_string(),
+        },
+    }
+}
 
 async fn service_auth_middleware(
     State(state): State<crate::state::AppState>,
@@ -28,14 +41,10 @@ async fn service_auth_middleware(
         .await
         .map_err(|_| StatusCode::UNAUTHORIZED)?;
 
-    let identity = state
-        .auth
-        .identify(token.as_str())
-        .await
-        .map_err(|e| {
-            error!("Auth middleware: failed to identify user: {:?}", e);
-            StatusCode::UNAUTHORIZED
-        })?;
+    let identity = state.auth.identify(token.as_str()).await.map_err(|e| {
+        error!("Auth middleware: failed to identify user: {:?}", e);
+        StatusCode::UNAUTHORIZED
+    })?;
 
     // Upsert the user in the ferriscord DB on every authenticated request
     if identity.is_user() {

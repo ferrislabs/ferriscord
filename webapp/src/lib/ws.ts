@@ -1,6 +1,7 @@
 export type WsEventType =
   | 'message.new'
   | 'message.delete'
+  | 'channel.updated'
   | 'typing.update'
   | 'presence.update'
   | 'friend_request.received'

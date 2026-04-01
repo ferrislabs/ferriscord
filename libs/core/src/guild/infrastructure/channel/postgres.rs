@@ -12,7 +12,10 @@ use tracing::error;
 use uuid::Uuid;
 
 use crate::guild::domain::{
-    channel::{entities::{CreateChannelInput, UpdateChannelInput}, ports::ChannelPort},
+    channel::{
+        entities::{CreateChannelInput, UpdateChannelInput},
+        ports::ChannelPort,
+    },
     errors::CoreError,
 };
 
@@ -129,11 +132,7 @@ const SELECT_SQL: &str = r#"
 "#;
 
 impl ChannelPort for PostgresChannelRepository {
-    async fn insert(
-        &self,
-        input: CreateChannelInput,
-        position: i32,
-    ) -> Result<Channel, CoreError> {
+    async fn insert(&self, input: CreateChannelInput, position: i32) -> Result<Channel, CoreError> {
         let id = Id::new().get_uuid();
         let now = chrono::Utc::now();
 
@@ -141,9 +140,8 @@ impl ChannelPort for PostgresChannelRepository {
             serde_json::to_string(&input.permission_overwrites.unwrap_or_default())
                 .unwrap_or_else(|_| "[]".to_string());
 
-        let available_tags_json =
-            serde_json::to_string(&input.available_tags.unwrap_or_default())
-                .unwrap_or_else(|_| "[]".to_string());
+        let available_tags_json = serde_json::to_string(&input.available_tags.unwrap_or_default())
+            .unwrap_or_else(|_| "[]".to_string());
 
         let default_reaction_emoji_json = input
             .default_reaction_emoji
@@ -263,18 +261,31 @@ impl ChannelPort for PostgresChannelRepository {
         input: UpdateChannelInput,
     ) -> Result<Channel, CoreError> {
         let parent_id = input.parent_id.as_ref().map(|id| id.get_uuid());
+        let permission_overwrites_json = input.permission_overwrites.as_ref().map(|overwrites| {
+            serde_json::to_string(overwrites).unwrap_or_else(|_| "[]".to_string())
+        });
+        let name = input.name;
 
         sqlx::query(
-            "UPDATE channels SET parent_id = $1, position = $2 WHERE id = $3",
+            "UPDATE channels
+             SET parent_id = $1,
+                 position = $2,
+                 permission_overwrites = COALESCE($3::JSONB, permission_overwrites),
+                 name = COALESCE($4, name)
+             WHERE id = $5",
         )
         .bind(parent_id)
         .bind(input.position)
+        .bind(permission_overwrites_json)
+        .bind(name)
         .bind(channel_id.get_uuid())
         .execute(&self.pool)
         .await
         .map_err(|e| {
             error!("failed to update channel {}: {}", channel_id, e);
-            CoreError::Unknown { message: e.to_string() }
+            CoreError::Unknown {
+                message: e.to_string(),
+            }
         })?;
 
         self.find_by_id(channel_id)
@@ -282,5 +293,20 @@ impl ChannelPort for PostgresChannelRepository {
             .ok_or_else(|| CoreError::Unknown {
                 message: "channel updated but could not be fetched".to_string(),
             })
+    }
+
+    async fn delete_channel(&self, channel_id: &ChannelId) -> Result<(), CoreError> {
+        sqlx::query("DELETE FROM channels WHERE id = $1")
+            .bind(channel_id.get_uuid())
+            .execute(&self.pool)
+            .await
+            .map_err(|e| {
+                error!("failed to delete channel {}: {}", channel_id, e);
+                CoreError::Unknown {
+                    message: e.to_string(),
+                }
+            })?;
+
+        Ok(())
     }
 }
