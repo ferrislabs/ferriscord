@@ -4,6 +4,7 @@ export type WsEventType =
   | 'channel.updated'
   | 'typing.update'
   | 'presence.update'
+  | 'keys.updated'
   | 'friend_request.received'
   | 'friend_request.accepted'
   | 'pong'

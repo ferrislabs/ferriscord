@@ -3,7 +3,9 @@ use std::time::Duration;
 use axum::{Extension, extract::State};
 use axum_extra::routing::TypedPath;
 use ferriscord_auth::Identity;
-use ferriscord_core::user::domain::dm::ports::{DmAttachmentInput, DmService};
+use ferriscord_core::user::domain::dm::ports::{
+    DmAttachmentInput, DmDevicePayload, DmEncryptionMeta, DmService,
+};
 use ferriscord_entities::{Id, attachment::AttachmentId, message::Message};
 use ferriscord_error::ApiError;
 use ferriscord_server::http::response::Response;
@@ -13,6 +15,12 @@ use tracing::error;
 use uuid::Uuid;
 
 use crate::state::AppState;
+
+#[derive(Debug, Deserialize)]
+struct DevicePayloadUpload {
+    target_device_id: Uuid,
+    ciphertext: String,
+}
 
 fn dm_room(channel_id: Uuid) -> String {
     format!("dm:{}", channel_id)
@@ -46,6 +54,7 @@ pub async fn send_dm_message_handler(
     let bucket = &state.args.storage.bucket;
     let mut content = String::new();
     let mut attachment_inputs: Vec<DmAttachmentInput> = Vec::new();
+    let mut encryption = DmEncryptionMeta::default();
 
     while let Some(field) = multipart.next_field().await.map_err(|e| ApiError::Unknown {
         message: format!("multipart error: {}", e),
@@ -55,6 +64,32 @@ pub async fn send_dm_message_handler(
                 content = field.text().await.map_err(|e| ApiError::Unknown {
                     message: format!("failed to read content: {}", e),
                 })?;
+            }
+            "encrypted" => {
+                let val = field.text().await.unwrap_or_default();
+                encryption.encrypted = val == "true";
+            }
+            "encryption_version" => {
+                let val = field.text().await.unwrap_or_default();
+                encryption.encryption_version = val.parse().unwrap_or(0);
+            }
+            "sender_device_id" => {
+                let val = field.text().await.unwrap_or_default();
+                encryption.sender_device_id = Uuid::parse_str(&val).ok();
+            }
+            "device_payloads" => {
+                let val = field.text().await.unwrap_or_default();
+                let payloads: Vec<DevicePayloadUpload> =
+                    serde_json::from_str(&val).map_err(|e| ApiError::Unknown {
+                        message: format!("failed to parse device_payloads: {}", e),
+                    })?;
+                encryption.device_payloads = payloads
+                    .into_iter()
+                    .map(|payload| DmDevicePayload {
+                        target_device_id: payload.target_device_id,
+                        ciphertext: payload.ciphertext,
+                    })
+                    .collect();
             }
             "files" => {
                 let filename = field
@@ -101,7 +136,7 @@ pub async fn send_dm_message_handler(
 
     let mut message = state
         .dm_service
-        .send_message(identity.id(), channel_id, content, attachment_inputs)
+        .send_message(identity.id(), channel_id, content, attachment_inputs, encryption)
         .await
         .map_err(|e| ApiError::Unknown { message: e.to_string() })?;
 

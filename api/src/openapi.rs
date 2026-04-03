@@ -1,10 +1,35 @@
 use utoipa::OpenApi;
 
 use super::handlers::{
+    crypto::{
+        backup::__path_get_key_backup_handler,
+        backup::__path_upsert_key_backup_handler,
+        bundle::__path_get_key_bundle_handler,
+        devices::__path_delete_device_handler,
+        devices::__path_list_devices_handler,
+        devices::__path_register_device_handler,
+        dm_session::__path_create_dm_session_handler,
+        dm_session::__path_get_dm_session_handler,
+        dm_session::__path_update_dm_session_handler,
+        identity::__path_get_identity_key_handler,
+        identity::__path_upload_identity_key_handler,
+        prekeys::__path_upload_onetime_prekeys_handler,
+        prekeys::__path_upload_signed_prekey_handler,
+        sender_keys::__path_distribute_sender_keys_handler,
+        sender_keys::__path_get_sender_keys_handler,
+    },
     dm::{
         create_or_get::__path_create_or_get_dm_handler,
         delete_message::__path_delete_dm_message_handler,
         get_messages::__path_get_dm_messages_handler, list_dms::__path_list_dms_handler,
+        history_sync::{
+            __path_complete_dm_history_sync_job_handler,
+            __path_create_dm_history_sync_job_handler,
+            __path_fail_dm_history_sync_job_handler,
+            __path_get_dm_history_sync_job_handler,
+            __path_list_dm_history_sync_messages_handler,
+            __path_upload_dm_history_sync_payloads_handler,
+        },
         send_message::__path_send_dm_message_handler,
     },
     guild::{
@@ -88,6 +113,12 @@ use super::handlers::{
         get_dm_messages_handler,
         send_dm_message_handler,
         delete_dm_message_handler,
+        create_dm_history_sync_job_handler,
+        get_dm_history_sync_job_handler,
+        list_dm_history_sync_messages_handler,
+        upload_dm_history_sync_payloads_handler,
+        complete_dm_history_sync_job_handler,
+        fail_dm_history_sync_job_handler,
         // Friends handlers
         list_friends_handler,
         list_incoming_handler,
@@ -96,6 +127,22 @@ use super::handlers::{
         accept_friend_request_handler,
         decline_friend_request_handler,
         remove_friend_handler,
+        // Crypto / E2EE handlers
+        upload_identity_key_handler,
+        get_identity_key_handler,
+        register_device_handler,
+        list_devices_handler,
+        delete_device_handler,
+        upload_signed_prekey_handler,
+        upload_onetime_prekeys_handler,
+        get_key_bundle_handler,
+        upsert_key_backup_handler,
+        get_key_backup_handler,
+        distribute_sender_keys_handler,
+        get_sender_keys_handler,
+        create_dm_session_handler,
+        get_dm_session_handler,
+        update_dm_session_handler,
     )
 )]
 pub struct ApiDoc;

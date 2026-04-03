@@ -3,7 +3,7 @@ use std::time::Duration;
 use axum::{Extension, extract::State};
 use axum_extra::routing::TypedPath;
 use ferriscord_auth::Identity;
-use ferriscord_core::guild::domain::message::ports::{AttachmentInput, MessageService};
+use ferriscord_core::guild::domain::message::ports::{AttachmentInput, EncryptionMeta, MessageService};
 use ferriscord_entities::{
     Id, attachment::AttachmentId, channel::ChannelId, guild::GuildId, message::Message,
 };
@@ -67,6 +67,7 @@ pub async fn send_message_handler(
 
     let mut content = String::new();
     let mut attachment_inputs: Vec<AttachmentInput> = Vec::new();
+    let mut encryption = EncryptionMeta::default();
     let bucket = &state.args.storage.bucket;
 
     while let Some(field) = multipart
@@ -82,6 +83,18 @@ pub async fn send_message_handler(
             content = field.text().await.map_err(|e| ApiError::Unknown {
                 message: format!("failed to read content field: {}", e),
             })?;
+        } else if field_name == "encrypted" {
+            let val = field.text().await.unwrap_or_default();
+            encryption.encrypted = val == "true";
+        } else if field_name == "encryption_version" {
+            let val = field.text().await.unwrap_or_default();
+            encryption.encryption_version = val.parse().unwrap_or(0);
+        } else if field_name == "sender_key_generation" {
+            let val = field.text().await.unwrap_or_default();
+            encryption.sender_key_generation = val.parse().ok();
+        } else if field_name == "sender_device_id" {
+            let val = field.text().await.unwrap_or_default();
+            encryption.sender_device_id = Uuid::parse_str(&val).ok();
         } else if field_name == "files" {
             let filename = field.file_name().unwrap_or("file").to_string();
             let content_type = field
@@ -126,6 +139,7 @@ pub async fn send_message_handler(
             channel_id.clone(),
             content,
             attachment_inputs,
+            encryption,
         )
         .await
         .map_err(map_core_error)?;

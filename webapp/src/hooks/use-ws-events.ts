@@ -7,6 +7,7 @@ import { usePresenceStore, type PresenceStatus } from '@/stores/presence.store'
 import { containsMention } from '@/lib/mentions'
 import { useNotificationStore } from '@/stores/notification.store'
 import { useTypingStore } from '@/stores/typing.store'
+import { cryptoKeys } from '@/lib/queries/crypto-queries'
 import type { Schemas } from '@/api/api.client'
 
 export function useWsEvents() {
@@ -227,6 +228,17 @@ export function useWsEvents() {
           queryClient.invalidateQueries({
             queryKey: [{ _id: '/guilds/{guild_id}/members' }],
           })
+          break
+        }
+
+        case 'keys.updated': {
+          // E2EE: sender keys changed for a channel — invalidate cached keys
+          const keysData = event.data as { channel_id?: string }
+          if (keysData.channel_id) {
+            queryClient.invalidateQueries({
+              queryKey: cryptoKeys.senderKeys(keysData.channel_id),
+            })
+          }
           break
         }
 

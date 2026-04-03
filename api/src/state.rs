@@ -3,6 +3,7 @@ use std::sync::Arc;
 use ferriscord_auth::{FerriskeyAuthRepository, HasAuthRepository};
 use ferriscord_config::{AuthConfig, DatabaseConfig, StorageConfig};
 use ferriscord_core::{
+    crypto::infrastructure::postgres::PostgresCryptoKeyRepository,
     guild::application::{
         ChannelFerrisCordService, GuildFerrisCordService, InviteFerrisCordService,
         MemberFerrisCordRepository, MessageFerrisCordService, RoleFerrisCordService,
@@ -35,6 +36,7 @@ pub struct AppState {
     pub message_service: MessageFerrisCordService,
     pub invite_service: InviteFerrisCordService,
     pub member_repository: MemberFerrisCordRepository,
+    pub crypto_repository: PostgresCryptoKeyRepository,
     pub storage: S3Client,
     pub hub: WsHub,
     pub presence: PresenceStore,
@@ -73,6 +75,7 @@ pub async fn state(args: Arc<Args>) -> Result<AppState, ApiError> {
             .map_err(|e| ApiError::Unknown { message: e.to_string() })?;
 
     let member_repository = MemberFerrisCordRepository::new(pool.clone());
+    let crypto_repository = PostgresCryptoKeyRepository::new(pool.clone());
 
     let storage = S3Client::new(storage_config).await.map_err(|e| ApiError::Unknown {
         message: e.to_string(),
@@ -90,6 +93,7 @@ pub async fn state(args: Arc<Args>) -> Result<AppState, ApiError> {
         message_service,
         invite_service,
         member_repository,
+        crypto_repository,
         storage,
         hub: WsHub::new(),
         presence: PresenceStore::new(),

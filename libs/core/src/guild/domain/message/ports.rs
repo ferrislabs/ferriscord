@@ -20,6 +20,15 @@ pub struct AttachmentInput {
     pub storage_key: String,
 }
 
+/// E2EE encryption metadata attached to a message.
+#[derive(Debug, Clone, Default)]
+pub struct EncryptionMeta {
+    pub encrypted: bool,
+    pub encryption_version: i32,
+    pub sender_key_generation: Option<i32>,
+    pub sender_device_id: Option<Uuid>,
+}
+
 pub trait MessagePort: Send + Sync {
     /// `author_sub` is the JWT `sub` claim (oauth_sub in the users table).
     fn insert(
@@ -28,6 +37,7 @@ pub trait MessagePort: Send + Sync {
         author_sub: &str,
         content: String,
         attachments: Vec<AttachmentInput>,
+        encryption: EncryptionMeta,
     ) -> impl Future<Output = Result<Message, CoreError>> + Send;
 
     fn list_by_channel(
@@ -62,6 +72,7 @@ pub trait MessageService: Send + Sync {
         channel_id: ChannelId,
         content: String,
         attachments: Vec<AttachmentInput>,
+        encryption: EncryptionMeta,
     ) -> impl Future<Output = Result<Message, CoreError>> + Send;
 
     fn delete_message(

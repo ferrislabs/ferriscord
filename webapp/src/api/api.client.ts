@@ -2,8 +2,11 @@ export namespace Schemas {
   // <Schemas>
   export type ApiError =
     | { Unknown: { message: string } }
+    | { Forbidden: { message: string } }
     | 'TokenNotFound'
     | { InvalidToken: { message: string } }
+    | { NotFound: { message: string } }
+    | { BadRequest: { message: string } }
   export type ApiErrorResponse = {
     code: string
     message: string
@@ -13,6 +16,7 @@ export namespace Schemas {
   export type Attachment = {
     content_type: string
     created_at: string
+    encrypted: boolean
     filename: string
     id: Id
     size_bytes: number
@@ -99,6 +103,18 @@ export namespace Schemas {
     topic?: (string | null) | undefined
     user_limit?: (number | null) | undefined
   }
+  export type CreateDmHistorySyncJobRequest = {
+    channel_id?: (string | null) | undefined
+    source_device_id: string
+    target_device_id: string
+  }
+  export type CreateDmSessionRequest = {
+    encrypted_ratchet_state: string
+    ephemeral_public_key: string
+    owner_device_id: string
+    peer_device_id: string
+    peer_user_id: string
+  }
   export type CreateGuildRequest = { name: string }
   export type CreateInviteRequest = Partial<{
     expires_in_hours: number | null
@@ -110,10 +126,28 @@ export namespace Schemas {
     name: string
     permissions: number
   }
+  export type DeleteChannelResponse = { message: string }
   export type DeleteDmMessageResponse = { message: string }
   export type DeleteInviteResponse = { message: string }
   export type DeleteMessageResponse = { message: string }
   export type DeleteRoleResponse = { message: string }
+  export type DeviceInfo = {
+    created_at: string
+    device_name: string
+    id: string
+    last_seen_at: string
+    public_key: string
+  }
+  export type SenderKeyDistributionUpload = {
+    encrypted_key: string
+    nonce: string
+    recipient_device_id: string
+  }
+  export type DistributeSenderKeyRequest = {
+    distributions: Array<SenderKeyDistributionUpload>
+    generation: number
+    sender_device_id: string
+  }
   export type FriendUser = {
     avatar_url?: (string | null) | undefined
     display_name?: (string | null) | undefined
@@ -121,6 +155,38 @@ export namespace Schemas {
     username: string
   }
   export type DmChannel = { created_at: string; id: Id; recipient: FriendUser }
+  export type DmHistorySyncStatus =
+    | 'pending'
+    | 'in_progress'
+    | 'completed'
+    | 'failed'
+  export type DmHistorySyncJobInfo = {
+    channel_id?: (string | null) | undefined
+    created_at: string
+    cursor_message_id?: (string | null) | undefined
+    id: string
+    last_error?: (string | null) | undefined
+    owner_user_id: string
+    source_device_id: string
+    status: DmHistorySyncStatus
+    target_device_id: string
+    updated_at: string
+  }
+  export type DmHistorySyncPayloadUpload = {
+    ciphertext: string
+    message_id: string
+  }
+  export type DmSessionInfo = {
+    channel_id: string
+    encrypted_ratchet_state: string
+    ephemeral_public_key: string
+    generation: number
+    id: string
+    owner_device_id: string
+    peer_device_id: string
+    peer_user_id: string
+  }
+  export type FailDmHistorySyncJobRequest = { error_message: string }
   export type FriendshipStatus = 'pending' | 'accepted' | 'declined'
   export type Friendship = {
     created_at: string
@@ -161,6 +227,11 @@ export namespace Schemas {
     user_id: string
     username: string
   }
+  export type IdentityKeyInfo = {
+    created_at: string
+    public_key: string
+    user_id: string
+  }
   export type Invite = {
     code: string
     created_at: string
@@ -180,6 +251,22 @@ export namespace Schemas {
     uses: number
   }
   export type JoinGuildRequest = { code: string }
+  export type KeyBackup = {
+    encrypted_blob: string
+    nonce: string
+    recovery_codes: string
+    salt: string
+    version: number
+  }
+  export type KeyBundle = {
+    device_id: string
+    identity_key: string
+    onetime_prekey?: (string | null) | undefined
+    onetime_prekey_id?: (string | null) | undefined
+    signed_prekey: string
+    signed_prekey_signature: string
+    user_id: string
+  }
   export type MessageAuthor = {
     avatar_url?: (string | null) | undefined
     id: Id
@@ -192,11 +279,25 @@ export namespace Schemas {
     content: string
     created_at: string
     edited_at?: (string | null) | undefined
+    encrypted: boolean
+    encryption_version: number
     id: Id
+    sender_device_id?: (string | null) | undefined
+    sender_key_generation?: (number | null) | undefined
   }
   export type MessageId = Id
+  export type OneTimePreKeyUpload = { public_key: string }
+  export type OneTimePreKeysResponse = {
+    available: number
+    ids: Array<string>
+    uploaded: number
+  }
   export type OwnerId = Id
   export type Permissions = unknown
+  export type RegisterDeviceRequest = {
+    device_name: string
+    public_key: string
+  }
   export type Role = {
     color: number
     created_at: string
@@ -210,9 +311,53 @@ export namespace Schemas {
   }
   export type RoleId = Id
   export type SendFriendRequestBody = { username: string }
+  export type SenderKeyDistribution = {
+    channel_id: string
+    encrypted_key: string
+    generation: number
+    nonce: string
+    sender_device_id: string
+    sender_key_id: string
+    sender_user_id: string
+  }
+  export type SignedPreKeyResponse = { id: string }
   export type UpdateChannelRequest = {
+    name?: (string | null) | undefined
     parent_id?: (string | null) | undefined
+    permission_overwrites?: (Array<PermissionOverwrite> | null) | undefined
     position: number
+  }
+  export type UpdateDmSessionRequest = {
+    encrypted_ratchet_state: string
+    ephemeral_public_key: string
+    owner_device_id: string
+    peer_device_id: string
+    peer_user_id: string
+  }
+  export type UpdateRoleRequest = {
+    color: number
+    name: string
+    permissions: number
+  }
+  export type UploadDmHistorySyncPayloadsRequest = {
+    payloads: Array<DmHistorySyncPayloadUpload>
+  }
+  export type UploadDmHistorySyncPayloadsResponse = { uploaded: number }
+  export type UploadIdentityKeyRequest = { public_key: string }
+  export type UploadKeyBackupRequest = {
+    encrypted_blob: string
+    nonce: string
+    recovery_codes: string
+    salt: string
+  }
+  export type UploadOneTimePreKeysRequest = {
+    device_id: string
+    prekeys: Array<OneTimePreKeyUpload>
+  }
+  export type UploadSignedPreKeyRequest = {
+    device_id: string
+    public_key: string
+    signature: string
   }
   export type UserId = Id
   export type UserProfile = {
@@ -257,7 +402,12 @@ export namespace Endpoints {
     path: '/channels/@me/{channel_id}/messages'
     requestFormat: 'json'
     parameters: {
-      path: { channel_id: string; before: string | null; limit: number | null }
+      path: {
+        channel_id: string
+        device_id: string | null
+        before: string | null
+        limit: number | null
+      }
     }
     responses: {
       200: Array<Schemas.Message>
@@ -291,6 +441,143 @@ export namespace Endpoints {
       403: Schemas.ApiError
       500: Schemas.ApiError
     }
+  }
+  export type post_Distribute_sender_keys_handler = {
+    method: 'POST'
+    path: '/channels/{channel_id}/sender-keys'
+    requestFormat: 'json'
+    parameters: {
+      path: { channel_id: string }
+
+      body: Schemas.DistributeSenderKeyRequest
+    }
+    responses: { 200: unknown }
+  }
+  export type get_Get_sender_keys_handler = {
+    method: 'GET'
+    path: '/channels/{channel_id}/sender-keys/@me'
+    requestFormat: 'json'
+    parameters: {
+      path: { channel_id: string }
+    }
+    responses: { 200: Array<Schemas.SenderKeyDistribution> }
+  }
+  export type post_Create_dm_history_sync_job_handler = {
+    method: 'POST'
+    path: '/dm/history-sync/jobs'
+    requestFormat: 'json'
+    parameters: {
+      body: Schemas.CreateDmHistorySyncJobRequest
+    }
+    responses: {
+      201: Schemas.DmHistorySyncJobInfo
+      401: Schemas.ApiError
+      404: Schemas.ApiError
+    }
+  }
+  export type get_Get_dm_history_sync_job_handler = {
+    method: 'GET'
+    path: '/dm/history-sync/jobs/{job_id}'
+    requestFormat: 'json'
+    parameters: {
+      path: { job_id: string }
+    }
+    responses: {
+      200: Schemas.DmHistorySyncJobInfo
+      401: Schemas.ApiError
+      404: Schemas.ApiError
+    }
+  }
+  export type put_Complete_dm_history_sync_job_handler = {
+    method: 'PUT'
+    path: '/dm/history-sync/jobs/{job_id}/complete'
+    requestFormat: 'json'
+    parameters: {
+      path: { job_id: string }
+    }
+    responses: {
+      200: Schemas.DmHistorySyncJobInfo
+      401: Schemas.ApiError
+      404: Schemas.ApiError
+    }
+  }
+  export type put_Fail_dm_history_sync_job_handler = {
+    method: 'PUT'
+    path: '/dm/history-sync/jobs/{job_id}/fail'
+    requestFormat: 'json'
+    parameters: {
+      path: { job_id: string }
+
+      body: Schemas.FailDmHistorySyncJobRequest
+    }
+    responses: {
+      200: Schemas.DmHistorySyncJobInfo
+      401: Schemas.ApiError
+      404: Schemas.ApiError
+    }
+  }
+  export type get_List_dm_history_sync_messages_handler = {
+    method: 'GET'
+    path: '/dm/history-sync/jobs/{job_id}/messages'
+    requestFormat: 'json'
+    parameters: {
+      path: { job_id: string; before: string | null; limit: number | null }
+    }
+    responses: {
+      200: Array<Schemas.Message>
+      401: Schemas.ApiError
+      404: Schemas.ApiError
+    }
+  }
+  export type post_Upload_dm_history_sync_payloads_handler = {
+    method: 'POST'
+    path: '/dm/history-sync/jobs/{job_id}/payloads'
+    requestFormat: 'json'
+    parameters: {
+      path: { job_id: string }
+
+      body: Schemas.UploadDmHistorySyncPayloadsRequest
+    }
+    responses: {
+      200: Schemas.UploadDmHistorySyncPayloadsResponse
+      401: Schemas.ApiError
+      404: Schemas.ApiError
+    }
+  }
+  export type put_Update_dm_session_handler = {
+    method: 'PUT'
+    path: '/dm/{channel_id}/session'
+    requestFormat: 'json'
+    parameters: {
+      path: { channel_id: string }
+
+      body: Schemas.UpdateDmSessionRequest
+    }
+    responses: { 200: Schemas.DmSessionInfo }
+  }
+  export type post_Create_dm_session_handler = {
+    method: 'POST'
+    path: '/dm/{channel_id}/session'
+    requestFormat: 'json'
+    parameters: {
+      path: { channel_id: string }
+
+      body: Schemas.CreateDmSessionRequest
+    }
+    responses: { 201: Schemas.DmSessionInfo }
+  }
+  export type get_Get_dm_session_handler = {
+    method: 'GET'
+    path: '/dm/{channel_id}/session/{owner_device_id}/{peer_device_id}'
+    requestFormat: 'json'
+    parameters: {
+      path: {
+        channel_id: string
+        owner_device_id: string
+        peer_device_id: string
+      }
+    }
+    responses: { 200: Schemas.DmSessionInfo; 404: Schemas.ApiError }
   }
   export type get_List_friends_handler = {
     method: 'GET'
@@ -445,6 +732,21 @@ export namespace Endpoints {
     responses: {
       201: Schemas.Channel
       400: Schemas.ApiError
+      401: Schemas.ApiError
+      403: Schemas.ApiError
+      404: Schemas.ApiError
+      500: Schemas.ApiError
+    }
+  }
+  export type delete_Delete_channel_handler = {
+    method: 'DELETE'
+    path: '/guilds/{guild_id}/channels/{channel_id}'
+    requestFormat: 'json'
+    parameters: {
+      path: { guild_id: string; channel_id: string }
+    }
+    responses: {
+      200: Schemas.DeleteChannelResponse
       401: Schemas.ApiError
       403: Schemas.ApiError
       404: Schemas.ApiError
@@ -673,6 +975,23 @@ export namespace Endpoints {
       500: Schemas.ApiError
     }
   }
+  export type patch_Update_role_handler = {
+    method: 'PATCH'
+    path: '/guilds/{guild_id}/roles/{role_id}'
+    requestFormat: 'json'
+    parameters: {
+      path: { guild_id: string; role_id: string }
+
+      body: Schemas.UpdateRoleRequest
+    }
+    responses: {
+      200: Schemas.Role
+      400: unknown
+      401: unknown
+      403: unknown
+      500: unknown
+    }
+  }
   export type get_Preview_invite_handler = {
     method: 'GET'
     path: '/invites/{code}'
@@ -685,6 +1004,92 @@ export namespace Endpoints {
       404: Schemas.ApiError
       500: Schemas.ApiError
     }
+  }
+  export type get_Get_key_backup_handler = {
+    method: 'GET'
+    path: '/keys/backup'
+    requestFormat: 'json'
+    parameters: never
+    responses: { 200: Schemas.KeyBackup; 404: Schemas.ApiError }
+  }
+  export type put_Upsert_key_backup_handler = {
+    method: 'PUT'
+    path: '/keys/backup'
+    requestFormat: 'json'
+    parameters: {
+      body: Schemas.UploadKeyBackupRequest
+    }
+    responses: { 200: unknown }
+  }
+  export type get_Get_key_bundle_handler = {
+    method: 'GET'
+    path: '/keys/bundle/{user_id}'
+    requestFormat: 'json'
+    parameters: {
+      path: { user_id: string }
+    }
+    responses: { 200: Array<Schemas.KeyBundle>; 404: Schemas.ApiError }
+  }
+  export type get_List_devices_handler = {
+    method: 'GET'
+    path: '/keys/devices'
+    requestFormat: 'json'
+    parameters: never
+    responses: { 200: Array<Schemas.DeviceInfo>; 401: Schemas.ApiError }
+  }
+  export type post_Register_device_handler = {
+    method: 'POST'
+    path: '/keys/devices'
+    requestFormat: 'json'
+    parameters: {
+      body: Schemas.RegisterDeviceRequest
+    }
+    responses: { 201: Schemas.DeviceInfo; 401: Schemas.ApiError }
+  }
+  export type delete_Delete_device_handler = {
+    method: 'DELETE'
+    path: '/keys/devices/{device_id}'
+    requestFormat: 'json'
+    parameters: {
+      path: { device_id: string }
+    }
+    responses: { 200: unknown; 404: Schemas.ApiError }
+  }
+  export type post_Upload_identity_key_handler = {
+    method: 'POST'
+    path: '/keys/identity'
+    requestFormat: 'json'
+    parameters: {
+      body: Schemas.UploadIdentityKeyRequest
+    }
+    responses: { 200: unknown; 401: Schemas.ApiError }
+  }
+  export type get_Get_identity_key_handler = {
+    method: 'GET'
+    path: '/keys/identity/{user_id}'
+    requestFormat: 'json'
+    parameters: {
+      path: { user_id: string }
+    }
+    responses: { 200: Schemas.IdentityKeyInfo; 404: Schemas.ApiError }
+  }
+  export type post_Upload_onetime_prekeys_handler = {
+    method: 'POST'
+    path: '/keys/onetime-prekeys'
+    requestFormat: 'json'
+    parameters: {
+      body: Schemas.UploadOneTimePreKeysRequest
+    }
+    responses: { 200: Schemas.OneTimePreKeysResponse }
+  }
+  export type post_Upload_signed_prekey_handler = {
+    method: 'POST'
+    path: '/keys/signed-prekey'
+    requestFormat: 'json'
+    parameters: {
+      body: Schemas.UploadSignedPreKeyRequest
+    }
+    responses: { 200: Schemas.SignedPreKeyResponse }
   }
   export type get_Get_me_handler = {
     method: 'GET'
@@ -746,6 +1151,10 @@ export type EndpointByMethod = {
   get: {
     '/channels/@me': Endpoints.get_List_dms_handler
     '/channels/@me/{channel_id}/messages': Endpoints.get_Get_dm_messages_handler
+    '/channels/{channel_id}/sender-keys/@me': Endpoints.get_Get_sender_keys_handler
+    '/dm/history-sync/jobs/{job_id}': Endpoints.get_Get_dm_history_sync_job_handler
+    '/dm/history-sync/jobs/{job_id}/messages': Endpoints.get_List_dm_history_sync_messages_handler
+    '/dm/{channel_id}/session/{owner_device_id}/{peer_device_id}': Endpoints.get_Get_dm_session_handler
     '/friends': Endpoints.get_List_friends_handler
     '/friends/requests/incoming': Endpoints.get_List_incoming_handler
     '/friends/requests/outgoing': Endpoints.get_List_outgoing_handler
@@ -756,6 +1165,10 @@ export type EndpointByMethod = {
     '/guilds/{guild_id}/roles': Endpoints.get_Get_roles_handler
     '/guilds/{guild_id}/roles/{role_id}': Endpoints.get_Get_role_handler
     '/invites/{code}': Endpoints.get_Preview_invite_handler
+    '/keys/backup': Endpoints.get_Get_key_backup_handler
+    '/keys/bundle/{user_id}': Endpoints.get_Get_key_bundle_handler
+    '/keys/devices': Endpoints.get_List_devices_handler
+    '/keys/identity/{user_id}': Endpoints.get_Get_identity_key_handler
     '/users/@me': Endpoints.get_Get_me_handler
     '/users/@me/guilds': Endpoints.get_Get_user_guilds
     '/users/{user_id}': Endpoints.get_Get_user_handler
@@ -763,6 +1176,10 @@ export type EndpointByMethod = {
   post: {
     '/channels/@me': Endpoints.post_Create_or_get_dm_handler
     '/channels/@me/{channel_id}/messages': Endpoints.post_Send_dm_message_handler
+    '/channels/{channel_id}/sender-keys': Endpoints.post_Distribute_sender_keys_handler
+    '/dm/history-sync/jobs': Endpoints.post_Create_dm_history_sync_job_handler
+    '/dm/history-sync/jobs/{job_id}/payloads': Endpoints.post_Upload_dm_history_sync_payloads_handler
+    '/dm/{channel_id}/session': Endpoints.post_Create_dm_session_handler
     '/friends/requests': Endpoints.post_Send_friend_request_handler
     '/guilds': Endpoints.post_Create_guild_handler
     '/guilds/join': Endpoints.post_Join_guild_handler
@@ -770,26 +1187,37 @@ export type EndpointByMethod = {
     '/guilds/{guild_id}/channels/{channel_id}/messages': Endpoints.post_Send_message_handler
     '/guilds/{guild_id}/invites': Endpoints.post_Create_invite_handler
     '/guilds/{guild_id}/roles': Endpoints.post_Create_role_handler
+    '/keys/devices': Endpoints.post_Register_device_handler
+    '/keys/identity': Endpoints.post_Upload_identity_key_handler
+    '/keys/onetime-prekeys': Endpoints.post_Upload_onetime_prekeys_handler
+    '/keys/signed-prekey': Endpoints.post_Upload_signed_prekey_handler
   }
   delete: {
     '/channels/@me/{channel_id}/messages/{message_id}': Endpoints.delete_Delete_dm_message_handler
     '/friends/{user_id}': Endpoints.delete_Remove_friend_handler
     '/guilds/{guild_id}': Endpoints.delete_Delete_guild_handler
+    '/guilds/{guild_id}/channels/{channel_id}': Endpoints.delete_Delete_channel_handler
     '/guilds/{guild_id}/channels/{channel_id}/messages/{message_id}': Endpoints.delete_Delete_message_handler
     '/guilds/{guild_id}/invites/{invite_id}': Endpoints.delete_Delete_invite_handler
     '/guilds/{guild_id}/members/@me': Endpoints.delete_Leave_guild_handler
     '/guilds/{guild_id}/members/{user_id}/roles/{role_id}': Endpoints.delete_Remove_member_role_handler
     '/guilds/{guild_id}/roles/{role_id}': Endpoints.delete_Delete_role_handler
+    '/keys/devices/{device_id}': Endpoints.delete_Delete_device_handler
+  }
+  put: {
+    '/dm/history-sync/jobs/{job_id}/complete': Endpoints.put_Complete_dm_history_sync_job_handler
+    '/dm/history-sync/jobs/{job_id}/fail': Endpoints.put_Fail_dm_history_sync_job_handler
+    '/dm/{channel_id}/session': Endpoints.put_Update_dm_session_handler
+    '/guilds/{guild_id}/members/{user_id}/roles/{role_id}': Endpoints.put_Assign_member_role_handler
+    '/keys/backup': Endpoints.put_Upsert_key_backup_handler
   }
   patch: {
     '/friends/requests/{request_id}/accept': Endpoints.patch_Accept_friend_request_handler
     '/friends/requests/{request_id}/decline': Endpoints.patch_Decline_friend_request_handler
     '/guilds/{guild_id}': Endpoints.patch_Update_guild_handler
     '/guilds/{guild_id}/channels/{channel_id}': Endpoints.patch_Update_channel_handler
+    '/guilds/{guild_id}/roles/{role_id}': Endpoints.patch_Update_role_handler
     '/users/@me': Endpoints.patch_Update_profile_handler
-  }
-  put: {
-    '/guilds/{guild_id}/members/{user_id}/roles/{role_id}': Endpoints.put_Assign_member_role_handler
   }
 }
 
@@ -799,8 +1227,8 @@ export type EndpointByMethod = {
 export type GetEndpoints = EndpointByMethod['get']
 export type PostEndpoints = EndpointByMethod['post']
 export type DeleteEndpoints = EndpointByMethod['delete']
-export type PatchEndpoints = EndpointByMethod['patch']
 export type PutEndpoints = EndpointByMethod['put']
+export type PatchEndpoints = EndpointByMethod['patch']
 // </EndpointByMethod.Shorthands>
 
 // <ApiClientTypes>
@@ -1286,6 +1714,66 @@ export class ApiClient {
   }
   // </ApiClient.delete>
 
+  // <ApiClient.put>
+  put<Path extends keyof PutEndpoints, TEndpoint extends PutEndpoints[Path]>(
+    path: Path,
+    ...params: MaybeOptionalArg<
+      TEndpoint extends { parameters: infer UParams }
+        ? NotNever<UParams> extends true
+          ? UParams & {
+              overrides?: RequestInit
+              withResponse?: false
+              throwOnStatusError?: boolean
+            }
+          : {
+              overrides?: RequestInit
+              withResponse?: false
+              throwOnStatusError?: boolean
+            }
+        : {
+            overrides?: RequestInit
+            withResponse?: false
+            throwOnStatusError?: boolean
+          }
+    >
+  ): Promise<
+    Extract<
+      InferResponseByStatus<TEndpoint, SuccessStatusCode>,
+      { data: {} }
+    >['data']
+  >
+
+  put<Path extends keyof PutEndpoints, TEndpoint extends PutEndpoints[Path]>(
+    path: Path,
+    ...params: MaybeOptionalArg<
+      TEndpoint extends { parameters: infer UParams }
+        ? NotNever<UParams> extends true
+          ? UParams & {
+              overrides?: RequestInit
+              withResponse?: true
+              throwOnStatusError?: boolean
+            }
+          : {
+              overrides?: RequestInit
+              withResponse?: true
+              throwOnStatusError?: boolean
+            }
+        : {
+            overrides?: RequestInit
+            withResponse?: true
+            throwOnStatusError?: boolean
+          }
+    >
+  ): Promise<SafeApiResponse<TEndpoint>>
+
+  put<Path extends keyof PutEndpoints, _TEndpoint extends PutEndpoints[Path]>(
+    path: Path,
+    ...params: MaybeOptionalArg<any>
+  ): Promise<any> {
+    return this.request('put', path, ...params)
+  }
+  // </ApiClient.put>
+
   // <ApiClient.patch>
   patch<
     Path extends keyof PatchEndpoints,
@@ -1351,66 +1839,6 @@ export class ApiClient {
     return this.request('patch', path, ...params)
   }
   // </ApiClient.patch>
-
-  // <ApiClient.put>
-  put<Path extends keyof PutEndpoints, TEndpoint extends PutEndpoints[Path]>(
-    path: Path,
-    ...params: MaybeOptionalArg<
-      TEndpoint extends { parameters: infer UParams }
-        ? NotNever<UParams> extends true
-          ? UParams & {
-              overrides?: RequestInit
-              withResponse?: false
-              throwOnStatusError?: boolean
-            }
-          : {
-              overrides?: RequestInit
-              withResponse?: false
-              throwOnStatusError?: boolean
-            }
-        : {
-            overrides?: RequestInit
-            withResponse?: false
-            throwOnStatusError?: boolean
-          }
-    >
-  ): Promise<
-    Extract<
-      InferResponseByStatus<TEndpoint, SuccessStatusCode>,
-      { data: {} }
-    >['data']
-  >
-
-  put<Path extends keyof PutEndpoints, TEndpoint extends PutEndpoints[Path]>(
-    path: Path,
-    ...params: MaybeOptionalArg<
-      TEndpoint extends { parameters: infer UParams }
-        ? NotNever<UParams> extends true
-          ? UParams & {
-              overrides?: RequestInit
-              withResponse?: true
-              throwOnStatusError?: boolean
-            }
-          : {
-              overrides?: RequestInit
-              withResponse?: true
-              throwOnStatusError?: boolean
-            }
-        : {
-            overrides?: RequestInit
-            withResponse?: true
-            throwOnStatusError?: boolean
-          }
-    >
-  ): Promise<SafeApiResponse<TEndpoint>>
-
-  put<Path extends keyof PutEndpoints, _TEndpoint extends PutEndpoints[Path]>(
-    path: Path,
-    ...params: MaybeOptionalArg<any>
-  ): Promise<any> {
-    return this.request('put', path, ...params)
-  }
-  // </ApiClient.put>
 
   // <ApiClient.request>
   /**
