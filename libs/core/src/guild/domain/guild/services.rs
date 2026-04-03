@@ -128,9 +128,7 @@ where
         let owner_id: OwnerId = identity.id().into();
 
         if guild.owner_id != owner_id {
-            return Err(CoreError::Unknown {
-                message: "not guild owner".to_string(),
-            });
+            return Err(CoreError::InsufficientPermissions);
         }
 
         self.guild_repository.update(input).await

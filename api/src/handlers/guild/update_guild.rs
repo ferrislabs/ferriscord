@@ -6,7 +6,7 @@ use ferriscord_auth::Identity;
 use ferriscord_entities::guild::{Guild, GuildId};
 use ferriscord_error::ApiError;
 use ferriscord_server::http::response::Response;
-use ferriscord_core::guild::domain::guild::{entities::UpdateGuildInput, ports::GuildService};
+use ferriscord_core::guild::domain::{errors::CoreError, guild::{entities::UpdateGuildInput, ports::GuildService}};
 use ferriscord_storage::StoragePort;
 use serde::Deserialize;
 use tracing::error;
@@ -50,13 +50,13 @@ pub async fn update_guild_handler(
     let mut new_banner_url: Option<String> = None;
     let mut banner_color: Option<String> = None;
 
-    while let Some(field) = multipart.next_field().await.map_err(|e| ApiError::Unknown {
-        message: format!("multipart error: {}", e),
+    while let Some(field) = multipart.next_field().await.map_err(|e| ApiError::BadRequest {
+        message: format!("invalid multipart request: {}", e),
     })? {
         match field.name().unwrap_or("") {
             "name" => {
-                let value = field.text().await.map_err(|e| ApiError::Unknown {
-                    message: format!("failed to read name: {}", e),
+                let value = field.text().await.map_err(|e| ApiError::BadRequest {
+                    message: format!("failed to read name field: {}", e),
                 })?;
                 let trimmed = value.trim().to_string();
                 if !trimmed.is_empty() {
@@ -64,8 +64,8 @@ pub async fn update_guild_handler(
                 }
             }
             "banner_color" => {
-                let value = field.text().await.map_err(|e| ApiError::Unknown {
-                    message: format!("failed to read banner_color: {}", e),
+                let value = field.text().await.map_err(|e| ApiError::BadRequest {
+                    message: format!("failed to read banner_color field: {}", e),
                 })?;
                 let trimmed = value.trim().to_string();
                 banner_color = Some(trimmed);
@@ -75,8 +75,8 @@ pub async fn update_guild_handler(
                     .content_type()
                     .unwrap_or("application/octet-stream")
                     .to_string();
-                let data = field.bytes().await.map_err(|e| ApiError::Unknown {
-                    message: format!("failed to read icon: {}", e),
+                let data = field.bytes().await.map_err(|e| ApiError::BadRequest {
+                    message: format!("failed to read icon field: {}", e),
                 })?;
                 if data.is_empty() {
                     continue;
@@ -105,8 +105,8 @@ pub async fn update_guild_handler(
                     .content_type()
                     .unwrap_or("application/octet-stream")
                     .to_string();
-                let data = field.bytes().await.map_err(|e| ApiError::Unknown {
-                    message: format!("failed to read banner: {}", e),
+                let data = field.bytes().await.map_err(|e| ApiError::BadRequest {
+                    message: format!("failed to read banner field: {}", e),
                 })?;
                 if data.is_empty() {
                     continue;
@@ -149,7 +149,23 @@ pub async fn update_guild_handler(
             },
         )
         .await
-        .map_err(|e| ApiError::Unknown { message: e.to_string() })?;
+        .map_err(|e| match e {
+            CoreError::GuildNotFound { guild_id } => ApiError::NotFound {
+                message: format!("guild {} not found", guild_id),
+            },
+            CoreError::InsufficientPermissions => ApiError::Forbidden {
+                message: "only the guild owner can update guild settings".to_string(),
+            },
+            CoreError::GuildSlugAlreadyExists { slug } => ApiError::BadRequest {
+                message: format!("a guild with the name '{}' already exists", slug),
+            },
+            e => {
+                error!("failed to update guild: {}", e);
+                ApiError::Unknown {
+                    message: "failed to update guild".to_string(),
+                }
+            }
+        })?;
 
     Ok(Response::OK(guild))
 }

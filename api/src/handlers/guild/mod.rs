@@ -1,4 +1,4 @@
-use axum::Router;
+use axum::{Router, extract::DefaultBodyLimit};
 use axum_extra::routing::RouterExt;
 
 use crate::{
@@ -71,5 +71,9 @@ pub fn guild_routes(_state: AppState) -> Router<AppState> {
         .typed_patch(update_channel_handler)
         .typed_put(assign_member_role_handler)
         .typed_delete(remove_member_role_handler)
-        .typed_patch(update_guild_handler)
+        .merge(
+            Router::new()
+                .typed_patch(update_guild_handler)
+                .layer(DefaultBodyLimit::max(8 * 1024 * 1024)),
+        )
 }

@@ -4,6 +4,7 @@ use chrono::Utc;
 use jsonwebtoken::{DecodingKey, Validation, decode, decode_header};
 use reqwest::Client;
 use serde::{Deserialize, Serialize};
+
 use tracing::warn;
 
 use crate::{AuthError, AuthRepository, Claims, Identity};
@@ -123,7 +124,6 @@ impl AuthRepository for FerriskeyAuthRepository {
         let now = Utc::now().timestamp();
 
         if claims.exp.unwrap_or(0) < now {
-            warn!("token is expired");
             return Err(AuthError::Expired);
         }
 
